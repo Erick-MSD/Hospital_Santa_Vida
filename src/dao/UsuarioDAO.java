@@ -277,6 +277,28 @@ public class UsuarioDAO {
     }
     
     /**
+     * Valida credenciales de login con contraseña de texto plano (desarrollo)
+     */
+    public Usuario validarCredencialesPlainText(String username, String password) throws SQLException {
+        String sql = """
+            SELECT * FROM usuarios 
+            WHERE (username = ? OR email = ?) 
+            AND password_hash = ? 
+            AND activo = true
+            """;
+        
+        try (ResultSet rs = dbConnection.executeQuery(sql, username, username, password)) {
+            if (rs.next()) {
+                Usuario usuario = mapearUsuario(rs);
+                // Actualizar último acceso
+                actualizarUltimoAcceso(usuario.getId());
+                return usuario;
+            }
+        }
+        return null;
+    }
+    
+    /**
      * Mapea un ResultSet a un objeto Usuario
      */
     private Usuario mapearUsuario(ResultSet rs) throws SQLException {

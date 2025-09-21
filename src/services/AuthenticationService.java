@@ -31,11 +31,9 @@ public class AuthenticationService {
      */
     public boolean login(String usernameOEmail, String password) {
         try {
-            // Encriptar la contraseña proporcionada
-            String passwordHash = hashPassword(password);
-            
-            // Buscar y validar credenciales
-            Usuario usuario = usuarioDAO.validarCredenciales(usernameOEmail, passwordHash);
+            // Durante desarrollo, usar contraseñas de texto plano
+            // TODO: En producción, usar contraseñas encriptadas
+            Usuario usuario = usuarioDAO.validarCredencialesPlainText(usernameOEmail, password);
             
             if (usuario != null) {
                 this.usuarioActual = usuario;
