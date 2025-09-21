@@ -1,35 +1,45 @@
-A continuación, se presenta la versión mejorada y reordenada del archivo README, siguiendo las instrucciones de organización solicitadas.
+<p align="center">
+  <img src="assets/img/Logo_tecmi.webp" alt="TecMilenio" width="150"/>
+  &nbsp;&nbsp;&nbsp;
+  <img src="assets/img/Hospital_santa_vida.png" alt="Hospital Santa Vida" width="150"/>
+</p>
 
------
 
-\<p align="center"\>
-\<img src="assets/img/Logo\_tecmi.webp" alt="TecMilenio" width="150"/\>
-\&nbsp;\&nbsp;\&nbsp;
-\<img src="assets/img/Hospital\_santa\_vida.png" alt="\# 🏥 Sistema de Triage Hospitalario" width="150"/\>
-\</p\>
+# 🏥 Sistema de Triage Hospitalario
 
-\<h1 align="center"\>🏥 Sistema de Triage Hospitalario\</h1\>
-\<p align="center"\>
-**Proyecto académico** para la materia de **Estructuras de Datos**
-\</p\>
+**Proyecto académico** para la materia de **Estructuras de Datos** - Sistema de gestión de triage para áreas de urgencias implementado en Java.
+
+> 🚧 **Estado:** En desarrollo - Documentación y diseño completados, implementación en progreso
+
+---
+
+## 📋 INFORMACIÓN DEL PROYECTO
+
+### Datos Académicos
+- **Universidad**: TecMilenio
+- **Materia**: Estructuras de Datos
+- **Profesora**: Blanca Aracely Aranda Machorro
+- **Ubicación**: Monterrey, Nuevo León
 
 -----
 
 ## 📑 Índice de Contenido
 
-1.  [Descripción del Proyecto](https://www.google.com/search?q=%23-descripci%C3%B3n-del-proyecto)
-2.  [Niveles de Triage](https://www.google.com/search?q=%23-niveles-de-triage)
-3.  [Tecnologías](https://www.google.com/search?q=%23%EF%B8%8F-tecnolog%C3%ADas-implementadas)
-4.  [Arquitectura](https://www.google.com/search?q=%23-arquitectura-del-sistema)
-5.  [Diseño UML](https://www.google.com/search?q=%23-dise%C3%B1o-uml)
-6.  [Estructuras de Datos](https://www.google.com/search?q=%23-estructuras-de-datos-aplicadas)
-7.  [Análisis del Problema](https://www.google.com/search?q=%23-an%C3%A1lisis-del-problema)
-8.  [Caso de Estudio: Hospital Privado Santa Vida](https://www.google.com/search?q=%23-caso-de-estudio-hospital-privado-santa-vida)
-9.  [Configuración e Instalación](https://www.google.com/search?q=%23-configuraci%C3%B3n-e-instalaci%C3%B3n)
-10. [Avance del Proyecto](https://www.google.com/search?q=%23-avance-del-proyecto)
-11. [Glosario](https://www.google.com/search?q=%23-glosario-de-t%C3%A9rminos)
-12. [Referencias](https://www.google.com/search?q=%23-bibliograf%C3%ADa-formato-apa)
-13. [Autores](https://www.google.com/search?q=%23-desarrolladores)
+## 📑 ÍNDICE DE CONTENIDO
+
+1. [Caso de Estudio: Hospital Privado Santa Vida](#-caso-de-estudio-hospital-privado-santa-vida)
+2. [Descripción del Proyecto](#-descripción-del-proyecto)
+3. [Niveles de Triage](#-sistema-de-niveles-de-triage)
+4. [Tecnologías](#️-tecnologías-seleccionadas)
+5. [Arquitectura](#-arquitectura-del-sistema)
+6. [Diseño UML](#-diseño-uml)
+7. [Estructuras de Datos](#-estructuras-de-datos-aplicadas)
+8. [Análisis del Problema](#-análisis-del-problema)
+9. [Avance del Proyecto](#-avance-del-proyecto)
+10. [Glosario](#-glosario-de-términos)
+11. [Referencias](#-bibliografía-formato-apa)
+12. [Autores](#-desarrolladores)
+
 
 -----
 
@@ -541,19 +551,52 @@ java -cp "out;lib/*" --module-path "%JAVAFX_HOME%\lib" --add-modules javafx.cont
 
 -----
 
-## 👨‍💻 Desarrolladores
+## 👨‍💻 Desarrolladores  
 
-| | |
-| :--- | :--- |
-| \<p align="center"\>\<img src="assets/img/Foto\_Erick.jpg" alt="Foto Erick" width="120" height="120" style="border-radius:50%;"\>\</p\> | **Erick Mauricio Santiago Díaz**<br>- GitHub: \<a href="[https://github.com/Erick-MSD](https://github.com/Erick-MSD)"\>@Erick-MSD\</a\><br>- Rol: Líder del Proyecto / Desarrollador Principal |
-| \<p align="center"\>\<img src="assets/img/Foto\_Rojo.jpg" alt="Foto Rojo" width="120" height="120" style="border-radius:50%;"\>\</p\> | **Santiago Sebastian Rojo Marquez**<br>- GitHub: \<a href="[https://github.com/Sanlaan](https://github.com/Sanlaan)"\>Sanlann\</a\><br>- Rol: Desarrollador / Especialista en Base de Datos |
-| \<p align="center"\>\<img src="assets/img/Foto\_Dani.jpg" alt="Foto Dani" width="120" height="120" style="border-radius:50%;"\>\</p\> | **Daniel Isai Sanchez Guadarrama**<br>- GitHub: \<a href="[https://github.com/DanielIsaiSG](https://github.com/DanielIsaiSG)"\>DanielIsaiSG\</a\><br>- Rol: Arquitecto del Sistema / Desarrollador |
-| \<p align="center"\>\<img src="assets/img/Foto\_Josue.jpg" alt="Foto Josue" width="120" height="120" style="border-radius:50%;"\>\</p\> | **Josue David Murillo Gomez**<br>- GitHub: \<a href="[https://github.com/Josuemgd15](https://github.com/Josuemgd15)"\>Josuemgd15\</a\><br>- Rol: Encargado de la Documentación / Desarrollador |
+<table>
+  <tr>
+    <td width="160" align="center">
+      <img src="assets/img/Foto_Erick.jpg" alt="Foto Erick" width="120" height="120" style="border-radius:50%;">
+    </td>
+    <td>
+      <b>Erick Mauricio Santiago Díaz</b><br>
+      - GitHub: <a href="https://github.com/Erick-MSD">@Erick-MSD</a><br>
+      - Rol: Líder del Proyecto / Desarrollador Principal
+    </td>
+  </tr>
+  <tr>
+    <td width="160" align="center">
+      <img src="assets/img/Foto_Rojo.jpg" alt="Foto Rojo" width="120" height="120" style="border-radius:50%;">
+    </td>
+    <td>
+      <b>Santiago Sebastian Rojo Marquez</b><br>
+      - GitHub: <a href="https://github.com/Sanlaan">Sanlann</a><br>
+      - Rol: Desarrollador / Especialista en Base de Datos
+    </td>
+  </tr>
+  <tr>
+    <td width="160" align="center">
+      <img src="assets/img/Foto_Dani.jpg" alt="Foto Dani" width="120" height="120" style="border-radius:50%;">
+    </td>
+    <td>
+      <b>Daniel Isai Sanchez Guadarrama</b><br>
+      - GitHub: <a href="https://github.com/DanielIsaiSG">DanielIsaiSG</a><br>
+      - Rol: Arquitecto del Sistema / Desarrollador
+    </td>
+  </tr>
+  <tr>
+    <td width="160" align="center">
+      <img src="assets/img/Foto_Josue.jpg" alt="Foto Josue" width="120" height="120" style="border-radius:50%;">
+    </td>
+    <td>
+      <b>Josue David Murillo Gomez</b><br>
+      - GitHub: <a href="https://github.com/Josuemgd15">Josuemgd15</a><br>
+      - Rol: Encargado de la Documentación / Desarrollador
+    </td>
+  </tr>
+</table>
 
-\<p align="center"\>
-\<img src="assets/img/Evidencia.jpg" alt="Foto Evidencia" width="300" height="300" style="border-radius:50%;"\>
-\</p\>
-
+<p align="center"> <img src="assets/img/Evidencia.jpg" alt="Foto Evidencia" width="300" height="300" style="border-radius:50%;"> </p>
 -----
 
 ## 🎯 Objetivos de Aprendizaje Alcanzados
