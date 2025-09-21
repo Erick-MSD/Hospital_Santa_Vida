@@ -20,8 +20,8 @@ public class DatabaseConnection {
     
     // Configuración por defecto
     private static final String DEFAULT_URL = "jdbc:mysql://localhost:3306/hospital_santa_vida?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
-    private static final String DEFAULT_USERNAME = "hospital_user";
-    private static final String DEFAULT_PASSWORD = "hospital_pass123";
+    private static final String DEFAULT_USERNAME = "root";
+    private static final String DEFAULT_PASSWORD = "Erick1234";
     private static final String DEFAULT_DRIVER = "com.mysql.cj.jdbc.Driver";
     
     // Constructor privado para patrón Singleton
