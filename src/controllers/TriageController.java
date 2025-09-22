@@ -1,401 +1,364 @@
 package controllers;
 
-import models.Paciente;
-import models.RegistroTriage;
-import models.Usuario;
-import dao.PacienteDAO;
-import structures.TriageQueue;
+import javafx.fxml.FXML;
+import javafx.scene.control.*;
+import javafx.event.ActionEvent;
+import models.EvaluacionTriage;
+import dao.EvaluacionTriageDAO;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
-/**
- * Controlador para la pantalla de triage médico
- * Permite al médico de triage evaluar pacientes y asignar prioridades
- */
-public class TriageController extends BaseController {
+public class TriageController {
     
-    private PacienteDAO pacienteDAO;
-    private TriageQueue triageQueue;
+    // Campos del formulario
+    @FXML private TextField txtNumeroFolio;
+    @FXML private TextField txtFechaIngreso;
+    @FXML private TextArea txtMotivoConsulta;
+    @FXML private TextField txtPresionArterial;
+    @FXML private TextField txtFrecuenciaCardiaca;
+    @FXML private TextField txtTemperatura;
+    @FXML private TextField txtFrecuenciaRespiratoria;
+    @FXML private TextField txtSaturacionO2;
+    @FXML private TextField txtDolor;
+    @FXML private TextArea txtObservacionesClinicas;
     
-    // Campos de la interfaz (en JavaFX serían @FXML)
-    private String txtNombrePaciente;
-    private String txtApellidoPaciente;
-    private String txtCurp;
-    private String txtTelefono;
-    private String txtDireccion;
-    private String cmbGenero;
-    private String txtSintomas;
-    private String cmbNivelUrgencia;
-    private String txtObservaciones;
+    // Labels del doctor
+    @FXML private Label lblDoctorName;
+    @FXML private Label lblDoctorRole;
     
-    public TriageController() {
-        super();
-        this.pacienteDAO = new PacienteDAO();
-        this.triageQueue = new TriageQueue(); // Crear instancia directamente
+    // Botones de triage
+    @FXML private Button btnTriageRojo;
+    @FXML private Button btnTriageNaranja;
+    @FXML private Button btnTriageAmarillo;
+    @FXML private Button btnTriageVerde;
+    @FXML private Button btnTriageAzul;
+    @FXML private Label lblTriageSeleccionado;
+    
+    // Botones de especialidades
+    @FXML private Button btnEspecialidadGeneral;
+    @FXML private Button btnEspecialidadCardiologia;
+    @FXML private Button btnEspecialidadPediatria;
+    @FXML private Button btnEspecialidadTraumatologia;
+    @FXML private Button btnEspecialidadGinecologia;
+    @FXML private Button btnEspecialidadNeurologia;
+    @FXML private Button btnEspecialidadPsiquiatria;
+    @FXML private Button btnEspecialidadDermatologia;
+    @FXML private Label lblEspecialidadSeleccionada;
+    
+    // Botones de acción
+    @FXML private Button btnCancelar;
+    @FXML private Button btnCompletarEvaluacion;
+    
+    // Variables de estado
+    private String nivelTriageSeleccionado = null;
+    private String especialidadSeleccionada = null;
+    private EvaluacionTriageDAO evaluacionDAO;
+    
+    // Método para inicializar
+    @FXML
+    private void initialize() {
+        System.out.println("✅ Controlador de Triage inicializado correctamente");
+        
+        // Inicializar DAO
+        evaluacionDAO = new EvaluacionTriageDAO();
+        
+        // Configurar información del doctor
+        if (lblDoctorName != null) {
+            lblDoctorName.setText("Dr. Ana García");
+        }
+        if (lblDoctorRole != null) {
+            lblDoctorRole.setText("Médico Triage");
+        }
+        
+        // Generar folio automático
+        if (txtNumeroFolio != null) {
+            txtNumeroFolio.setText("TRG-" + System.currentTimeMillis() % 100000);
+        }
+        
+        // Configurar fecha actual
+        if (txtFechaIngreso != null) {
+            LocalDateTime now = LocalDateTime.now();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+            txtFechaIngreso.setText(now.format(formatter));
+        }
     }
     
-    @Override
-    protected void configurarInterfaz() {
-        logAction("Configurando interfaz de triage");
+    // ===== MÉTODOS PARA BOTONES DE TRIAGE =====
+    
+    @FXML
+    private void handleTriageRojo(ActionEvent event) {
+        seleccionarNivelTriage("ROJO", "ROJO - Crítico", btnTriageRojo);
+    }
+    
+    @FXML
+    private void handleTriageNaranja(ActionEvent event) {
+        seleccionarNivelTriage("NARANJA", "NARANJA - Urgente", btnTriageNaranja);
+    }
+    
+    @FXML
+    private void handleTriageAmarillo(ActionEvent event) {
+        seleccionarNivelTriage("AMARILLO", "AMARILLO - Menos Urgente", btnTriageAmarillo);
+    }
+    
+    @FXML
+    private void handleTriageVerde(ActionEvent event) {
+        seleccionarNivelTriage("VERDE", "VERDE - No Urgente", btnTriageVerde);
+    }
+    
+    @FXML
+    private void handleTriageAzul(ActionEvent event) {
+        seleccionarNivelTriage("AZUL", "AZUL - Consulta Externa", btnTriageAzul);
+    }
+    
+    private void seleccionarNivelTriage(String nivel, String texto, Button botonSeleccionado) {
+        nivelTriageSeleccionado = nivel;
+        lblTriageSeleccionado.setText(texto);
         
-        // Verificar permisos específicos
-        Usuario usuarioActual = authService.getUsuarioActual();
-        if (usuarioActual == null || usuarioActual.getTipoUsuario() != Usuario.TipoUsuario.MEDICO_TRIAGE) {
-            showError("No tiene permisos para acceder al sistema de triage");
-            navigateTo("/views/Login.fxml");
+        // Resetear estilos de todos los botones
+        resetearEstilosTriageButtons();
+        
+        // Aplicar estilo seleccionado
+        botonSeleccionado.setStyle(botonSeleccionado.getStyle() + "; -fx-border-color: #2C3E50; -fx-border-width: 3;");
+        
+        System.out.println("🎯 Nivel de triage seleccionado: " + nivel);
+    }
+    
+    private void resetearEstilosTriageButtons() {
+        Button[] botonesTriaje = {btnTriageRojo, btnTriageNaranja, btnTriageAmarillo, btnTriageVerde, btnTriageAzul};
+        for (Button btn : botonesTriaje) {
+            if (btn != null) {
+                String estilo = btn.getStyle();
+                estilo = estilo.replaceAll("; -fx-border-color: #[0-9A-F]{6}; -fx-border-width: [0-9];", "");
+                btn.setStyle(estilo);
+            }
+        }
+    }
+    
+    // ===== MÉTODOS PARA BOTONES DE ESPECIALIDADES =====
+    
+    @FXML
+    private void handleEspecialidadGeneral(ActionEvent event) {
+        seleccionarEspecialidad("Medicina General", btnEspecialidadGeneral);
+    }
+    
+    @FXML
+    private void handleEspecialidadCardiologia(ActionEvent event) {
+        seleccionarEspecialidad("Cardiología", btnEspecialidadCardiologia);
+    }
+    
+    @FXML
+    private void handleEspecialidadPediatria(ActionEvent event) {
+        seleccionarEspecialidad("Pediatría", btnEspecialidadPediatria);
+    }
+    
+    @FXML
+    private void handleEspecialidadTraumatologia(ActionEvent event) {
+        seleccionarEspecialidad("Traumatología", btnEspecialidadTraumatologia);
+    }
+    
+    @FXML
+    private void handleEspecialidadGinecologia(ActionEvent event) {
+        seleccionarEspecialidad("Ginecología", btnEspecialidadGinecologia);
+    }
+    
+    @FXML
+    private void handleEspecialidadNeurologia(ActionEvent event) {
+        seleccionarEspecialidad("Neurología", btnEspecialidadNeurologia);
+    }
+    
+    @FXML
+    private void handleEspecialidadPsiquiatria(ActionEvent event) {
+        seleccionarEspecialidad("Psiquiatría", btnEspecialidadPsiquiatria);
+    }
+    
+    @FXML
+    private void handleEspecialidadDermatologia(ActionEvent event) {
+        seleccionarEspecialidad("Dermatología", btnEspecialidadDermatologia);
+    }
+    
+    private void seleccionarEspecialidad(String especialidad, Button botonSeleccionado) {
+        especialidadSeleccionada = especialidad;
+        lblEspecialidadSeleccionada.setText("Especialidad: " + especialidad);
+        
+        // Resetear estilos de todos los botones
+        resetearEstilosEspecialidadButtons();
+        
+        // Aplicar estilo seleccionado
+        botonSeleccionado.setStyle(botonSeleccionado.getStyle() + "; -fx-border-color: #2C3E50; -fx-border-width: 2;");
+        
+        System.out.println("🏥 Especialidad seleccionada: " + especialidad);
+    }
+    
+    private void resetearEstilosEspecialidadButtons() {
+        Button[] botonesEspecialidad = {
+            btnEspecialidadGeneral, btnEspecialidadCardiologia, btnEspecialidadPediatria, 
+            btnEspecialidadTraumatologia, btnEspecialidadGinecologia, btnEspecialidadNeurologia, 
+            btnEspecialidadPsiquiatria, btnEspecialidadDermatologia
+        };
+        for (Button btn : botonesEspecialidad) {
+            if (btn != null) {
+                String estilo = btn.getStyle();
+                estilo = estilo.replaceAll("; -fx-border-color: #[0-9A-F]{6}; -fx-border-width: [0-9];", "");
+                btn.setStyle(estilo);
+            }
+        }
+    }
+    
+    // ===== MÉTODOS PARA BOTONES DE ACCIÓN =====
+    
+    @FXML
+    private void handleCancelar(ActionEvent event) {
+        System.out.println("🚫 Evaluación cancelada");
+        limpiarFormulario();
+    }
+    
+    @FXML
+    private void handleCompletarEvaluacion(ActionEvent event) {
+        System.out.println("✅ Iniciando proceso de completar evaluación...");
+        
+        // Validar campos obligatorios
+        if (!validarCamposObligatorios()) {
             return;
         }
         
-        // Configurar campos y eventos
-        configurarCamposFormulario();
-        configurarComboBoxes();
-        cargarPacientesEnEspera();
-    }
-    
-    @Override
-    protected void cargarDatos() {
-        logAction("Cargando datos de triage");
-        
         try {
-            // Cargar estadísticas del día
-            cargarEstadisticasDia();
+            // Crear objeto EvaluacionTriage
+            EvaluacionTriage evaluacion = crearEvaluacionDesdeFormulario();
             
-            // Actualizar cola de triage
-            actualizarColaTriage();
+            // Guardar en base de datos
+            boolean guardado = evaluacionDAO.insertarEvaluacion(evaluacion);
             
-            // Cargar configuraciones del sistema
-            cargarConfiguracionTriage();
-            
-        } catch (Exception e) {
-            logAction("Error al cargar datos: " + e.getMessage());
-            handleDatabaseError(e);
-        }
-    }
-    
-    @Override
-    protected void limpiarFormulario() {
-        txtNombrePaciente = "";
-        txtApellidoPaciente = "";
-        txtCurp = "";
-        txtTelefono = "";
-        txtDireccion = "";
-        cmbGenero = "";
-        txtSintomas = "";
-        cmbNivelUrgencia = "";
-        txtObservaciones = "";
-    }
-    
-    /**
-     * Registra un nuevo paciente en triage
-     */
-    public void handleRegistrarPaciente() {
-        logAction("Iniciando registro de paciente en triage");
-        
-        if (!validarFormulario()) {
-            return;
-        }
-        
-        try {
-            // Crear nuevo paciente
-            Paciente paciente = crearPacienteDesdeFormulario();
-            
-            // Registrar en base de datos
-            int pacienteId = pacienteDAO.crear(paciente);
-            paciente.setId(pacienteId);
-            
-            if (pacienteId > 0) {
-                // Crear registro de triage
-                RegistroTriage registro = crearRegistroTriage(paciente);
-                
-                // Agregar a la cola de triage
-                triageQueue.agregarPaciente(registro);
-                
-                showInfo("Paciente registrado exitosamente en triage");
-                logAction("Paciente " + paciente.getNombreCompleto() + " agregado a cola " + 
-                         registro.getNivelUrgencia());
+            if (guardado) {
+                showAlert("Éxito", "✅ Evaluación de triage completada y guardada correctamente\n\n" +
+                         "📋 Folio: " + evaluacion.getNumeroFolio() + "\n" +
+                         "🎯 Nivel: " + evaluacion.getNivelTriage() + "\n" +
+                         "🏥 Especialidad: " + evaluacion.getEspecialidad(), Alert.AlertType.INFORMATION);
                 
                 limpiarFormulario();
-                actualizarColaTriage();
             } else {
-                showError("Error al registrar paciente en la base de datos");
+                showAlert("Error", "❌ No se pudo guardar la evaluación en la base de datos", Alert.AlertType.ERROR);
             }
             
         } catch (Exception e) {
-            logAction("Error durante registro: " + e.getMessage());
-            handleDatabaseError(e);
+            System.err.println("❌ Error al completar evaluación: " + e.getMessage());
+            e.printStackTrace();
+            showAlert("Error", "❌ Error inesperado: " + e.getMessage(), Alert.AlertType.ERROR);
         }
     }
     
-    /**
-     * Busca un paciente existente por CURP
-     */
-    public void handleBuscarPaciente() {
-        String curp = txtCurp;
+    private boolean validarCamposObligatorios() {
+        StringBuilder errores = new StringBuilder();
         
-        if (curp == null || curp.trim().isEmpty()) {
-            showError("Ingrese el CURP del paciente para buscar");
-            return;
+        if (txtMotivoConsulta.getText().trim().isEmpty()) {
+            errores.append("• El motivo de consulta es obligatorio\n");
         }
         
-        try {
-            logAction("Buscando paciente con CURP: " + curp);
-            Paciente paciente = pacienteDAO.buscarPorCurp(curp);
-            
-            if (paciente != null) {
-                cargarDatosPaciente(paciente);
-                showInfo("Paciente encontrado: " + paciente.getNombreCompleto());
-            } else {
-                showInfo("No se encontró paciente con ese CURP. Se puede registrar como nuevo.");
-            }
-            
-        } catch (Exception e) {
-            logAction("Error al buscar paciente: " + e.getMessage());
-            handleDatabaseError(e);
-        }
-    }
-    
-    /**
-     * Atiende al siguiente paciente en la cola
-     */
-    public void handleAtenderSiguiente() {
-        logAction("Atendiendo siguiente paciente en cola");
-        
-        try {
-            RegistroTriage siguientePaciente = triageQueue.obtenerSiguientePaciente();
-            
-            if (siguientePaciente != null) {
-                mostrarDatosPacienteParaAtencion(siguientePaciente);
-                showInfo("Atendiendo a: " + siguientePaciente.getPaciente().getNombreCompleto());
-                actualizarColaTriage();
-            } else {
-                showInfo("No hay pacientes en espera");
-            }
-            
-        } catch (Exception e) {
-            logAction("Error al atender paciente: " + e.getMessage());
-            handleDatabaseError(e);
-        }
-    }
-    
-    /**
-     * Actualiza el nivel de urgencia de un paciente
-     */
-    public void handleActualizarUrgencia() {
-        // Implementar lógica para cambiar prioridad de paciente ya en cola
-        logAction("Actualizando nivel de urgencia");
-        showInfo("Función disponible próximamente");
-    }
-    
-    /**
-     * Muestra el historial médico de un paciente
-     */
-    public void handleVerHistorial() {
-        String curp = txtCurp;
-        
-        if (curp == null || curp.trim().isEmpty()) {
-            showError("Seleccione un paciente para ver su historial");
-            return;
+        if (nivelTriageSeleccionado == null) {
+            errores.append("• Debe seleccionar un nivel de triage\n");
         }
         
-        try {
-            // En una implementación real abriría una nueva ventana
-            logAction("Mostrando historial de paciente: " + curp);
-            showInfo("Historial médico - Función disponible próximamente");
-            
-        } catch (Exception e) {
-            logAction("Error al mostrar historial: " + e.getMessage());
-            handleDatabaseError(e);
-        }
-    }
-    
-    /**
-     * Crea un objeto Paciente desde los datos del formulario
-     */
-    private Paciente crearPacienteDesdeFormulario() {
-        Paciente paciente = new Paciente();
-        
-        paciente.setNombre(txtNombrePaciente.trim());
-        paciente.setApellidoPaterno(txtApellidoPaciente.trim().split(" ")[0]);
-        if (txtApellidoPaciente.trim().split(" ").length > 1) {
-            paciente.setApellidoMaterno(txtApellidoPaciente.trim().split(" ")[1]);
-        }
-        paciente.setCurp(txtCurp.trim().toUpperCase());
-        paciente.setTelefonoPrincipal(txtTelefono.trim());
-        paciente.setDireccionCalle(txtDireccion.trim());
-        
-        // Convertir string a enum
-        if ("MASCULINO".equals(cmbGenero)) {
-            paciente.setSexo(Paciente.Sexo.MASCULINO);
-        } else if ("FEMENINO".equals(cmbGenero)) {
-            paciente.setSexo(Paciente.Sexo.FEMENINO);
-        } else {
-            paciente.setSexo(Paciente.Sexo.OTRO);
+        if (especialidadSeleccionada == null) {
+            errores.append("• Debe seleccionar una especialidad médica\n");
         }
         
-        // En una implementación real se convertiría la fecha del DatePicker
-        // paciente.setFechaNacimiento(dtpFechaNacimiento.getValue());
-        
-        return paciente;
-    }
-    
-    /**
-     * Crea un registro de triage desde los datos del formulario
-     */
-    private RegistroTriage crearRegistroTriage(Paciente paciente) {
-        RegistroTriage registro = new RegistroTriage();
-        
-        registro.setPaciente(paciente);
-        registro.setMedicoTriage(authService.getUsuarioActual());
-        registro.setSintomasPrincipales(txtSintomas.trim());
-        registro.setObservacionesTriage(txtObservaciones.trim());
-        
-        // Convertir string a enum
-        RegistroTriage.NivelUrgencia nivel = RegistroTriage.NivelUrgencia.valueOf(cmbNivelUrgencia);
-        registro.setNivelUrgencia(nivel);
-        
-        return registro;
-    }
-    
-    /**
-     * Carga los datos de un paciente existente en el formulario
-     */
-    private void cargarDatosPaciente(Paciente paciente) {
-        txtNombrePaciente = paciente.getNombre();
-        txtApellidoPaciente = paciente.getApellidoPaterno() + " " + 
-                             (paciente.getApellidoMaterno() != null ? paciente.getApellidoMaterno() : "");
-        txtCurp = paciente.getCurp();
-        txtTelefono = paciente.getTelefonoPrincipal();
-        txtDireccion = paciente.getDireccionCalle();
-        cmbGenero = paciente.getSexo().toString();
-        // dtpFechaNacimiento = paciente.getFechaNacimiento();
-    }
-    
-    /**
-     * Configura los campos del formulario
-     */
-    private void configurarCamposFormulario() {
-        // En JavaFX se configurarían los listeners y validaciones
-        logAction("Configurando campos del formulario");
-    }
-    
-    /**
-     * Configura los ComboBox con opciones válidas
-     */
-    private void configurarComboBoxes() {
-        // Configurar género
-        // cmbGenero.getItems().addAll("MASCULINO", "FEMENINO", "OTRO");
-        
-        // Configurar niveles de urgencia
-        // cmbNivelUrgencia.getItems().addAll("ROJO", "NARANJA", "AMARILLO", "VERDE", "AZUL");
-        
-        logAction("ComboBoxes configurados");
-    }
-    
-    /**
-     * Carga pacientes en espera
-     */
-    private void cargarPacientesEnEspera() {
-        try {
-            // En JavaFX actualizaría una TableView o ListView
-            int pacientesEnEspera = triageQueue.getTotalPacientesEspera();
-            logAction("Pacientes en espera: " + pacientesEnEspera);
-            
-        } catch (Exception e) {
-            logAction("Error al cargar pacientes en espera: " + e.getMessage());
-        }
-    }
-    
-    /**
-     * Carga estadísticas del día actual
-     */
-    private void cargarEstadisticasDia() {
-        // Implementar carga de estadísticas
-        logAction("Cargando estadísticas del día");
-    }
-    
-    /**
-     * Actualiza la visualización de la cola de triage
-     */
-    private void actualizarColaTriage() {
-        try {
-            // En JavaFX actualizaría la vista de la cola
-            logAction("Actualizando vista de cola de triage");
-            
-            // Obtener estadísticas por nivel
-            int rojos = triageQueue.getCantidadPorNivel(RegistroTriage.NivelUrgencia.ROJO);
-            int naranjas = triageQueue.getCantidadPorNivel(RegistroTriage.NivelUrgencia.NARANJA);
-            int amarillos = triageQueue.getCantidadPorNivel(RegistroTriage.NivelUrgencia.AMARILLO);
-            int verdes = triageQueue.getCantidadPorNivel(RegistroTriage.NivelUrgencia.VERDE);
-            int azules = triageQueue.getCantidadPorNivel(RegistroTriage.NivelUrgencia.AZUL);
-            
-            logAction("Cola actualizada - ROJO: " + rojos + ", NARANJA: " + naranjas + 
-                     ", AMARILLO: " + amarillos + ", VERDE: " + verdes + ", AZUL: " + azules);
-                     
-        } catch (Exception e) {
-            logAction("Error al actualizar cola: " + e.getMessage());
-        }
-    }
-    
-    /**
-     * Carga configuración del sistema de triage
-     */
-    private void cargarConfiguracionTriage() {
-        logAction("Cargando configuración de triage");
-        // Cargar configuraciones específicas del hospital
-    }
-    
-    /**
-     * Muestra datos del paciente para atención
-     */
-    private void mostrarDatosPacienteParaAtencion(RegistroTriage registro) {
-        // En JavaFX abriría un diálogo o nueva ventana
-        logAction("Mostrando datos para atención: " + registro.getPaciente().getNombreCompleto());
-    }
-    
-    /**
-     * Valida el formulario antes de registrar
-     */
-    private boolean validarFormulario() {
-        if (!validarCamposObligatorios(txtNombrePaciente, txtApellidoPaciente, txtCurp)) {
-            return false;
-        }
-        
-        if (!validarCurp()) {
-            return false;
-        }
-        
-        if (!validarNivelUrgencia()) {
+        if (errores.length() > 0) {
+            showAlert("Campos Obligatorios", "❌ Por favor complete los siguientes campos:\n\n" + errores.toString(), Alert.AlertType.WARNING);
             return false;
         }
         
         return true;
     }
     
-    /**
-     * Valida el formato del CURP
-     */
-    private boolean validarCurp() {
-        if (txtCurp == null || txtCurp.length() != 18) {
-            showError("El CURP debe tener exactamente 18 caracteres");
-            return false;
-        }
-        return true;
+    private EvaluacionTriage crearEvaluacionDesdeFormulario() {
+        EvaluacionTriage evaluacion = new EvaluacionTriage();
+        
+        evaluacion.setNumeroFolio(txtNumeroFolio.getText().trim());
+        
+        // Parsear fecha
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+        evaluacion.setFechaIngreso(LocalDateTime.parse(txtFechaIngreso.getText().trim(), formatter));
+        
+        evaluacion.setMotivoConsulta(txtMotivoConsulta.getText().trim());
+        evaluacion.setPresionArterial(txtPresionArterial.getText().trim().isEmpty() ? null : txtPresionArterial.getText().trim());
+        
+        // Parsear números con validación
+        evaluacion.setFrecuenciaCardiaca(parseIntegerField(txtFrecuenciaCardiaca.getText()));
+        evaluacion.setTemperatura(parseDoubleField(txtTemperatura.getText()));
+        evaluacion.setFrecuenciaRespiratoria(parseIntegerField(txtFrecuenciaRespiratoria.getText()));
+        evaluacion.setSaturacionO2(parseIntegerField(txtSaturacionO2.getText()));
+        evaluacion.setNivelDolor(parseIntegerField(txtDolor.getText()));
+        
+        evaluacion.setObservacionesClinicas(txtObservacionesClinicas.getText().trim());
+        evaluacion.setNivelTriage(nivelTriageSeleccionado);
+        evaluacion.setEspecialidad(especialidadSeleccionada);
+        evaluacion.setDoctorId(1); // ID del doctor (debería venir del login)
+        
+        return evaluacion;
     }
     
-    /**
-     * Valida que se haya seleccionado un nivel de urgencia
-     */
-    private boolean validarNivelUrgencia() {
-        if (cmbNivelUrgencia == null || cmbNivelUrgencia.trim().isEmpty()) {
-            showError("Debe seleccionar un nivel de urgencia");
-            return false;
+    private Integer parseIntegerField(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
         }
-        return true;
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
     
-    @Override
-    public void cleanup() {
-        super.cleanup();
-        // Limpiar recursos específicos del triage
-        limpiarFormulario();
-        pacienteDAO = null;
+    private Double parseDoubleField(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            return Double.parseDouble(value.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+    
+    private void limpiarFormulario() {
+        // Limpiar campos de texto
+        txtMotivoConsulta.clear();
+        txtPresionArterial.clear();
+        txtFrecuenciaCardiaca.clear();
+        txtTemperatura.clear();
+        txtFrecuenciaRespiratoria.clear();
+        txtSaturacionO2.clear();
+        txtDolor.clear();
+        txtObservacionesClinicas.clear();
+        
+        // Resetear selecciones
+        nivelTriageSeleccionado = null;
+        especialidadSeleccionada = null;
+        lblTriageSeleccionado.setText("Selecciona un nivel");
+        lblEspecialidadSeleccionada.setText("Selecciona una especialidad");
+        
+        // Resetear estilos de botones
+        resetearEstilosTriageButtons();
+        resetearEstilosEspecialidadButtons();
+        
+        // Generar nuevo folio
+        txtNumeroFolio.setText("TRG-" + System.currentTimeMillis() % 100000);
+        
+        // Actualizar fecha
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+        txtFechaIngreso.setText(now.format(formatter));
+        
+        System.out.println("🧹 Formulario limpiado y listo para nueva evaluación");
+    }
+    
+    private void showAlert(String title, String message, Alert.AlertType type) {
+        Alert alert = new Alert(type);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+    
+    private void showAlert(String title, String message) {
+        showAlert(title, message, Alert.AlertType.INFORMATION);
     }
 }

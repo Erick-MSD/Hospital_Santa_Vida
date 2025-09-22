@@ -94,20 +94,17 @@ public class LoginController extends BaseController implements Initializable {
             // Deshabilitar botón durante autenticación
             btnLogin.setDisable(true);
             
-            // Intentar autenticación
-            boolean loginSuccessful = authService.login(username, password);
+            // Validación simple de usuarios (temporal)
+            boolean loginSuccessful = validarUsuarioTemporal(username, password);
             
             if (loginSuccessful) {
-                Usuario usuario = authService.getUsuarioActual();
-                logAction("Login exitoso para usuario: " + usuario.getUsername());
+                logAction("Login exitoso para usuario: " + username);
                 mostrarMensaje("Login exitoso. Redirigiendo...", "#2E7D32");
                 
-                // Mostrar información del usuario
-                System.out.println("✅ Usuario autenticado: " + usuario.getNombreCompleto());
-                System.out.println("🏥 Rol: " + usuario.getTipoUsuario());
+                System.out.println("✅ Usuario autenticado: " + username);
                 
-                // Por ahora solo mostramos mensaje de éxito
-                mostrarMensaje("¡Bienvenido " + usuario.getNombreCompleto() + "!", "#2E7D32");
+                // Redireccionar a la pantalla de triage
+                abrirPantallaTriage();
                 
             } else {
                 logAction("Login fallido para usuario: " + username);
@@ -144,6 +141,16 @@ public class LoginController extends BaseController implements Initializable {
     }
     
     /**
+     * Validación temporal de usuarios (para pruebas)
+     */
+    private boolean validarUsuarioTemporal(String username, String password) {
+        // Usuarios de prueba
+        return (username.equals("admin") && password.equals("admin123")) ||
+               (username.equals("doctor") && password.equals("doctor123")) ||
+               (username.equals("enfermera") && password.equals("enfermera123"));
+    }
+    
+    /**
      * Muestra un mensaje en la interfaz
      */
     private void mostrarMensaje(String mensaje, String color) {
@@ -160,6 +167,37 @@ public class LoginController extends BaseController implements Initializable {
         if (isAuthenticated()) {
             Usuario usuario = authService.getUsuarioActual();
             System.out.println("Usuario ya autenticado: " + usuario.getNombreCompleto());
+        }
+    }
+    
+    /**
+     * Abre la pantalla de triage y cierra la ventana de login
+     */
+    private void abrirPantallaTriage() {
+        try {
+            // Cargar el FXML de triage
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/ui/triage.fxml"));
+            Scene triageScene = new Scene(loader.load());
+            
+            // Crear nueva ventana para triage
+            Stage triageStage = new Stage();
+            triageStage.setTitle("Evaluación de Triage - Hospital Santa Vida");
+            triageStage.setScene(triageScene);
+            triageStage.setMaximized(true);
+            
+            // Mostrar nueva ventana
+            triageStage.show();
+            
+            // Cerrar ventana de login actual
+            Stage currentStage = (Stage) btnLogin.getScene().getWindow();
+            currentStage.close();
+            
+            System.out.println("✅ Pantalla de triage abierta correctamente!");
+            
+        } catch (IOException e) {
+            System.err.println("❌ Error al abrir pantalla de triage: " + e.getMessage());
+            mostrarMensaje("Error al cargar la aplicación principal", "#D32F2F");
+            e.printStackTrace();
         }
     }
 }
