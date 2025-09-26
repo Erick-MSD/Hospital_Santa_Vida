@@ -11,6 +11,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.image.ImageView;
 import javafx.stage.Stage;
 import models.Usuario;
+import services.AuthenticationService;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ResourceBundle;
@@ -103,8 +104,8 @@ public class LoginController extends BaseController implements Initializable {
                 
                 System.out.println("✅ Usuario autenticado: " + username);
                 
-                // Redireccionar a la pantalla de triage
-                abrirPantallaTriage();
+                // Redireccionar según el rol del usuario
+                redirigirSegunRol();
                 
             } else {
                 logAction("Login fallido para usuario: " + username);
@@ -142,12 +143,169 @@ public class LoginController extends BaseController implements Initializable {
     
     /**
      * Validación temporal de usuarios (para pruebas)
+     * Incluye mapeo de roles para cada usuario
      */
     private boolean validarUsuarioTemporal(String username, String password) {
-        // Usuarios de prueba
-        return (username.equals("admin") && password.equals("admin123")) ||
-               (username.equals("doctor") && password.equals("doctor123")) ||
-               (username.equals("enfermera") && password.equals("enfermera123"));
+        // Usuarios de prueba con sus respectivos roles
+        // Usuarios de la base de datos (únicos usuarios válidos)
+        if (username.equals("admin") && password.equals("password123")) {
+            // Crear usuario administrador
+            Usuario adminUser = new Usuario();
+            adminUser.setNombreCompleto("Administrador General");
+            adminUser.setUsername("admin");
+            adminUser.setTipoUsuario(Usuario.TipoUsuario.ADMINISTRADOR);
+            authService.setUsuarioActual(adminUser);
+            return true;
+        } else if (username.equals("dr.garcia") && password.equals("password123")) {
+            // Crear médico de triage
+            Usuario doctorUser = new Usuario();
+            doctorUser.setNombreCompleto("Dr. García");
+            doctorUser.setUsername("dr.garcia");
+            doctorUser.setTipoUsuario(Usuario.TipoUsuario.MEDICO_TRIAGE);
+            authService.setUsuarioActual(doctorUser);
+            return true;
+        } else if (username.equals("asist.maria") && password.equals("password123")) {
+            // Crear asistente médica - encargada de registro de pacientes
+            Usuario assistantUser = new Usuario();
+            assistantUser.setNombreCompleto("Asistente María");
+            assistantUser.setUsername("asist.maria");
+            assistantUser.setTipoUsuario(Usuario.TipoUsuario.ASISTENTE_MEDICA);
+            authService.setUsuarioActual(assistantUser);
+            return true;
+        } else if (username.equals("social.ana") && password.equals("password123")) {
+            // Crear trabajador social
+            Usuario socialUser = new Usuario();
+            socialUser.setNombreCompleto("Trabajadora Social Ana");
+            socialUser.setUsername("social.ana");
+            socialUser.setTipoUsuario(Usuario.TipoUsuario.TRABAJADOR_SOCIAL);
+            authService.setUsuarioActual(socialUser);
+            return true;
+        } else if (username.equals("dr.martinez") && password.equals("password123")) {
+            // Crear médico de urgencias
+            Usuario urgenciesUser = new Usuario();
+            urgenciesUser.setNombreCompleto("Dr. Martínez");
+            urgenciesUser.setUsername("dr.martinez");
+            urgenciesUser.setTipoUsuario(Usuario.TipoUsuario.MEDICO_URGENCIAS);
+            authService.setUsuarioActual(urgenciesUser);
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Redirige al usuario según su rol después del login
+     */
+    private void redirigirSegunRol() {
+        Usuario usuario = authService.getUsuarioActual();
+        if (usuario == null) {
+            mostrarMensaje("Error: Usuario no autenticado", "#D32F2F");
+            return;
+        }
+        
+        System.out.println("\n🚀 REDIRIGIENDO SEGÚN ROL DE USUARIO");
+        System.out.println("Usuario: " + usuario.getNombreCompleto());
+        System.out.println("Tipo: " + usuario.getTipoUsuario());
+        System.out.println("=========================================");
+        
+        try {
+            switch (usuario.getTipoUsuario()) {
+                case ADMINISTRADOR:
+                    System.out.println("🔧 Iniciando Panel de Administración...");
+                    // TODO: Abrir pantalla de administración
+                    abrirConsola("ADMINISTRADOR");
+                    break;
+                    
+                case MEDICO_TRIAGE:
+                    System.out.println("🩺 Iniciando Evaluación de Triage...");
+                    // Abrir pantalla de triage
+                    abrirPantallaTriage();
+                    break;
+                    
+                case ASISTENTE_MEDICA:
+                    System.out.println("👩‍⚕️ Iniciando Registro de Pacientes...");
+                    // Abrir registro de pacientes
+                    abrirRegistroPaciente();
+                    break;
+                    
+                case TRABAJADOR_SOCIAL:
+                    System.out.println("🤝 Iniciando Entrevista Social...");
+                    // TODO: Abrir pantalla de trabajo social
+                    abrirConsola("TRABAJADOR_SOCIAL");
+                    break;
+                    
+                case MEDICO_URGENCIAS:
+                    System.out.println("🚨 Iniciando Atención Médica...");
+                    // TODO: Abrir pantalla de atención médica
+                    abrirConsola("MEDICO_URGENCIAS");
+                    break;
+                    
+                default:
+                    mostrarMensaje("Error: Tipo de usuario no reconocido", "#D32F2F");
+                    System.err.println("❌ Tipo de usuario no reconocido: " + usuario.getTipoUsuario());
+                    return;
+            }
+            
+            // Cerrar ventana de login
+            System.out.println("✅ Login completado exitosamente");
+            
+        } catch (Exception e) {
+            mostrarMensaje("Error al cargar la pantalla principal", "#D32F2F");
+            System.err.println("❌ Error al cargar pantalla: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Abre la consola específica para un tipo de usuario
+     */
+    private void abrirConsola(String tipoUsuario) {
+        System.out.println("⏳ Funcionalidad de " + tipoUsuario + " en desarrollo...");
+        System.out.println("Por ahora se muestra información por consola");
+        System.out.println("Presione Enter para continuar...");
+        
+        try {
+            System.in.read();
+        } catch (Exception e) {
+            // Ignorar errores de lectura
+        }
+    }
+    
+    /**
+     * Abre la pantalla de registro de paciente para asistentes médicas
+     */
+    private void abrirRegistroPaciente() {
+        try {
+            System.out.println("👩‍⚕️ Abriendo interfaz de Registro de Paciente...");
+            
+            // Cargar la interfaz FXML de registro de paciente
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/ui/registro-paciente.fxml"));
+            Scene registroScene = new Scene(loader.load());
+            
+            // Obtener el controlador y configurarlo
+            RegistroPacienteController controller = loader.getController();
+            if (controller != null) {
+                controller.initialize();
+            }
+            
+            // Crear nueva ventana
+            Stage registroStage = new Stage();
+            registroStage.setTitle("Hospital Santa Vida - Registro de Pacientes");
+            registroStage.setScene(registroScene);
+            registroStage.setResizable(true);
+            registroStage.show();
+            
+            System.out.println("✅ Interfaz de registro de pacientes abierta correctamente!");
+            
+            // Cerrar ventana de login
+            Stage currentStage = (Stage) btnLogin.getScene().getWindow();
+            currentStage.close();
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error al abrir interfaz de registro de paciente: " + e.getMessage());
+            e.printStackTrace();
+            mostrarMensaje("Error al cargar interfaz de registro de paciente", "#D32F2F");
+        }
     }
     
     /**
@@ -158,6 +316,8 @@ public class LoginController extends BaseController implements Initializable {
             lblMessage.setText(mensaje);
             lblMessage.setStyle("-fx-text-fill: " + color + ";");
         }
+        // También mostrar en consola para depuración
+        System.out.println("💬 " + mensaje);
     }
     
     /**

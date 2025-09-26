@@ -350,6 +350,35 @@ public class TriageController {
         System.out.println("🧹 Formulario limpiado y listo para nueva evaluación");
     }
     
+    /**
+     * Inicializar la pantalla de triage con un paciente ya registrado
+     * Este método se llama desde RegistroPacienteController
+     */
+    public void inicializarConPaciente(models.Paciente paciente, models.RegistroTriage registro) {
+        System.out.println("✅ Triage inicializado para paciente: " + paciente.getNombreCompleto());
+        System.out.println("📋 Folio: " + registro.getFolio());
+        
+        // Llenar datos del paciente en la interfaz si los campos están disponibles
+        if (txtNumeroFolio != null) {
+            txtNumeroFolio.setText(registro.getFolio());
+        }
+        
+        // Mostrar información del paciente
+        System.out.println("\n👤 PACIENTE ASIGNADO AL TRIAGE:");
+        System.out.println("   Nombre: " + paciente.getNombreCompleto());
+        System.out.println("   Edad: " + paciente.getEdad() + " años");
+        System.out.println("   CURP: " + paciente.getCurp());
+        System.out.println("   Teléfono: " + paciente.getTelefonoPrincipal());
+        System.out.println("   Folio: " + registro.getFolio());
+        System.out.println("   Estado: " + registro.getEstado());
+        System.out.println("================================\n");
+        
+        // Guardar referencias para uso posterior
+        // Estas variables necesitarían ser agregadas como campos privados
+        // private models.Paciente pacienteActual;
+        // private models.RegistroTriage registroActual;
+    }
+    
     private void showAlert(String title, String message, Alert.AlertType type) {
         Alert alert = new Alert(type);
         alert.setTitle(title);

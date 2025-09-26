@@ -16,21 +16,31 @@
 <AnchorPane prefHeight="800.0" prefWidth="1200.0" style="-fx-background-color: #F5F3F0;" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.TriageController">
    <children>
       <!-- Header -->
-      <HBox alignment="CENTER_LEFT" prefHeight="80.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" style="-fx-background-color: #FFFFFF; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 5, 0, 0, 2);">
+      <HBox alignment="CENTER_LEFT" prefHeight="90.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" style="-fx-background-color: #FFFFFF; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 8, 0, 0, 3);">
          <children>
             <!-- Logo y nombre del hospital -->
-            <HBox alignment="CENTER_LEFT" spacing="15.0" HBox.hgrow="ALWAYS">
+            <HBox alignment="CENTER_LEFT" spacing="20.0" HBox.hgrow="ALWAYS">
                <children>
+                  <!-- Logo oficial del hospital -->
+                  <ImageView fitHeight="60.0" fitWidth="60.0" preserveRatio="true">
+                     <image>
+                        <Image url="/assets/img/Hospital_santa_vida.png" />
+                     </image>
+                     <HBox.margin>
+                        <Insets left="30.0" />
+                     </HBox.margin>
+                  </ImageView>
+                  
                   <VBox spacing="2.0">
                      <children>
                         <Label text="SANTA VIDA" textFill="#2E5984">
                            <font>
-                              <Font name="System Bold" size="16.0" />
+                              <Font name="System Bold" size="22.0" />
                            </font>
                         </Label>
                         <Label text="HOSPITAL PRIVADO" textFill="#7A7A7A">
                            <font>
-                              <Font size="12.0" />
+                              <Font size="13.0" />
                            </font>
                         </Label>
                      </children>
@@ -39,49 +49,50 @@
             </HBox>
             
             <!-- Información del doctor -->
-            <HBox alignment="CENTER_RIGHT" spacing="15.0">
+            <HBox alignment="CENTER_RIGHT" spacing="18.0">
                <children>
-                  <VBox alignment="CENTER_RIGHT" spacing="2.0">
+                  <VBox alignment="CENTER_RIGHT" spacing="3.0">
                      <children>
                         <Label fx:id="lblDoctorName" text="Dr. Ana Garcia" textFill="#2E5984">
                            <font>
-                              <Font name="System Bold" size="14.0" />
+                              <Font name="System Bold" size="16.0" />
                            </font>
                         </Label>
-                        <Label fx:id="lblDoctorRole" text="Medico Triage" textFill="#7A7A7A">
+                        <Label fx:id="lblDoctorRole" text="Médico de Triage" textFill="#7A7A7A">
                            <font>
-                              <Font size="12.0" />
+                              <Font size="13.0" />
                            </font>
                         </Label>
                      </children>
                   </VBox>
-                  <Label text="DR" textFill="WHITE" style="-fx-background-color: #4ECDC4; -fx-background-radius: 25; -fx-min-width: 50; -fx-min-height: 50; -fx-alignment: center;">
-                     <font>
-                        <Font name="System Bold" size="14.0" />
-                     </font>
-                  </Label>
+                  <Label text="👨‍⚕️" style="-fx-font-size: 32px;"/>
                </children>
+               <HBox.margin>
+                  <Insets right="30.0" />
+               </HBox.margin>
             </HBox>
          </children>
-         <padding>
-            <Insets bottom="15.0" left="30.0" right="30.0" top="15.0" />
-         </padding>
       </HBox>
 
       <!-- Contenido principal con scroll -->
-      <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="80.0" style="-fx-background: #F5F3F0; -fx-background-color: transparent;">
+      <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="90.0" style="-fx-background: #F5F3F0; -fx-background-color: transparent;">
          <content>
             <VBox spacing="30.0" style="-fx-background-color: #F5F3F0;">
                <children>
                   <!-- Título -->
-                  <VBox spacing="10.0">
+                  <VBox spacing="15.0" style="-fx-padding: 30 30 0 30;">
                      <children>
-                        <Label text="Evaluacion de Triage" textFill="#2E5984">
-                           <font>
-                              <Font name="System Bold" size="28.0" />
-                           </font>
-                        </Label>
-                        <Label text="Clasificacion y evaluacion inicial del paciente" textFill="#7A7A7A">
+                        <HBox alignment="CENTER_LEFT" spacing="15.0">
+                           <children>
+                              <Label text="🩺" style="-fx-font-size: 28px;"/>
+                              <Label text="Evaluación de Triage" textFill="#2E5984">
+                                 <font>
+                                    <Font name="System Bold" size="28.0" />
+                                 </font>
+                              </Label>
+                           </children>
+                        </HBox>
+                        <Label text="Clasificación y evaluación inicial del paciente" textFill="#7A7A7A">
                            <font>
                               <Font size="16.0" />
                            </font>

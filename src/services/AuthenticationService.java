@@ -161,6 +161,19 @@ public class AuthenticationService {
     }
     
     /**
+     * Establece un usuario como autenticado (para login temporal/testing)
+     */
+    public void setUsuarioActual(Usuario usuario) {
+        this.usuarioActual = usuario;
+        this.inicioSesion = LocalDateTime.now();
+        
+        if (usuario != null) {
+            System.out.println("Usuario establecido como actual: " + usuario.getNombreCompleto());
+            System.out.println("Tipo de usuario: " + usuario.getTipoUsuario());
+        }
+    }
+    
+    /**
      * Requiere que el usuario esté autenticado, lanza excepción si no
      */
     public void requireAuthentication() throws SecurityException {

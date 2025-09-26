@@ -325,6 +325,53 @@ public class TriageService {
      */
     private void cargarDatosPendientes() {
         try {
+            System.out.println("🔍 Iniciando carga de datos pendientes...");
+            
+            // Primero, verificar qué pacientes hay en total
+            String sqlVerificacion = """
+                SELECT COUNT(*) as total_registros FROM registros_triage
+                """;
+            try (ResultSet rsVerif = dbConnection.executeQuery(sqlVerificacion)) {
+                if (rsVerif.next()) {
+                    int totalRegistros = rsVerif.getInt("total_registros");
+                    System.out.println("📊 Total de registros en registros_triage: " + totalRegistros);
+                }
+            }
+            
+            // Verificar pacientes de cualquier fecha
+            String sqlTodos = """
+                SELECT rt.estado, DATE(rt.fecha_hora_llegada) as fecha, COUNT(*) as cantidad
+                FROM registros_triage rt
+                GROUP BY rt.estado, DATE(rt.fecha_hora_llegada)
+                ORDER BY fecha DESC
+                """;
+            try (ResultSet rsTodos = dbConnection.executeQuery(sqlTodos)) {
+                System.out.println("📅 Pacientes por fecha y estado:");
+                while (rsTodos.next()) {
+                    System.out.println("   - " + rsTodos.getString("fecha") + 
+                                     " | Estado: " + rsTodos.getString("estado") + 
+                                     " | Cantidad: " + rsTodos.getInt("cantidad"));
+                }
+            }
+            
+            // NUEVA CONSULTA: Ver todos los registros sin filtros
+            String sqlTodosRegistros = """
+                SELECT rt.id, rt.paciente_id, rt.estado, rt.fecha_hora_llegada, rt.motivo_consulta
+                FROM registros_triage rt
+                ORDER BY rt.id DESC
+                LIMIT 5
+                """;
+            try (ResultSet rsTodosRegs = dbConnection.executeQuery(sqlTodosRegistros)) {
+                System.out.println("🔍 Últimos 5 registros en base de datos:");
+                while (rsTodosRegs.next()) {
+                    System.out.println("   - ID: " + rsTodosRegs.getInt("id") + 
+                                     " | Paciente: " + rsTodosRegs.getInt("paciente_id") +
+                                     " | Estado: " + rsTodosRegs.getString("estado") +
+                                     " | Fecha: " + rsTodosRegs.getTimestamp("fecha_hora_llegada") +
+                                     " | Motivo: " + rsTodosRegs.getString("motivo_consulta"));
+                }
+            }
+            
             String sql = """
                 SELECT * FROM registros_triage rt
                 LEFT JOIN pacientes p ON rt.paciente_id = p.id
@@ -333,13 +380,29 @@ public class TriageService {
                 ORDER BY rt.fecha_hora_llegada
                 """;
             
+            System.out.println("📅 Buscando pacientes de la fecha: " + java.time.LocalDate.now());
+            System.out.println("🔎 SQL Query: " + sql.replaceAll("\\s+", " ").trim());
+            
             try (ResultSet rs = dbConnection.executeQuery(sql)) {
+                int pacientesEncontrados = 0;
+                int pacientesAgregados = 0;
+                
                 while (rs.next()) {
+                    pacientesEncontrados++;
                     RegistroTriage registro = mapearRegistroTriage(rs);
+                    
+                    System.out.println("👤 Paciente encontrado: " + registro.getPacienteId() + 
+                                     " | Estado: " + registro.getEstado() + 
+                                     " | Fecha: " + registro.getFechaHoraLlegada() +
+                                     " | Triage completo: " + registro.esTriageCompleto());
                     
                     // Solo agregar a colas si tiene triage completo
                     if (registro.esTriageCompleto()) {
                         colasTriage.agregarPaciente(registro);
+                        pacientesAgregados++;
+                        System.out.println("✅ Paciente agregado a cola: " + registro.getPacienteId());
+                    } else {
+                        System.out.println("⚠️ Paciente NO agregado (triage incompleto): " + registro.getPacienteId());
                     }
                     
                     // Crear historial básico
@@ -356,6 +419,11 @@ public class TriageService {
                     
                     historiales.put(registro.getId(), historial);
                 }
+                
+                System.out.println("📊 Resumen de carga:");
+                System.out.println("   - Pacientes encontrados en BD: " + pacientesEncontrados);
+                System.out.println("   - Pacientes agregados a colas: " + pacientesAgregados);
+                System.out.println("   - Total en colas de espera: " + colasTriage.getTotalPacientesEspera());
             }
             
             System.out.println("Datos pendientes cargados: " + colasTriage.getTotalPacientesEspera() + " pacientes");
