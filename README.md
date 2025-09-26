@@ -192,7 +192,7 @@ src/
 
 A continuación, se presentan los diagramas UML que modelan la estructura y el comportamiento del sistema.
 
-### Diagrama de Clases - Actualizado
+### Diagrama de Clases
 
 ```mermaid
 classDiagram
@@ -452,10 +452,10 @@ mysql -u hospital_user -p hospital_santa_vida < hospital_santa_vida.sql
 
 ```bash
 # Compilar proyecto
-javac -cp "lib/*;%JAVAFX_HOME%\lib\*" -d out src/**/*.java
+.\compile.bat
 
 # Ejecutar aplicación
-java -cp "out;lib/*" --module-path "%JAVAFX_HOME%\lib" --add-modules javafx.controls,javafx.fxml Main
+.\run.bat
 ```
 
 -----
