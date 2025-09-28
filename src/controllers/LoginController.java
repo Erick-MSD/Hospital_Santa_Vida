@@ -192,6 +192,49 @@ public class LoginController extends BaseController implements Initializable {
         
         return false;
     }
+
+    /**
+     * Método para manejar el cierre de sesión desde otras pantallas
+     * Este método será llamado cuando se presione "Cerrar Sesión" en cualquier pantalla
+     */
+    public void handleLogout() {
+        try {
+            System.out.println("\ud83d\udeaa Cerrando sesi\u00f3n...");
+            
+            // Limpiar datos de sesión
+            if (authService != null) {
+                authService.logout();
+            }
+            
+            // Limpiar formulario de login
+            limpiarFormulario();
+            
+            System.out.println("\u2705 Sesi\u00f3n cerrada correctamente");
+            
+        } catch (Exception e) {
+            System.err.println("\u274c Error al cerrar sesi\u00f3n: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Método estático para abrir la pantalla de login desde otras ventanas
+     */
+    public static void abrirLogin(Stage currentStage) {
+        try {
+            FXMLLoader loader = new FXMLLoader(LoginController.class.getResource("/ui/login.fxml"));
+            Scene loginScene = new Scene(loader.load());
+            
+            currentStage.setTitle("Login - Hospital Santa Vida");
+            currentStage.setScene(loginScene);
+            currentStage.centerOnScreen();
+            
+            System.out.println("\u2705 Regresado al login correctamente");
+            
+        } catch (Exception e) {
+            System.err.println("\u274c Error al abrir login: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
     
     /**
      * Redirige al usuario según su rol después del login
@@ -211,9 +254,8 @@ public class LoginController extends BaseController implements Initializable {
         try {
             switch (usuario.getTipoUsuario()) {
                 case ADMINISTRADOR:
-                    System.out.println("🔧 Iniciando Panel de Administración...");
-                    // TODO: Abrir pantalla de administración
-                    abrirConsola("ADMINISTRADOR");
+                    System.out.println("🔧 Iniciando Panel de Administración - Sala de Espera...");
+                    abrirPanelAdministracion();
                     break;
                     
                 case MEDICO_TRIAGE:
@@ -420,6 +462,39 @@ public class LoginController extends BaseController implements Initializable {
         } catch (IOException e) {
             System.err.println("❌ Error al abrir interfaz de consulta médica: " + e.getMessage());
             mostrarMensaje("Error al cargar la aplicación de consulta médica", "#D32F2F");
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Abre el panel de administración - sala de espera y cierra la ventana de login
+     */
+    private void abrirPanelAdministracion() {
+        try {
+            System.out.println("🏥 Cargando Panel de Administración - Sala de Espera...");
+            
+            // Cargar el FXML del panel de administración
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/ui/admin-sala-espera.fxml"));
+            Scene adminScene = new Scene(loader.load());
+            
+            // Crear nueva ventana para el panel de administración
+            Stage adminStage = new Stage();
+            adminStage.setTitle("Panel de Administración - Sala de Espera - Hospital Santa Vida");
+            adminStage.setScene(adminScene);
+            adminStage.setMaximized(true);
+            
+            // Mostrar nueva ventana
+            adminStage.show();
+            
+            // Cerrar ventana de login actual
+            Stage currentStage = (Stage) btnLogin.getScene().getWindow();
+            currentStage.close();
+            
+            System.out.println("✅ Panel de Administración abierto correctamente!");
+            
+        } catch (IOException e) {
+            System.err.println("❌ Error al abrir Panel de Administración: " + e.getMessage());
+            mostrarMensaje("Error al cargar el Panel de Administración", "#D32F2F");
             e.printStackTrace();
         }
     }

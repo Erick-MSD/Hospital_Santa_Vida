@@ -95,8 +95,8 @@
             <Font size="12.0" />
          </font>
       </Label>
-      
-      <Label text="v1.0 - 2025" textFill="#7A7A7A" AnchorPane.bottomAnchor="20.0" AnchorPane.rightAnchor="30.0">
+
+      <Label text="v1.0 - 2025 - Desarrollo por GRED Systems" textFill="#7A7A7A" AnchorPane.bottomAnchor="20.0" AnchorPane.rightAnchor="30.0">
          <font>
             <Font size="12.0" />
          </font>
