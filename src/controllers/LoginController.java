@@ -230,14 +230,13 @@ public class LoginController extends BaseController implements Initializable {
                     
                 case TRABAJADOR_SOCIAL:
                     System.out.println("🤝 Iniciando Entrevista Social...");
-                    // TODO: Abrir pantalla de trabajo social
-                    abrirConsola("TRABAJADOR_SOCIAL");
+                    // Abrir pantalla de trabajo social
+                    abrirTrabajoSocial();
                     break;
                     
                 case MEDICO_URGENCIAS:
-                    System.out.println("🚨 Iniciando Atención Médica...");
-                    // TODO: Abrir pantalla de atención médica
-                    abrirConsola("MEDICO_URGENCIAS");
+                    System.out.println("🚨 Iniciando Consulta Médica...");
+                    abrirConsultaMedica();
                     break;
                     
                 default:
@@ -357,6 +356,70 @@ public class LoginController extends BaseController implements Initializable {
         } catch (IOException e) {
             System.err.println("❌ Error al abrir pantalla de triage: " + e.getMessage());
             mostrarMensaje("Error al cargar la aplicación principal", "#D32F2F");
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Abre la pantalla de trabajo social y cierra la ventana de login
+     */
+    private void abrirTrabajoSocial() {
+        try {
+            // Cargar el FXML de trabajo social
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/ui/trabajo-social.fxml"));
+            Scene trabajoSocialScene = new Scene(loader.load());
+            
+            // Crear nueva ventana para trabajo social
+            Stage trabajoSocialStage = new Stage();
+            trabajoSocialStage.setTitle("Evaluación Social - Hospital Santa Vida");
+            trabajoSocialStage.setScene(trabajoSocialScene);
+            trabajoSocialStage.setMaximized(true);
+            
+            // Mostrar nueva ventana
+            trabajoSocialStage.show();
+            
+            // Cerrar ventana de login actual
+            Stage currentStage = (Stage) btnLogin.getScene().getWindow();
+            currentStage.close();
+            
+            System.out.println("✅ Pantalla de trabajo social abierta correctamente!");
+            
+        } catch (IOException e) {
+            System.err.println("❌ Error al abrir pantalla de trabajo social: " + e.getMessage());
+            mostrarMensaje("Error al cargar la aplicación de trabajo social", "#D32F2F");
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Abre la pantalla de consulta médica para doctores y cierra la ventana de login
+     */
+    private void abrirConsultaMedica() {
+        try {
+            System.out.println("🩺 Cargando interfaz de consulta médica...");
+            
+            // Cargar el FXML de consulta médica
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/ui/consulta-medica.fxml"));
+            Scene consultaMedicaScene = new Scene(loader.load());
+            
+            // Crear nueva ventana para consulta médica
+            Stage consultaMedicaStage = new Stage();
+            consultaMedicaStage.setTitle("Consulta Médica - Hospital Santa Vida");
+            consultaMedicaStage.setScene(consultaMedicaScene);
+            consultaMedicaStage.setMaximized(true);
+            
+            // Mostrar nueva ventana
+            consultaMedicaStage.show();
+            
+            // Cerrar ventana de login actual
+            Stage currentStage = (Stage) btnLogin.getScene().getWindow();
+            currentStage.close();
+            
+            System.out.println("✅ Interfaz de consulta médica abierta correctamente!");
+            
+        } catch (IOException e) {
+            System.err.println("❌ Error al abrir interfaz de consulta médica: " + e.getMessage());
+            mostrarMensaje("Error al cargar la aplicación de consulta médica", "#D32F2F");
             e.printStackTrace();
         }
     }

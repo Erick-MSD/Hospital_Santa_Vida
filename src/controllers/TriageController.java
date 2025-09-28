@@ -379,6 +379,26 @@ public class TriageController {
         // private models.RegistroTriage registroActual;
     }
     
+    @FXML
+    public void handleLogout() {
+        try {
+            // Cargar la pantalla de login
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/ui/login.fxml"));
+            javafx.scene.Scene loginScene = new javafx.scene.Scene(loader.load());
+            
+            javafx.stage.Stage currentStage = (javafx.stage.Stage) btnCancelar.getScene().getWindow();
+            currentStage.setScene(loginScene);
+            currentStage.setTitle("Iniciar Sesión - Hospital Santa Vida");
+            currentStage.centerOnScreen();
+            
+        } catch (Exception e) {
+            showAlert("Error", "Error al cerrar sesión: " + e.getMessage(), Alert.AlertType.ERROR);
+        }
+    }
+    
+    /**
+     * Muestra una alerta al usuario
+     */
     private void showAlert(String title, String message, Alert.AlertType type) {
         Alert alert = new Alert(type);
         alert.setTitle(title);
@@ -387,6 +407,9 @@ public class TriageController {
         alert.showAndWait();
     }
     
+    /**
+     * Muestra una alerta de información
+     */
     private void showAlert(String title, String message) {
         showAlert(title, message, Alert.AlertType.INFORMATION);
     }

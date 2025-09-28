@@ -315,10 +315,22 @@
                               
                               <HBox alignment="CENTER_LEFT" spacing="10.0">
                                  <children>
+                                    <Label text="⏳" style="-fx-font-size: 18px;"/>
+                                    <VBox>
+                                       <children>
+                                          <Label text="1. Triage" style="-fx-font-weight: bold; -fx-text-fill: #666666;"/>
+                                          <Label text="Evaluación inicial y clasificación" style="-fx-font-size: 11px; -fx-text-fill: #666666;"/>
+                                       </children>
+                                    </VBox>
+                                 </children>
+                              </HBox>
+                              
+                              <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                 <children>
                                     <Label text="✅" style="-fx-font-size: 18px;"/>
                                     <VBox>
                                        <children>
-                                          <Label text="1. Registro de Paciente" style="-fx-font-weight: bold; -fx-text-fill: #4CAF50;"/>
+                                          <Label text="2. Registro de Paciente" style="-fx-font-weight: bold; -fx-text-fill: #4CAF50;"/>
                                           <Label text="Captura de datos básicos" style="-fx-font-size: 11px; -fx-text-fill: #666666;"/>
                                        </children>
                                     </VBox>
@@ -330,8 +342,8 @@
                                     <Label text="⏳" style="-fx-font-size: 18px;"/>
                                     <VBox>
                                        <children>
-                                          <Label text="2. Evaluación Médica" style="-fx-font-weight: bold; -fx-text-fill: #666666;"/>
-                                          <Label text="Triage y clasificación" style="-fx-font-size: 11px; -fx-text-fill: #666666;"/>
+                                          <Label text="3. Trabajo Social" style="-fx-font-weight: bold; -fx-text-fill: #666666;"/>
+                                          <Label text="Evaluación socioeconómica" style="-fx-font-size: 11px; -fx-text-fill: #666666;"/>
                                        </children>
                                     </VBox>
                                  </children>
@@ -342,15 +354,15 @@
                                     <Label text="⏳" style="-fx-font-size: 18px;"/>
                                     <VBox>
                                        <children>
-                                          <Label text="3. Atención Médica" style="-fx-font-weight: bold; -fx-text-fill: #666666;"/>
+                                          <Label text="4. Atención Médica" style="-fx-font-weight: bold; -fx-text-fill: #666666;"/>
                                           <Label text="Consulta con especialista" style="-fx-font-size: 11px; -fx-text-fill: #666666;"/>
                                        </children>
                                     </VBox>
                                  </children>
                               </HBox>
                               
-                              <ProgressBar progress="0.33" prefWidth="280.0" style="-fx-accent: #4CAF50;"/>
-                              <Label text="Completado: 1/3 pasos" style="-fx-font-size: 12px; -fx-text-fill: #666666;"/>
+                              <ProgressBar progress="0.25" prefWidth="280.0" style="-fx-accent: #4CAF50;"/>
+                              <Label text="Completado: 1/4 pasos" style="-fx-font-size: 12px; -fx-text-fill: #666666;"/>
                            </children>
                         </VBox>
                         
@@ -385,6 +397,16 @@
                                     <Label text="• El seguro médico es opcional" style="-fx-font-size: 12px; -fx-text-fill: #666666;"/>
                                  </children>
                               </VBox>
+                           </children>
+                        </VBox>
+                        
+                        <!-- Botón de cerrar sesión -->
+                        <VBox spacing="15.0" style="-fx-background-color: white; -fx-background-radius: 10; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 5, 0, 0, 2);">
+                           <padding>
+                              <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+                           </padding>
+                           <children>
+                              <Button fx:id="btnCerrarSesion" text="🚪 Cerrar Sesión" style="-fx-background-color: #DC3545; -fx-text-fill: white; -fx-pref-width: 280; -fx-pref-height: 45; -fx-font-weight: bold; -fx-font-size: 14px; -fx-background-radius: 8; -fx-cursor: hand; -fx-effect: dropshadow(three-pass-box, rgba(220, 53, 69, 0.3), 6, 0, 0, 2);" onAction="#handleLogout"/>
                            </children>
                         </VBox>
                      </children>

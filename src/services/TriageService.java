@@ -556,6 +556,123 @@ public class TriageService {
         return registro;
     }
     
+    /**
+     * Obtiene el siguiente paciente que necesita evaluación social
+     */
+    public RegistroTriage obtenerSiguientePacienteParaTrabajoSocial() {
+        String sql = """
+            SELECT rt.*, p.nombre, p.apellido_paterno, p.apellido_materno,
+                   p.fecha_nacimiento, p.sexo, p.telefono_principal, p.email
+            FROM registros_triage rt
+            INNER JOIN pacientes p ON rt.paciente_id = p.id
+            WHERE rt.estado = 'REGISTRO_COMPLETO'
+            AND rt.id NOT IN (
+                SELECT DISTINCT registro_triage_id 
+                FROM datos_sociales 
+                WHERE registro_triage_id IS NOT NULL
+            )
+            ORDER BY rt.fecha_hora_llegada ASC
+            LIMIT 1
+            """;
+        
+        System.out.println("🔍 Buscando paciente para evaluación social...");
+        
+        try (Connection conn = dbConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            
+            if (rs.next()) {
+                RegistroTriage registro = mapearRegistroTriage(rs);
+                System.out.println("✅ Paciente encontrado para trabajo social: " + 
+                                 registro.getPaciente().getNombre() + " " + 
+                                 registro.getPaciente().getApellidoPaterno());
+                return registro;
+            } else {
+                System.out.println("ℹ️ No hay pacientes pendientes de evaluación social");
+                return null;
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("❌ Error al obtener paciente para trabajo social: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+    }
+    
+    /**
+     * Marca un registro como completado de evaluación social
+     */
+    public boolean marcarEvaluacionSocialCompleta(int registroTriageId) {
+        String sql = """
+            UPDATE registros_triage 
+            SET estado = 'TRABAJO_SOCIAL_COMPLETO',
+                fecha_hora_actualizacion = CURRENT_TIMESTAMP
+            WHERE id = ?
+            """;
+        
+        try (Connection conn = dbConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, registroTriageId);
+            int rowsAffected = stmt.executeUpdate();
+            
+            if (rowsAffected > 0) {
+                System.out.println("✅ Evaluación social marcada como completa para registro: " + registroTriageId);
+                return true;
+            } else {
+                System.err.println("❌ No se pudo marcar evaluación social como completa");
+                return false;
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("❌ Error al marcar evaluación social completa: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    /**
+     * Obtiene pacientes listos para atención médica (después de trabajo social)
+     */
+    public List<RegistroTriage> obtenerPacientesParaAtencionMedica() {
+        String sql = """
+            SELECT rt.*, p.nombre, p.apellido_paterno, p.apellido_materno,
+                   p.fecha_nacimiento, p.sexo, p.telefono_principal, p.email
+            FROM registros_triage rt
+            INNER JOIN pacientes p ON rt.paciente_id = p.id
+            WHERE rt.estado = 'TRABAJO_SOCIAL_COMPLETO'
+            ORDER BY 
+                CASE rt.clasificacion
+                    WHEN 'Rojo' THEN 1
+                    WHEN 'Amarillo' THEN 2
+                    WHEN 'Verde' THEN 3
+                    WHEN 'Azul' THEN 4
+                    ELSE 5
+                END,
+                rt.fecha_hora_llegada ASC
+            """;
+        
+        List<RegistroTriage> pacientes = new ArrayList<>();
+        
+        try (Connection conn = dbConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            
+            while (rs.next()) {
+                RegistroTriage registro = mapearRegistroTriage(rs);
+                pacientes.add(registro);
+            }
+            
+            System.out.println("📋 Encontrados " + pacientes.size() + " pacientes listos para atención médica");
+            
+        } catch (SQLException e) {
+            System.err.println("❌ Error al obtener pacientes para atención médica: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return pacientes;
+    }
+    
     @Override
     public String toString() {
         return "TriageService{" +

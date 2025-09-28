@@ -24,20 +24,21 @@ public class RegistroPacienteController extends BaseController implements Initia
     @FXML private TextField txtApellidoMaterno;
     @FXML private TextField txtCurp;
     @FXML private DatePicker dpFechaNacimiento;
-    @FXML private ComboBox<String> cbSexo;
+    @FXML private TextField txtEdad;
+    @FXML private ComboBox<String> cmbSexo;
     @FXML private TextField txtTelefonoPrincipal;
     @FXML private TextField txtTelefonoSecundario;
     @FXML private TextField txtEmail;
     @FXML private TextField txtCalle;
     @FXML private TextField txtNumero;
     @FXML private TextField txtColonia;
-    @FXML private TextField txtCiudad;
-    @FXML private TextField txtEstado;
+    @FXML private ComboBox<String> cmbDireccionCiudad;
+    @FXML private ComboBox<String> cmbDireccionEstado;
     @FXML private TextField txtCodigoPostal;
     @FXML private TextField txtContactoEmergencia;
     @FXML private TextField txtTelefonoEmergencia;
-    @FXML private TextField txtRelacionEmergencia;
-    @FXML private TextField txtSeguroMedico;
+    @FXML private ComboBox<String> cmbContactoEmergenciaRelacion;
+    @FXML private ComboBox<String> cmbSeguroMedico;
     @FXML private TextField txtNumeroPoliza;
     
     // Componentes de la interfaz
@@ -106,13 +107,87 @@ public class RegistroPacienteController extends BaseController implements Initia
      */
     private void configurarComponentes() {
         // Configurar ComboBox de sexo
-        if (cbSexo != null) {
-            cbSexo.getItems().addAll("MASCULINO", "FEMENINO", "OTRO");
+        if (cmbSexo != null) {
+            cmbSexo.getItems().addAll("MASCULINO", "FEMENINO", "OTRO");
         }
         
-        // Configurar campos con valores por defecto
-        if (txtSeguroMedico != null) {
-            txtSeguroMedico.setText("SIN SEGURO");
+        // Configurar ComboBox de relación de contacto de emergencia
+        if (cmbContactoEmergenciaRelacion != null) {
+            cmbContactoEmergenciaRelacion.getItems().addAll(
+                "Esposo/a", "Hijo/a", "Padre/Madre", "Hermano/a", 
+                "Abuelo/a", "Tío/a", "Primo/a", "Amigo/a", 
+                "Conocido", "Pareja", "Otro"
+            );
+        }
+        
+        // Configurar listener para calcular edad automáticamente
+        if (dpFechaNacimiento != null && txtEdad != null) {
+            dpFechaNacimiento.valueProperty().addListener((obs, oldDate, newDate) -> {
+                if (newDate != null) {
+                    int edad = java.time.Period.between(newDate, java.time.LocalDate.now()).getYears();
+                    txtEdad.setText(String.valueOf(edad));
+                }
+            });
+        }
+        
+        // Configurar ComboBox de estados mexicanos
+        if (cmbDireccionEstado != null) {
+            cmbDireccionEstado.getItems().addAll(
+                "Aguascalientes", "Baja California", "Baja California Sur", "Campeche", 
+                "Chiapas", "Chihuahua", "Ciudad de México", "Coahuila", "Colima", 
+                "Durango", "Estado de México", "Guanajuato", "Guerrero", "Hidalgo", 
+                "Jalisco", "Michoacán", "Morelos", "Nayarit", "Nuevo León", "Oaxaca", 
+                "Puebla", "Querétaro", "Quintana Roo", "San Luis Potosí", "Sinaloa", 
+                "Sonora", "Tabasco", "Tamaulipas", "Tlaxcala", "Veracruz", "Yucatán", "Zacatecas"
+            );
+            
+            // Listener para actualizar ciudades cuando cambie el estado
+            cmbDireccionEstado.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+                if (newVal != null && cmbDireccionCiudad != null) {
+                    actualizarCiudades(newVal);
+                }
+            });
+        }
+        
+        // Configurar ComboBox de aseguradoras mexicanas
+        if (cmbSeguroMedico != null) {
+            cmbSeguroMedico.getItems().addAll(
+                "SIN SEGURO", "GNP Seguros", "AXA Seguros", "MetLife México", 
+                "Monterrey New York Life", "Seguros Inbursa", "Allianz México", 
+                "MAPFRE México", "Zurich México", "Bupa México", "Plan Seguro", 
+                "Atlas Seguros", "HDI Seguros", "Qualitas Compañía de Seguros", 
+                "IMSS", "ISSSTE", "Seguro Popular", "PEMEX", "SEDENA", "SEMAR"
+            );
+            cmbSeguroMedico.setValue("SIN SEGURO");
+        }
+    }
+    
+    /**
+     * Actualiza las ciudades disponibles según el estado seleccionado
+     */
+    private void actualizarCiudades(String estado) {
+        if (cmbDireccionCiudad == null) return;
+        
+        cmbDireccionCiudad.getItems().clear();
+        
+        // Agregar ciudades principales según el estado
+        switch (estado) {
+            case "Nuevo León":
+                cmbDireccionCiudad.getItems().addAll("Monterrey", "Guadalupe", "San Nicolás de los Garza", 
+                    "Apodaca", "General Escobedo", "Santa Catarina", "San Pedro Garza García");
+                break;
+            case "Ciudad de México":
+                cmbDireccionCiudad.getItems().addAll("Álvaro Obregón", "Azcapotzalco", "Benito Juárez", 
+                    "Coyoacán", "Cuauhtémoc", "Gustavo A. Madero", "Iztacalco", "Iztapalapa");
+                break;
+            case "Jalisco":
+                cmbDireccionCiudad.getItems().addAll("Guadalajara", "Zapopan", "Tlaquepaque", 
+                    "Tonalá", "Puerto Vallarta", "Tlajomulco de Zúñiga");
+                break;
+            default:
+                // Para otros estados, agregar una opción genérica
+                cmbDireccionCiudad.getItems().addAll("Capital del Estado", "Ciudad Principal", "Otra Ciudad");
+                break;
         }
     }
     
@@ -233,8 +308,8 @@ public class RegistroPacienteController extends BaseController implements Initia
         paciente.setFechaNacimiento(dpFechaNacimiento.getValue());
         
         // Sexo
-        if (cbSexo != null && cbSexo.getValue() != null) {
-            switch (cbSexo.getValue()) {
+        if (cmbSexo != null && cmbSexo.getValue() != null) {
+            switch (cmbSexo.getValue()) {
                 case "MASCULINO":
                     paciente.setSexo(Paciente.Sexo.MASCULINO);
                     break;
@@ -256,17 +331,17 @@ public class RegistroPacienteController extends BaseController implements Initia
         paciente.setDireccionCalle(txtCalle != null ? txtCalle.getText().trim() : null);
         paciente.setDireccionNumero(txtNumero != null ? txtNumero.getText().trim() : null);
         paciente.setDireccionColonia(txtColonia != null ? txtColonia.getText().trim() : null);
-        paciente.setDireccionCiudad(txtCiudad != null ? txtCiudad.getText().trim() : null);
-        paciente.setDireccionEstado(txtEstado != null ? txtEstado.getText().trim() : null);
+        paciente.setDireccionCiudad(cmbDireccionCiudad != null ? cmbDireccionCiudad.getValue() : null);
+        paciente.setDireccionEstado(cmbDireccionEstado != null ? cmbDireccionEstado.getValue() : null);
         paciente.setDireccionCp(txtCodigoPostal != null ? txtCodigoPostal.getText().trim() : null);
         
         // Contacto de emergencia
         paciente.setContactoEmergenciaNombre(txtContactoEmergencia.getText().trim());
         paciente.setContactoEmergenciaTelefono(txtTelefonoEmergencia != null ? txtTelefonoEmergencia.getText().trim() : null);
-        paciente.setContactoEmergenciaRelacion(txtRelacionEmergencia != null ? txtRelacionEmergencia.getText().trim() : null);
+        paciente.setContactoEmergenciaRelacion(cmbContactoEmergenciaRelacion != null ? cmbContactoEmergenciaRelacion.getValue() : null);
         
         // Seguro médico
-        paciente.setSeguroMedico(txtSeguroMedico != null && !txtSeguroMedico.getText().trim().isEmpty() ? txtSeguroMedico.getText().trim() : "SIN SEGURO");
+        paciente.setSeguroMedico(cmbSeguroMedico != null && cmbSeguroMedico.getValue() != null ? cmbSeguroMedico.getValue() : "SIN SEGURO");
         paciente.setNumeroPoliza(txtNumeroPoliza != null && !txtNumeroPoliza.getText().trim().isEmpty() ? txtNumeroPoliza.getText().trim() : null);
         
         return paciente;
@@ -282,20 +357,21 @@ public class RegistroPacienteController extends BaseController implements Initia
         if (txtApellidoMaterno != null) txtApellidoMaterno.clear();
         if (txtCurp != null) txtCurp.clear();
         if (dpFechaNacimiento != null) dpFechaNacimiento.setValue(null);
-        if (cbSexo != null) cbSexo.setValue(null);
+        if (txtEdad != null) txtEdad.clear();
+        if (cmbSexo != null) cmbSexo.setValue(null);
         if (txtTelefonoPrincipal != null) txtTelefonoPrincipal.clear();
         if (txtTelefonoSecundario != null) txtTelefonoSecundario.clear();
         if (txtEmail != null) txtEmail.clear();
         if (txtCalle != null) txtCalle.clear();
         if (txtNumero != null) txtNumero.clear();
         if (txtColonia != null) txtColonia.clear();
-        if (txtCiudad != null) txtCiudad.clear();
-        if (txtEstado != null) txtEstado.clear();
+        if (cmbDireccionCiudad != null) cmbDireccionCiudad.setValue(null);
+        if (cmbDireccionEstado != null) cmbDireccionEstado.setValue(null);
         if (txtCodigoPostal != null) txtCodigoPostal.clear();
         if (txtContactoEmergencia != null) txtContactoEmergencia.clear();
         if (txtTelefonoEmergencia != null) txtTelefonoEmergencia.clear();
-        if (txtRelacionEmergencia != null) txtRelacionEmergencia.clear();
-        if (txtSeguroMedico != null) txtSeguroMedico.setText("SIN SEGURO");
+        if (cmbContactoEmergenciaRelacion != null) cmbContactoEmergenciaRelacion.setValue(null);
+        if (cmbSeguroMedico != null) cmbSeguroMedico.setValue("SIN SEGURO");
         if (txtNumeroPoliza != null) txtNumeroPoliza.clear();
         
         mostrarMensaje("🧹 Formulario limpiado", "#4CAF50");
@@ -310,5 +386,25 @@ public class RegistroPacienteController extends BaseController implements Initia
             lblMensaje.setStyle("-fx-text-fill: " + color + ";");
         }
         System.out.println("💬 " + mensaje);
+    }
+    
+    /**
+     * Maneja el evento de cerrar sesión
+     */
+    @FXML
+    public void handleLogout() {
+        try {
+            // Cargar la pantalla de login
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/ui/login.fxml"));
+            javafx.scene.Scene loginScene = new javafx.scene.Scene(loader.load());
+            
+            javafx.stage.Stage currentStage = (javafx.stage.Stage) btnCancelar.getScene().getWindow();
+            currentStage.setScene(loginScene);
+            currentStage.setTitle("Iniciar Sesión - Hospital Santa Vida");
+            currentStage.centerOnScreen();
+            
+        } catch (Exception e) {
+            mostrarMensaje("Error al cerrar sesión: " + e.getMessage(), "red");
+        }
     }
 }

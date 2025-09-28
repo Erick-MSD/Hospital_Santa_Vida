@@ -10,6 +10,7 @@
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
@@ -554,6 +555,20 @@
                         <Button fx:id="btnCompletarEvaluacion" mnemonicParsing="false" onAction="#handleCompletarEvaluacion" prefHeight="50.0" prefWidth="250.0" style="-fx-background-color: linear-gradient(to right, #4ECDC4, #44A08D); -fx-text-fill: white; -fx-background-radius: 10; -fx-font-weight: bold;" text="Completar Evaluacion">
                            <font>
                               <Font size="16.0" />
+                           </font>
+                        </Button>
+                     </children>
+                  </HBox>
+                  
+                  <!-- Separador -->
+                  <Region prefHeight="30.0" />
+                  
+                  <!-- Botón de cerrar sesión -->
+                  <HBox alignment="CENTER">
+                     <children>
+                        <Button fx:id="btnCerrarSesion" mnemonicParsing="false" onAction="#handleLogout" prefHeight="45.0" prefWidth="200.0" style="-fx-background-color: #DC3545; -fx-text-fill: white; -fx-background-radius: 10; -fx-font-weight: bold; -fx-effect: dropshadow(three-pass-box, rgba(220, 53, 69, 0.3), 6, 0, 0, 2);" text="Cerrar Sesión">
+                           <font>
+                              <Font size="14.0" />
                            </font>
                         </Button>
                      </children>
