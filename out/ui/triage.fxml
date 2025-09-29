@@ -427,7 +427,7 @@
                                     <Font name="System Bold" size="14.0" />
                                  </font>
                               </Button>
-                              <Button text="Guardar" onAction="#handleGuardar" style="-fx-background-color: #047857; -fx-text-fill: #FFFFFF; -fx-pref-width: 120; -fx-pref-height: 45; -fx-font-weight: bold; -fx-font-size: 14px; -fx-background-radius: 8; -fx-cursor: hand;">
+                              <Button fx:id="btnGuardar" text="Guardar" onAction="#handleGuardar" style="-fx-background-color: #047857; -fx-text-fill: #FFFFFF; -fx-pref-width: 120; -fx-pref-height: 45; -fx-font-weight: bold; -fx-font-size: 14px; -fx-background-radius: 8; -fx-cursor: hand;">
                                  <font>
                                     <Font name="System Bold" size="14.0" />
                                  </font>
@@ -437,7 +437,7 @@
                                     <Font name="System Bold" size="14.0" />
                                  </font>
                               </Button>
-                              <Button text="Siguiente" onAction="#handleSiguientePaciente" style="-fx-background-color: linear-gradient(to right, #2E5984, #4A90E2); -fx-text-fill: #FFFFFF; -fx-pref-width: 140; -fx-pref-height: 45; -fx-font-weight: bold; -fx-font-size: 14px; -fx-background-radius: 8; -fx-cursor: hand; -fx-effect: dropshadow(three-pass-box, rgba(46, 89, 132, 0.3), 8, 0, 0, 2);">
+                              <Button fx:id="btnSiguientePaciente" text="Siguiente" onAction="#handleSiguientePaciente" style="-fx-background-color: linear-gradient(to right, #2E5984, #4A90E2); -fx-text-fill: #FFFFFF; -fx-pref-width: 140; -fx-pref-height: 45; -fx-font-weight: bold; -fx-font-size: 14px; -fx-background-radius: 8; -fx-cursor: hand; -fx-effect: dropshadow(three-pass-box, rgba(46, 89, 132, 0.3), 8, 0, 0, 2);">
                                  <font>
                                     <Font name="System Bold" size="14.0" />
                                  </font>

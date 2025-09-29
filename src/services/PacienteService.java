@@ -12,6 +12,7 @@ import models.AtencionMedica;
 import structures.PacienteBST;
 import utils.ValidationUtils;
 import services.PacienteServiceResults.*;
+import controllers.BaseController;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -31,7 +32,6 @@ public class PacienteService {
     private final DatosSocialesDAO datosSocialesDAO;
     private final AtencionMedicaDAO atencionMedicaDAO;
     private final PacienteBST indicePacientes;
-    private final AuthenticationService authService;
     
     /**
      * Constructor del servicio de pacientes
@@ -42,7 +42,6 @@ public class PacienteService {
         this.datosSocialesDAO = new DatosSocialesDAO();
         this.atencionMedicaDAO = new AtencionMedicaDAO();
         this.indicePacientes = new PacienteBST();
-        this.authService = new AuthenticationService();
         
         // Cargar índice de pacientes
         cargarIndicePacientes();
@@ -58,7 +57,7 @@ public class PacienteService {
                                                       DatosRegistroPaciente datosRegistro) {
         try {
             // Verificar permisos
-            if (!authService.tienePermiso(tokenSesion, AuthenticationService.Permiso.CREAR_PACIENTES)) {
+            if (!BaseController.getAuthService().tienePermiso(tokenSesion, AuthenticationService.Permiso.CREAR_PACIENTES)) {
                 return new ResultadoRegistroPaciente(false, "Sin permisos para registrar pacientes", null);
             }
             
@@ -122,7 +121,7 @@ public class PacienteService {
      * @return Lista de pacientes encontrados
      */
     public List<Paciente> buscarPacientes(String tokenSesion, CriteriosBusquedaPaciente criterios) {
-        if (!authService.tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_PACIENTES)) {
+        if (!BaseController.getAuthService().tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_PACIENTES)) {
             return new ArrayList<>();
         }
         
@@ -177,7 +176,7 @@ public class PacienteService {
      * @return Paciente encontrado o null si no existe
      */
     public Paciente buscarPorId(String tokenSesion, int pacienteId) {
-        if (!authService.tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_PACIENTES)) {
+        if (!BaseController.getAuthService().tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_PACIENTES)) {
             return null;
         }
         
@@ -196,7 +195,7 @@ public class PacienteService {
      * @return Información completa del paciente
      */
     public InformacionCompletaPaciente obtenerInformacionCompleta(String tokenSesion, int pacienteId) {
-        if (!authService.tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_PACIENTES)) {
+        if (!BaseController.getAuthService().tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_PACIENTES)) {
             return null;
         }
         
@@ -232,7 +231,7 @@ public class PacienteService {
      * @return true si se actualizó correctamente
      */
     public boolean actualizarPaciente(String tokenSesion, Paciente paciente) {
-        if (!authService.tienePermiso(tokenSesion, AuthenticationService.Permiso.ACTUALIZAR_PACIENTES)) {
+        if (!BaseController.getAuthService().tienePermiso(tokenSesion, AuthenticationService.Permiso.ACTUALIZAR_PACIENTES)) {
             return false;
         }
         
@@ -257,7 +256,7 @@ public class PacienteService {
      * @return true si se cambió correctamente
      */
     public boolean cambiarEstadoPaciente(String tokenSesion, int pacienteId, EstadoPaciente nuevoEstado) {
-        if (!authService.tienePermiso(tokenSesion, AuthenticationService.Permiso.ACTUALIZAR_PACIENTES)) {
+        if (!BaseController.getAuthService().tienePermiso(tokenSesion, AuthenticationService.Permiso.ACTUALIZAR_PACIENTES)) {
             return false;
         }
         
@@ -277,7 +276,7 @@ public class PacienteService {
      * @return Lista de pacientes en ese estado
      */
     public List<Paciente> obtenerPacientesPorEstado(String tokenSesion, EstadoPaciente estado) {
-        if (!authService.tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_PACIENTES)) {
+        if (!BaseController.getAuthService().tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_PACIENTES)) {
             return new ArrayList<>();
         }
         
@@ -295,7 +294,7 @@ public class PacienteService {
      * @return Estadísticas de pacientes
      */
     public EstadisticasPacientes obtenerEstadisticas(String tokenSesion) {
-        if (!authService.tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_REPORTES_MEDICOS)) {
+        if (!BaseController.getAuthService().tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_REPORTES_MEDICOS)) {
             return null;
         }
         
@@ -318,7 +317,7 @@ public class PacienteService {
      * @return Lista de pacientes para seguimiento
      */
     public List<Paciente> obtenerPacientesParaSeguimiento(String tokenSesion) {
-        if (!authService.tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_PACIENTES)) {
+        if (!BaseController.getAuthService().tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_PACIENTES)) {
             return new ArrayList<>();
         }
         
@@ -338,7 +337,7 @@ public class PacienteService {
      * @return Resumen del historial médico
      */
     public ResumenHistorialMedico obtenerResumenHistorial(String tokenSesion, int pacienteId) {
-        if (!authService.tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_PACIENTES)) {
+        if (!BaseController.getAuthService().tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_PACIENTES)) {
             return null;
         }
         
@@ -642,7 +641,7 @@ public class PacienteService {
     public ResultadoBusqueda buscarPacientes(String tokenSesion, services.PacienteServiceResults.CriteriosBusquedaPaciente criterios) {
         try {
             // Validar sesión
-            if (!authService.validarSesion(tokenSesion)) {
+            if (!BaseController.getAuthService().validarSesion(tokenSesion)) {
                 return new ResultadoBusqueda(false, "Sesión inválida", new ArrayList<>(), 0);
             }
             
@@ -707,7 +706,7 @@ public class PacienteService {
     public ResultadoBusqueda obtenerPacientesRecientes(String tokenSesion, int limite) {
         try {
             // Validar sesión
-            if (!authService.validarSesion(tokenSesion)) {
+            if (!BaseController.getAuthService().validarSesion(tokenSesion)) {
                 return new ResultadoBusqueda(false, "Sesión inválida", new ArrayList<>(), 0);
             }
             
@@ -730,7 +729,7 @@ public class PacienteService {
     public ResultadoRegistro registrarPaciente(String tokenSesion, services.PacienteServiceResults.DatosRegistroPaciente datos) {
         try {
             // Validar sesión
-            if (!authService.validarSesion(tokenSesion)) {
+            if (!BaseController.getAuthService().validarSesion(tokenSesion)) {
                 return new ResultadoRegistro(false, "Sesión inválida", null, 0);
             }
             
@@ -754,7 +753,7 @@ public class PacienteService {
     public boolean actualizarPaciente(String tokenSesion, int pacienteId, services.PacienteServiceResults.DatosRegistroPaciente datos) {
         try {
             // Validar sesión
-            if (!authService.validarSesion(tokenSesion)) {
+            if (!BaseController.getAuthService().validarSesion(tokenSesion)) {
                 return false;
             }
             

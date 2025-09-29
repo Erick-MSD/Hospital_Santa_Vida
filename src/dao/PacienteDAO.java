@@ -118,26 +118,26 @@ public class PacienteDAO extends BaseDAO<Paciente> {
         }
         
         int idGenerado = ejecutarInsercionConClave(SQL_INSERTAR,
-            paciente.getNumeroExpediente(),
-            paciente.getNombreCompleto(),
-            convertirADate(paciente.getFechaNacimiento()),
-            paciente.getGenero(),
+            paciente.getNombre(),
+            paciente.getApellidoPaterno(),
+            paciente.getApellidoMaterno(),
+            Date.valueOf(paciente.getFechaNacimiento()),
+            paciente.getSexo(),
             paciente.getCurp(),
             paciente.getRfc(),
-            paciente.getTelefono(),
+            paciente.getTelefonoPrincipal(),
             paciente.getEmail(),
-            paciente.getDireccionCompleta(),
+            paciente.getDireccionCalle(),
+            paciente.getDireccionNumero(),
+            paciente.getDireccionColonia(),
+            paciente.getDireccionCiudad(),
+            paciente.getDireccionEstado(),
+            paciente.getDireccionCp(),
             paciente.getContactoEmergenciaNombre(),
             paciente.getContactoEmergenciaTelefono(),
             paciente.getContactoEmergenciaRelacion(),
             paciente.getSeguroMedico(),
-            paciente.getNumeroSeguro(),
-            paciente.getAlergias(),
-            paciente.getMedicamentosActuales(),
-            paciente.getCondicionesPreexistentes(),
-            paciente.getEstadoActual().name(),
-            paciente.getTipoAlta() != null ? paciente.getTipoAlta().name() : null,
-            convertirATimestamp(paciente.getFechaRegistro())
+            paciente.getNumeroPoliza()
         );
         
         if (idGenerado > 0) {

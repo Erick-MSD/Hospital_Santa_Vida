@@ -8,6 +8,7 @@ import models.NivelUrgencia;
 import models.EstadoPaciente;
 import structures.TriageQueue;
 import utils.ValidationUtils;
+import controllers.BaseController;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -24,7 +25,6 @@ public class TriageService {
     private final RegistroTriageDAO registroTriageDAO;
     private final PacienteDAO pacienteDAO;
     private final TriageQueue colaTriage;
-    private final AuthenticationService authService;
     
     /**
      * Constructor del servicio de triage
@@ -33,7 +33,6 @@ public class TriageService {
         this.registroTriageDAO = new RegistroTriageDAO();
         this.pacienteDAO = new PacienteDAO();
         this.colaTriage = new TriageQueue();
-        this.authService = new AuthenticationService();
         
         // Cargar cola de triage al inicializar
         cargarColaTriage();
@@ -50,12 +49,12 @@ public class TriageService {
                                         DatosEvaluacionTriage datosEvaluacion) {
         try {
             // Verificar permisos
-            if (!authService.tienePermiso(tokenSesion, AuthenticationService.Permiso.CREAR_TRIAGE)) {
+            if (!BaseController.getAuthService().tienePermiso(tokenSesion, AuthenticationService.Permiso.CREAR_TRIAGE)) {
                 return new ResultadoTriage(false, "Sin permisos para realizar triage", null);
             }
             
             // Obtener usuario actual
-            var usuario = authService.obtenerUsuarioPorToken(tokenSesion);
+            var usuario = BaseController.getAuthService().obtenerUsuarioPorToken(tokenSesion);
             if (usuario == null) {
                 return new ResultadoTriage(false, "Sesión inválida", null);
             }
@@ -126,7 +125,7 @@ public class TriageService {
      * @return Próximo paciente a atender o null si no hay pacientes
      */
     public RegistroTriage obtenerSiguientePaciente(String tokenSesion) {
-        if (!authService.tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_COLA_TRIAGE)) {
+        if (!BaseController.getAuthService().tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_COLA_TRIAGE)) {
             return null;
         }
         
@@ -139,7 +138,7 @@ public class TriageService {
      * @return Lista ordenada de pacientes en espera
      */
     public List<RegistroTriage> obtenerColaTriage(String tokenSesion) {
-        if (!authService.tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_COLA_TRIAGE)) {
+        if (!BaseController.getAuthService().tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_COLA_TRIAGE)) {
             return new ArrayList<>();
         }
         
@@ -152,7 +151,7 @@ public class TriageService {
      * @return Lista de pacientes urgentes
      */
     public List<RegistroTriage> obtenerPacientesUrgentes(String tokenSesion) {
-        if (!authService.tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_TRIAGE)) {
+        if (!BaseController.getAuthService().tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_TRIAGE)) {
             return new ArrayList<>();
         }
         
@@ -171,7 +170,7 @@ public class TriageService {
      * @return Lista de registros del paciente
      */
     public List<RegistroTriage> obtenerTriagePorPaciente(String tokenSesion, int pacienteId) {
-        if (!authService.tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_TRIAGE)) {
+        if (!BaseController.getAuthService().tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_TRIAGE)) {
             return new ArrayList<>();
         }
         
@@ -190,7 +189,7 @@ public class TriageService {
      * @return Estadísticas del día
      */
     public EstadisticasTriage obtenerEstadisticasPorFecha(String tokenSesion, LocalDateTime fecha) {
-        if (!authService.tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_REPORTES_MEDICOS)) {
+        if (!BaseController.getAuthService().tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_REPORTES_MEDICOS)) {
             return null;
         }
         
@@ -213,7 +212,7 @@ public class TriageService {
      * Obtiene estadísticas generales de triage para dashboard
      */
     public EstadisticasTriage obtenerEstadisticas(String tokenSesion) {
-        if (!authService.validarSesion(tokenSesion)) {
+        if (!BaseController.getAuthService().validarSesion(tokenSesion)) {
             return null;
         }
         
@@ -234,7 +233,7 @@ public class TriageService {
      * Obtiene la lista de pacientes en espera para dashboard
      */
     public List<PacienteEnEspera> obtenerPacientesEnEspera(String tokenSesion) {
-        if (!authService.validarSesion(tokenSesion)) {
+        if (!BaseController.getAuthService().validarSesion(tokenSesion)) {
             return new ArrayList<>();
         }
         
@@ -267,7 +266,7 @@ public class TriageService {
      * @return true si se actualizó correctamente
      */
     public boolean actualizarTriage(String tokenSesion, RegistroTriage registro) {
-        if (!authService.tienePermiso(tokenSesion, AuthenticationService.Permiso.ACTUALIZAR_TRIAGE)) {
+        if (!BaseController.getAuthService().tienePermiso(tokenSesion, AuthenticationService.Permiso.ACTUALIZAR_TRIAGE)) {
             return false;
         }
         
@@ -291,7 +290,7 @@ public class TriageService {
      * @return true si se marcó correctamente
      */
     public boolean marcarComoAtendido(String tokenSesion, int registroId) {
-        if (!authService.tienePermiso(tokenSesion, AuthenticationService.Permiso.ACTUALIZAR_TRIAGE)) {
+        if (!BaseController.getAuthService().tienePermiso(tokenSesion, AuthenticationService.Permiso.ACTUALIZAR_TRIAGE)) {
             return false;
         }
         
@@ -326,7 +325,7 @@ public class TriageService {
      * @return Conteo por nivel de urgencia
      */
     public ConteoColaTriage obtenerConteoColaTriage(String tokenSesion) {
-        if (!authService.tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_COLA_TRIAGE)) {
+        if (!BaseController.getAuthService().tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_COLA_TRIAGE)) {
             return null;
         }
         
@@ -733,7 +732,7 @@ public class TriageService {
     public services.TriageServiceResults.ResultadoEvaluacion evaluarUrgencia(String tokenSesion, services.TriageServiceResults.DatosEvaluacionTriage datos) {
         try {
             // Validar sesión
-            if (!authService.validarSesion(tokenSesion)) {
+            if (!BaseController.getAuthService().validarSesion(tokenSesion)) {
                 return new services.TriageServiceResults.ResultadoEvaluacion(false, "Sesión inválida", null, null, 0, "");
             }
             
@@ -762,7 +761,7 @@ public class TriageService {
     public boolean guardarEvaluacion(String tokenSesion, RegistroTriage evaluacion) {
         try {
             // Validar sesión
-            if (!authService.validarSesion(tokenSesion)) {
+            if (!BaseController.getAuthService().validarSesion(tokenSesion)) {
                 return false;
             }
             

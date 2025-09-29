@@ -11,7 +11,7 @@ public abstract class BaseController {
     
     protected Usuario usuarioActual;
     protected String tokenSesion;
-    protected AuthenticationService authService;
+    protected static AuthenticationService authService = new AuthenticationService();
     
     /**
      * Inicializa la sesión del usuario en el controlador
@@ -21,7 +21,6 @@ public abstract class BaseController {
     public void inicializarSesion(Usuario usuario, String token) {
         this.usuarioActual = usuario;
         this.tokenSesion = token;
-        this.authService = new AuthenticationService();
         
         // Llamar método de inicialización específica del controlador
         onSesionInicializada();
@@ -77,6 +76,13 @@ public abstract class BaseController {
         }
         usuarioActual = null;
         tokenSesion = null;
-        authService = null;
+    }
+    
+    /**
+     * Obtiene la instancia estática del servicio de autenticación
+     * @return Instancia del AuthenticationService
+     */
+    public static AuthenticationService getAuthService() {
+        return authService;
     }
 }

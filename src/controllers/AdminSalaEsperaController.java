@@ -12,6 +12,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 import models.*;
 import services.*;
 import java.io.IOException;
@@ -99,7 +100,8 @@ public class AdminSalaEsperaController extends BaseController implements Initial
         // Verificar permisos de administrador
         if (!tienePermiso(AuthenticationService.Permiso.VER_DASHBOARD_ADMIN)) {
             showAlert("Sin permisos", "No tiene permisos para acceder al panel administrativo");
-            handleLogout();
+            // Usar Platform.runLater para asegurar que la UI esté completamente cargada
+            Platform.runLater(() -> handleLogout());
             return;
         }
         
@@ -356,11 +358,24 @@ public class AdminSalaEsperaController extends BaseController implements Initial
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/ui/login.fxml"));
             Parent root = loader.load();
             
-            Stage stage = (Stage) btnCerrarSesion.getScene().getWindow();
-            stage.setTitle("Hospital Santa Vida - Login");
-            stage.setScene(new Scene(root));
-            stage.centerOnScreen();
-            stage.setMaximized(false);
+            // Verificar que btnCerrarSesion y su scene no sean null
+            Stage stage = null;
+            if (btnCerrarSesion != null && btnCerrarSesion.getScene() != null) {
+                stage = (Stage) btnCerrarSesion.getScene().getWindow();
+            } else {
+                // Si no podemos obtener el stage desde el botón, buscar la ventana actual
+                stage = (Stage) Stage.getWindows().stream()
+                    .filter(Window::isShowing)
+                    .findFirst()
+                    .orElse(null);
+            }
+            
+            if (stage != null) {
+                stage.setTitle("Hospital Santa Vida - Login");
+                stage.setScene(new Scene(root));
+                stage.centerOnScreen();
+                stage.setMaximized(false);
+            }
             
         } catch (IOException e) {
             System.err.println("Error al cargar ventana de login: " + e.getMessage());

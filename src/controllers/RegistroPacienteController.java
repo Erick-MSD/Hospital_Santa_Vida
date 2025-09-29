@@ -4,13 +4,19 @@ import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.stage.Stage;
+import javafx.stage.Window;
 import models.*;
 import services.*;
 import services.PacienteServiceResults.*;
 import utils.ValidationUtils;
+import java.io.IOException;
 import java.net.URL;
 import java.time.LocalDate;
 import java.util.List;
@@ -540,6 +546,35 @@ public class RegistroPacienteController extends BaseController implements Initia
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
+    }
+    
+    /**
+     * Maneja el cierre de sesión
+     */
+    @FXML
+    private void handleLogout() {
+        cerrarSesion();
+        
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/ui/login.fxml"));
+            Parent root = loader.load();
+            
+            // Buscar la ventana actual
+            Stage stage = (Stage) Stage.getWindows().stream()
+                .filter(Window::isShowing)
+                .findFirst()
+                .orElse(null);
+            
+            if (stage != null) {
+                stage.setTitle("Hospital Santa Vida - Login");
+                stage.setScene(new Scene(root));
+                stage.centerOnScreen();
+                stage.setMaximized(false);
+            }
+            
+        } catch (IOException e) {
+            System.err.println("Error al cargar ventana de login: " + e.getMessage());
+        }
     }
     
     // Clase de datos para la tabla

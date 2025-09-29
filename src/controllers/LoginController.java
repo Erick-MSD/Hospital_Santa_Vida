@@ -33,7 +33,7 @@ public class LoginController implements Initializable {
     
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        this.authService = new AuthenticationService();
+        this.authService = BaseController.getAuthService();
         
         // Configurar eventos
         setupEventHandlers();

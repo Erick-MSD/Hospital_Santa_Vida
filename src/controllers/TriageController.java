@@ -55,7 +55,6 @@ public class TriageController extends BaseController implements Initializable {
     @FXML private Slider sliderDolor;
     @FXML private Slider sliderGlasgow;
     @FXML private TextArea txtSintomas;
-    @FXML private TextArea txtObservaciones;
     
     // Resultado de evaluación
     @FXML private Label lblNivelUrgencia;
@@ -335,7 +334,7 @@ public class TriageController extends BaseController implements Initializable {
             datos.setNivelDolor((int) sliderDolor.getValue());
             datos.setEscalaGlasgow((int) sliderGlasgow.getValue());
             datos.setSintomasPrincipales(txtSintomas.getText().trim());
-            datos.setObservaciones(txtObservaciones.getText().trim());
+                        datos.setObservaciones(txtObservacionesClinicas.getText().trim());
             
             // Evaluar urgencia
             ResultadoEvaluacion resultado = triageService.evaluarUrgencia(tokenSesion, datos);
@@ -343,7 +342,9 @@ public class TriageController extends BaseController implements Initializable {
             if (resultado.isExitoso()) {
                 evaluacionActual = resultado.getRegistroTriage();
                 mostrarResultadoEvaluacion(resultado);
-                btnGuardar.setDisable(false);
+                if (btnGuardar != null) {
+                    btnGuardar.setDisable(false);
+                }
             } else {
                 showAlert("Error en evaluación", resultado.getMensaje());
             }
@@ -471,16 +472,20 @@ public class TriageController extends BaseController implements Initializable {
         
         // Limpiar texto
         txtSintomas.clear();
-        txtObservaciones.clear();
+                txtObservacionesClinicas.clear();
         
         // Limpiar resultado
         lblNivelUrgencia.setText("PENDIENTE");
         lblNivelUrgencia.setStyle("-fx-text-fill: #0277bd; -fx-font-weight: bold; -fx-font-size: 18px;");
         lblJustificacion.setText("");
         
-        // Deshabilitar botón guardar
-        btnGuardar.setDisable(true);
-        btnSiguientePaciente.setDisable(true);
+        // Deshabilitar botones si existen
+        if (btnGuardar != null) {
+            btnGuardar.setDisable(true);
+        }
+        if (btnSiguientePaciente != null) {
+            btnSiguientePaciente.setDisable(true);
+        }
     }
     
     /**

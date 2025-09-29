@@ -196,6 +196,7 @@ public class AuthenticationService {
                 return true; // El admin tiene todos los permisos
                 
             case MEDICO:
+            case MEDICO_URGENCIAS:
                 return permiso == Permiso.VER_PACIENTES ||
                        permiso == Permiso.CREAR_ATENCION_MEDICA ||
                        permiso == Permiso.VER_ATENCION_MEDICA ||
@@ -203,8 +204,10 @@ public class AuthenticationService {
                        permiso == Permiso.CREAR_CITAS ||
                        permiso == Permiso.VER_CITAS ||
                        permiso == Permiso.ACTUALIZAR_CITAS ||
-                       permiso == Permiso.VER_REPORTES_MEDICOS;
+                       permiso == Permiso.VER_REPORTES_MEDICOS ||
+                       permiso == Permiso.REALIZAR_CONSULTAS;
                        
+            case MEDICO_TRIAGE:
             case ENFERMERO_TRIAGE:
                 return permiso == Permiso.VER_PACIENTES ||
                        permiso == Permiso.CREAR_PACIENTES ||
@@ -212,22 +215,26 @@ public class AuthenticationService {
                        permiso == Permiso.CREAR_TRIAGE ||
                        permiso == Permiso.VER_TRIAGE ||
                        permiso == Permiso.ACTUALIZAR_TRIAGE ||
-                       permiso == Permiso.VER_COLA_TRIAGE;
+                       permiso == Permiso.VER_COLA_TRIAGE ||
+                       permiso == Permiso.REALIZAR_TRIAGE;
+                       
+            case ASISTENTE_MEDICA:
+            case RECEPCIONISTA:
+                return permiso == Permiso.VER_PACIENTES ||
+                       permiso == Permiso.CREAR_PACIENTES ||
+                       permiso == Permiso.ACTUALIZAR_PACIENTES ||
+                       permiso == Permiso.REGISTRAR_PACIENTES ||
+                       permiso == Permiso.CREAR_CITAS ||
+                       permiso == Permiso.VER_CITAS ||
+                       permiso == Permiso.ACTUALIZAR_CITAS;
                        
             case TRABAJADOR_SOCIAL:
                 return permiso == Permiso.VER_PACIENTES ||
                        permiso == Permiso.CREAR_DATOS_SOCIALES ||
                        permiso == Permiso.VER_DATOS_SOCIALES ||
                        permiso == Permiso.ACTUALIZAR_DATOS_SOCIALES ||
-                       permiso == Permiso.VER_REPORTES_SOCIALES;
-                       
-            case RECEPCIONISTA:
-                return permiso == Permiso.VER_PACIENTES ||
-                       permiso == Permiso.CREAR_PACIENTES ||
-                       permiso == Permiso.ACTUALIZAR_PACIENTES ||
-                       permiso == Permiso.CREAR_CITAS ||
-                       permiso == Permiso.VER_CITAS ||
-                       permiso == Permiso.ACTUALIZAR_CITAS;
+                       permiso == Permiso.VER_REPORTES_SOCIALES ||
+                       permiso == Permiso.REALIZAR_EVALUACION_SOCIAL;
                        
             default:
                 return false;

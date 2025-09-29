@@ -10,6 +10,7 @@ import models.Usuario;
 import models.Paciente;
 import structures.EspecialidadHashMap;
 import utils.ValidationUtils;
+import controllers.BaseController;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -29,7 +30,6 @@ public class CitaService {
     private final UsuarioDAO usuarioDAO;
     private final PacienteDAO pacienteDAO;
     private final EspecialidadHashMap asignacionMedicos;
-    private final AuthenticationService authService;
     
     // Horarios de atención
     private static final LocalTime HORA_INICIO_MANANA = LocalTime.of(8, 0);
@@ -46,7 +46,6 @@ public class CitaService {
         this.usuarioDAO = new UsuarioDAO();
         this.pacienteDAO = new PacienteDAO();
         this.asignacionMedicos = new EspecialidadHashMap();
-        this.authService = new AuthenticationService();
         
         // Cargar médicos por especialidad
         cargarMedicosPorEspecialidad();
@@ -61,12 +60,12 @@ public class CitaService {
     public ResultadoProgramacionCita programarCita(String tokenSesion, DatosProgramacionCita datosCita) {
         try {
             // Verificar permisos
-            if (!authService.tienePermiso(tokenSesion, AuthenticationService.Permiso.CREAR_CITAS)) {
+            if (!BaseController.getAuthService().tienePermiso(tokenSesion, AuthenticationService.Permiso.CREAR_CITAS)) {
                 return new ResultadoProgramacionCita(false, "Sin permisos para programar citas", null);
             }
             
             // Obtener usuario actual
-            Usuario usuarioActual = authService.obtenerUsuarioPorToken(tokenSesion);
+            Usuario usuarioActual = BaseController.getAuthService().obtenerUsuarioPorToken(tokenSesion);
             if (usuarioActual == null) {
                 return new ResultadoProgramacionCita(false, "Sesión inválida", null);
             }
@@ -137,7 +136,7 @@ public class CitaService {
      * @return true si se reprogramó correctamente
      */
     public boolean reprogramarCita(String tokenSesion, int citaId, LocalDate nuevaFecha, LocalTime nuevaHora) {
-        if (!authService.tienePermiso(tokenSesion, AuthenticationService.Permiso.ACTUALIZAR_CITAS)) {
+        if (!BaseController.getAuthService().tienePermiso(tokenSesion, AuthenticationService.Permiso.ACTUALIZAR_CITAS)) {
             return false;
         }
         
@@ -179,7 +178,7 @@ public class CitaService {
      * @return true si se canceló correctamente
      */
     public boolean cancelarCita(String tokenSesion, int citaId, String motivo) {
-        if (!authService.tienePermiso(tokenSesion, AuthenticationService.Permiso.CANCELAR_CITAS)) {
+        if (!BaseController.getAuthService().tienePermiso(tokenSesion, AuthenticationService.Permiso.CANCELAR_CITAS)) {
             return false;
         }
         
@@ -212,7 +211,7 @@ public class CitaService {
      * @return Lista de citas del paciente
      */
     public List<CitaMedica> obtenerCitasPorPaciente(String tokenSesion, int pacienteId) {
-        if (!authService.tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_CITAS)) {
+        if (!BaseController.getAuthService().tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_CITAS)) {
             return new ArrayList<>();
         }
         
@@ -231,7 +230,7 @@ public class CitaService {
      * @return Lista de citas del médico
      */
     public List<CitaMedica> obtenerCitasPorMedico(String tokenSesion, int medicoId) {
-        if (!authService.tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_CITAS)) {
+        if (!BaseController.getAuthService().tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_CITAS)) {
             return new ArrayList<>();
         }
         
@@ -250,7 +249,7 @@ public class CitaService {
      * @return Lista de citas del día
      */
     public List<CitaMedica> obtenerCitasPorFecha(String tokenSesion, LocalDate fecha) {
-        if (!authService.tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_CITAS)) {
+        if (!BaseController.getAuthService().tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_CITAS)) {
             return new ArrayList<>();
         }
         
@@ -268,7 +267,7 @@ public class CitaService {
      * @return Lista de citas de hoy
      */
     public List<CitaMedica> obtenerCitasHoy(String tokenSesion) {
-        if (!authService.tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_CITAS)) {
+        if (!BaseController.getAuthService().tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_CITAS)) {
             return new ArrayList<>();
         }
         
@@ -287,7 +286,7 @@ public class CitaService {
      * @return Lista de próximas citas
      */
     public List<CitaMedica> obtenerProximasCitas(String tokenSesion, int limite) {
-        if (!authService.tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_CITAS)) {
+        if (!BaseController.getAuthService().tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_CITAS)) {
             return new ArrayList<>();
         }
         
@@ -309,7 +308,7 @@ public class CitaService {
     public List<HorarioDisponible> obtenerHorariosDisponibles(String tokenSesion, 
                                                              LocalDate fecha, 
                                                              Especialidad especialidad) {
-        if (!authService.tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_CITAS)) {
+        if (!BaseController.getAuthService().tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_CITAS)) {
             return new ArrayList<>();
         }
         
@@ -345,7 +344,7 @@ public class CitaService {
      * @return true si se marcó correctamente
      */
     public boolean marcarCitaCompletada(String tokenSesion, int citaId) {
-        if (!authService.tienePermiso(tokenSesion, AuthenticationService.Permiso.ACTUALIZAR_CITAS)) {
+        if (!BaseController.getAuthService().tienePermiso(tokenSesion, AuthenticationService.Permiso.ACTUALIZAR_CITAS)) {
             return false;
         }
         
@@ -363,7 +362,7 @@ public class CitaService {
      * @return Estadísticas de citas
      */
     public EstadisticasCitas obtenerEstadisticas(String tokenSesion) {
-        if (!authService.tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_REPORTES_MEDICOS)) {
+        if (!BaseController.getAuthService().tienePermiso(tokenSesion, AuthenticationService.Permiso.VER_REPORTES_MEDICOS)) {
             return null;
         }
         

@@ -16,9 +16,10 @@ if not exist "out\HospitalSantaVidaApp.class" (
 )
 
 echo Iniciando aplicacion...
-set CP=out;src;lib\mysql-connector-j-8.0.33.jar
+set CP=out;lib\mysql-connector-j-8.0.33.jar
 echo Classpath: %CP%
-java --enable-native-access=javafx.graphics --module-path "%JAVAFX_LIB%" --add-modules javafx.controls,javafx.fxml -cp "%CP%" HospitalSantaVidaApp
+echo Module Path: %JAVAFX_LIB%
+java --module-path "%JAVAFX_LIB%" --add-modules javafx.controls,javafx.fxml -cp "%CP%" HospitalSantaVidaApp
 
 if %errorlevel% neq 0 (
     echo.
