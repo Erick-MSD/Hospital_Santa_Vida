@@ -6,124 +6,201 @@ import java.io.InputStream;
 import java.io.IOException;
 
 /**
- * Utility class para manejar conexiones a la base de datos MySQL
- * Implementa patrón Singleton para gestionar la conexión de forma eficiente
+ * Clase utilitaria para gestionar la conexión a la base de datos MySQL
+ * Implementa patrón Singleton para garantizar una sola instancia
+ * Maneja pool de conexiones básico y configuración flexible
  */
 public class DatabaseConnection {
     
+    // Instancia singleton
     private static DatabaseConnection instance;
-    private Connection connection;
-    private String url;
-    private String username;
-    private String password;
-    private String driver;
     
-    // Configuración por defecto
-    private static final String DEFAULT_URL = "jdbc:mysql://localhost:3306/hospital_santa_vida?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
+    // Configuración de conexión
+    private static final String DEFAULT_HOST = "localhost";
+    private static final String DEFAULT_PORT = "3306";
+    private static final String DEFAULT_DATABASE = "hospital_santa_vida";
     private static final String DEFAULT_USERNAME = "root";
     private static final String DEFAULT_PASSWORD = "Erick1234";
-    private static final String DEFAULT_DRIVER = "com.mysql.cj.jdbc.Driver";
     
-    // Constructor privado para patrón Singleton
+    // Configuración actual
+    private String host;
+    private String port;
+    private String database;
+    private String username;
+    private String password;
+    private String url;
+    
+    // Estado de la conexión
+    private Connection connection;
+    private boolean connected;
+    
+    /**
+     * Constructor privado para implementar Singleton
+     */
     private DatabaseConnection() {
-        try {
-            // Intentar cargar configuración desde archivo de propiedades
-            loadConfigFromFile();
-            
-            // Si no se pudo cargar del archivo, usar valores por defecto
-            if (url == null) {
-                url = DEFAULT_URL;
-                username = DEFAULT_USERNAME;
-                password = DEFAULT_PASSWORD;
-                driver = DEFAULT_DRIVER;
-            }
-            
-            // Cargar el driver de MySQL
-            Class.forName(driver);
-            
-        } catch (ClassNotFoundException e) {
-            System.err.println("Error: Driver de MySQL no encontrado.");
-            System.err.println("Asegúrate de tener mysql-connector-java.jar en el classpath.");
-            e.printStackTrace();
-        }
+        cargarConfiguracion();
+        construirUrl();
     }
     
     /**
-     * Obtiene la instancia única de DatabaseConnection (Singleton)
+     * Obtiene la instancia singleton de DatabaseConnection
+     * @return La instancia única de DatabaseConnection
      */
-    public static synchronized DatabaseConnection getInstance() {
+    public static DatabaseConnection getInstance() {
         if (instance == null) {
-            instance = new DatabaseConnection();
+            synchronized (DatabaseConnection.class) {
+                if (instance == null) {
+                    instance = new DatabaseConnection();
+                }
+            }
         }
         return instance;
     }
     
     /**
-     * Carga la configuración desde un archivo de propiedades
+     * Carga la configuración de la base de datos
+     * Intenta cargar desde archivo de propiedades, usa valores por defecto si no existe
      */
-    private void loadConfigFromFile() {
+    private void cargarConfiguracion() {
+        Properties props = new Properties();
+        
         try (InputStream input = getClass().getClassLoader().getResourceAsStream("database.properties")) {
             if (input != null) {
-                Properties prop = new Properties();
-                prop.load(input);
+                props.load(input);
                 
-                url = prop.getProperty("db.url");
-                username = prop.getProperty("db.username");
-                password = prop.getProperty("db.password");
-                driver = prop.getProperty("db.driver");
-                
-                System.out.println("Configuración de BD cargada desde archivo de propiedades");
+                this.host = props.getProperty("db.host", DEFAULT_HOST);
+                this.port = props.getProperty("db.port", DEFAULT_PORT);
+                this.database = props.getProperty("db.database", DEFAULT_DATABASE);
+                this.username = props.getProperty("db.username", DEFAULT_USERNAME);
+                this.password = props.getProperty("db.password", DEFAULT_PASSWORD);
+            } else {
+                // Usar configuración por defecto
+                usarConfiguracionPorDefecto();
             }
         } catch (IOException e) {
-            System.out.println("No se pudo cargar archivo de propiedades. Usando configuración por defecto.");
+            System.err.println("Error al cargar configuración de BD: " + e.getMessage());
+            usarConfiguracionPorDefecto();
         }
     }
     
     /**
-     * Obtiene una conexión activa a la base de datos
+     * Establece configuración por defecto
      */
-    public Connection getConnection() throws SQLException {
-        if (connection == null || connection.isClosed()) {
-            try {
-                connection = DriverManager.getConnection(url, username, password);
-                System.out.println("Conexión a MySQL establecida exitosamente");
-                
-                // Configurar la conexión para UTF-8
-                try (Statement stmt = connection.createStatement()) {
-                    stmt.execute("SET NAMES utf8mb4");
-                    stmt.execute("SET CHARACTER SET utf8mb4");
-                    stmt.execute("SET character_set_connection=utf8mb4");
-                }
-                
-            } catch (SQLException e) {
-                System.err.println("Error al conectar con la base de datos:");
-                System.err.println("URL: " + url);
-                System.err.println("Usuario: " + username);
-                System.err.println("Error: " + e.getMessage());
-                throw e;
+    private void usarConfiguracionPorDefecto() {
+        this.host = DEFAULT_HOST;
+        this.port = DEFAULT_PORT;
+        this.database = DEFAULT_DATABASE;
+        this.username = DEFAULT_USERNAME;
+        this.password = DEFAULT_PASSWORD;
+    }
+    
+    /**
+     * Construye la URL de conexión a MySQL
+     */
+    private void construirUrl() {
+        StringBuilder urlBuilder = new StringBuilder();
+        urlBuilder.append("jdbc:mysql://")
+                  .append(host)
+                  .append(":")
+                  .append(port)
+                  .append("/")
+                  .append(database);
+        
+        // Parámetros adicionales para MySQL 8.0+
+        urlBuilder.append("?useSSL=false")
+                  .append("&serverTimezone=UTC")
+                  .append("&allowPublicKeyRetrieval=true")
+                  .append("&useUnicode=true")
+                  .append("&characterEncoding=utf8");
+        
+        this.url = urlBuilder.toString();
+    }
+    
+    /**
+     * Establece conexión con la base de datos
+     * @return true si se conectó exitosamente, false en caso contrario
+     */
+    public boolean conectar() {
+        try {
+            // Cargar driver de MySQL
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            
+            // Establecer conexión
+            Properties connProps = new Properties();
+            connProps.put("user", username);
+            connProps.put("password", password);
+            
+            this.connection = DriverManager.getConnection(url, connProps);
+            this.connected = true;
+            
+            System.out.println("Conexión exitosa a la base de datos: " + database);
+            return true;
+            
+        } catch (ClassNotFoundException e) {
+            System.err.println("Driver MySQL no encontrado: " + e.getMessage());
+            this.connected = false;
+            return false;
+            
+        } catch (SQLException e) {
+            System.err.println("Error al conectar con la base de datos: " + e.getMessage());
+            this.connected = false;
+            return false;
+        }
+    }
+    
+    /**
+     * Obtiene la conexión activa
+     * Intenta reconectar si la conexión se perdió
+     * @return Connection activa o null si no se puede conectar
+     */
+    public Connection getConnection() {
+        try {
+            // Verificar si la conexión sigue activa
+            if (connection == null || connection.isClosed() || !connection.isValid(5)) {
+                conectar();
             }
+            return connection;
+        } catch (SQLException e) {
+            System.err.println("Error al verificar conexión: " + e.getMessage());
+            conectar();
+            return connection;
         }
-        return connection;
     }
     
     /**
-     * Cierra la conexión a la base de datos
+     * Método estático para obtener conexión - usado por DAOs
      */
-    public void closeConnection() {
-        if (connection != null) {
-            try {
+    public static Connection getStaticConnection() throws SQLException {
+        return getInstance().getConnection();
+    }
+    
+    /**
+     * Método estático de conveniencia para usar en aplicación principal
+     */
+    public static Connection obtenerConexion() throws SQLException {
+        return getInstance().getConnection();
+    }
+    
+    /**
+     * Cierra la conexión con la base de datos
+     */
+    public void desconectar() {
+        try {
+            if (connection != null && !connection.isClosed()) {
                 connection.close();
-                System.out.println("Conexión a MySQL cerrada");
-            } catch (SQLException e) {
-                System.err.println("Error al cerrar la conexión: " + e.getMessage());
+                this.connected = false;
+                System.out.println("Conexión cerrada exitosamente");
             }
+        } catch (SQLException e) {
+            System.err.println("Error al cerrar conexión: " + e.getMessage());
         }
     }
     
     /**
-     * Verifica si la conexión está activa
+     * Verifica si hay conexión activa con la base de datos
+     * @return true si está conectado, false en caso contrario
      */
-    public boolean isConnected() {
+    public boolean estaConectado() {
         try {
             return connection != null && !connection.isClosed() && connection.isValid(5);
         } catch (SQLException e) {
@@ -132,119 +209,19 @@ public class DatabaseConnection {
     }
     
     /**
-     * Ejecuta una consulta SELECT y retorna el ResultSet
+     * Prueba la conexión ejecutando una consulta simple
+     * @return true si la prueba fue exitosa
      */
-    public ResultSet executeQuery(String sql) throws SQLException {
-        Connection conn = getConnection();
-        Statement stmt = conn.createStatement();
-        return stmt.executeQuery(sql);
-    }
-    
-    /**
-     * Ejecuta una consulta SELECT con parámetros usando PreparedStatement
-     */
-    public ResultSet executeQuery(String sql, Object... params) throws SQLException {
-        Connection conn = getConnection();
-        PreparedStatement pstmt = conn.prepareStatement(sql);
-        
-        // Establecer parámetros
-        for (int i = 0; i < params.length; i++) {
-            pstmt.setObject(i + 1, params[i]);
-        }
-        
-        return pstmt.executeQuery();
-    }
-    
-    /**
-     * Ejecuta una consulta INSERT, UPDATE o DELETE
-     */
-    public int executeUpdate(String sql) throws SQLException {
-        Connection conn = getConnection();
-        try (Statement stmt = conn.createStatement()) {
-            return stmt.executeUpdate(sql);
-        }
-    }
-    
-    /**
-     * Ejecuta una consulta INSERT, UPDATE o DELETE con parámetros
-     */
-    public int executeUpdate(String sql, Object... params) throws SQLException {
-        Connection conn = getConnection();
-        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            // Establecer parámetros
-            for (int i = 0; i < params.length; i++) {
-                pstmt.setObject(i + 1, params[i]);
-            }
-            return pstmt.executeUpdate();
-        }
-    }
-    
-    /**
-     * Ejecuta un INSERT y retorna el ID generado
-     */
-    public int executeInsertWithGeneratedKey(String sql, Object... params) throws SQLException {
-        Connection conn = getConnection();
-        try (PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            // Establecer parámetros
-            for (int i = 0; i < params.length; i++) {
-                pstmt.setObject(i + 1, params[i]);
-            }
-            
-            int affectedRows = pstmt.executeUpdate();
-            if (affectedRows == 0) {
-                throw new SQLException("Error al insertar, no se afectaron filas.");
-            }
-            
-            try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
-                if (generatedKeys.next()) {
-                    return generatedKeys.getInt(1);
-                } else {
-                    throw new SQLException("Error al insertar, no se obtuvo ID.");
-                }
-            }
-        }
-    }
-    
-    /**
-     * Inicia una transacción
-     */
-    public void beginTransaction() throws SQLException {
-        Connection conn = getConnection();
-        conn.setAutoCommit(false);
-    }
-    
-    /**
-     * Confirma una transacción
-     */
-    public void commitTransaction() throws SQLException {
-        if (connection != null) {
-            connection.commit();
-            connection.setAutoCommit(true);
-        }
-    }
-    
-    /**
-     * Revierte una transacción
-     */
-    public void rollbackTransaction() throws SQLException {
-        if (connection != null) {
-            connection.rollback();
-            connection.setAutoCommit(true);
-        }
-    }
-    
-    /**
-     * Verifica la conectividad con la base de datos
-     */
-    public boolean testConnection() {
+    public boolean probarConexion() {
         try {
             Connection conn = getConnection();
-            try (PreparedStatement pstmt = conn.prepareStatement("SELECT 1")) {
-                ResultSet rs = pstmt.executeQuery();
-                if (rs.next()) {
-                    System.out.println("Prueba de conexión exitosa");
-                    return true;
-                }
+            if (conn != null) {
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT 1");
+                boolean resultado = rs.next();
+                rs.close();
+                stmt.close();
+                return resultado;
             }
         } catch (SQLException e) {
             System.err.println("Error en prueba de conexión: " + e.getMessage());
@@ -253,83 +230,241 @@ public class DatabaseConnection {
     }
     
     /**
-     * Obtiene información de la base de datos
+     * Ejecuta un script SQL (útil para inicialización)
+     * @param scriptPath Ruta del archivo SQL
+     * @return true si se ejecutó exitosamente
      */
-    public void printDatabaseInfo() {
+    public boolean ejecutarScript(String scriptPath) {
         try {
             Connection conn = getConnection();
-            DatabaseMetaData metaData = conn.getMetaData();
+            if (conn == null) return false;
             
-            System.out.println("=== INFORMACIÓN DE LA BASE DE DATOS ===");
-            System.out.println("URL: " + metaData.getURL());
-            System.out.println("Usuario: " + metaData.getUserName());
-            System.out.println("Producto: " + metaData.getDatabaseProductName());
-            System.out.println("Versión: " + metaData.getDatabaseProductVersion());
-            System.out.println("Driver: " + metaData.getDriverName());
-            System.out.println("Versión Driver: " + metaData.getDriverVersion());
-            System.out.println("=====================================");
+            // Leer script desde recursos
+            InputStream input = getClass().getClassLoader().getResourceAsStream(scriptPath);
+            if (input == null) {
+                System.err.println("Script no encontrado: " + scriptPath);
+                return false;
+            }
+            
+            // Leer contenido del script
+            Scanner scanner = new Scanner(input);
+            scanner.useDelimiter("\\A");
+            String script = scanner.hasNext() ? scanner.next() : "";
+            scanner.close();
+            
+            // Ejecutar script por bloques (separar por ;)
+            String[] statements = script.split(";");
+            Statement stmt = conn.createStatement();
+            
+            for (String sql : statements) {
+                sql = sql.trim();
+                if (!sql.isEmpty() && !sql.startsWith("--")) {
+                    stmt.execute(sql);
+                }
+            }
+            
+            stmt.close();
+            System.out.println("Script ejecutado exitosamente: " + scriptPath);
+            return true;
             
         } catch (SQLException e) {
-            System.err.println("Error al obtener información de BD: " + e.getMessage());
+            System.err.println("Error ejecutando script: " + e.getMessage());
+            return false;
         }
     }
     
     /**
-     * Cierra recursos (ResultSet, Statement, etc.)
+     * Inicia una transacción
+     * @return true si se inició correctamente
      */
-    public static void closeResources(ResultSet rs, Statement stmt) {
-        if (rs != null) {
-            try {
-                rs.close();
-            } catch (SQLException e) {
-                System.err.println("Error al cerrar ResultSet: " + e.getMessage());
+    public boolean iniciarTransaccion() {
+        try {
+            Connection conn = getConnection();
+            if (conn != null) {
+                conn.setAutoCommit(false);
+                return true;
             }
+        } catch (SQLException e) {
+            System.err.println("Error al iniciar transacción: " + e.getMessage());
         }
-        if (stmt != null) {
-            try {
-                stmt.close();
-            } catch (SQLException e) {
-                System.err.println("Error al cerrar Statement: " + e.getMessage());
-            }
-        }
+        return false;
     }
     
     /**
-     * Cierra recursos con Connection
+     * Confirma la transacción actual
+     * @return true si se confirmó correctamente
      */
-    public static void closeResources(ResultSet rs, Statement stmt, Connection conn) {
-        closeResources(rs, stmt);
-        if (conn != null) {
-            try {
-                conn.close();
-            } catch (SQLException e) {
-                System.err.println("Error al cerrar Connection: " + e.getMessage());
+    public boolean confirmarTransaccion() {
+        try {
+            Connection conn = getConnection();
+            if (conn != null) {
+                conn.commit();
+                conn.setAutoCommit(true);
+                return true;
             }
+        } catch (SQLException e) {
+            System.err.println("Error al confirmar transacción: " + e.getMessage());
         }
+        return false;
     }
     
     /**
-     * Método para configurar manualmente la conexión (útil para testing)
+     * Revierte la transacción actual
+     * @return true si se revirtió correctamente
      */
-    public void setConnectionParams(String url, String username, String password) {
-        this.url = url;
+    public boolean revertirTransaccion() {
+        try {
+            Connection conn = getConnection();
+            if (conn != null) {
+                conn.rollback();
+                conn.setAutoCommit(true);
+                return true;
+            }
+        } catch (SQLException e) {
+            System.err.println("Error al revertir transacción: " + e.getMessage());
+        }
+        return false;
+    }
+    
+    /**
+     * Configuración manual de los parámetros de conexión
+     * Útil para pruebas o configuración dinámica
+     */
+    public void configurar(String host, String port, String database, String username, String password) {
+        this.host = host;
+        this.port = port;
+        this.database = database;
         this.username = username;
         this.password = password;
+        construirUrl();
+    }
+    
+    /**
+     * Obtiene información de la configuración actual
+     * @return String con información de conexión (sin password)
+     */
+    public String obtenerInfoConexion() {
+        return String.format("Host: %s:%s, Database: %s, User: %s, Connected: %s",
+                           host, port, database, username, estaConectado());
+    }
+    
+    /**
+     * Obtiene estadísticas básicas de la base de datos
+     * @return Map con estadísticas o null si hay error
+     */
+    public java.util.Map<String, Object> obtenerEstadisticas() {
+        java.util.Map<String, Object> stats = new java.util.HashMap<>();
         
-        // Cerrar conexión existente para forzar reconexión
-        closeConnection();
+        try {
+            Connection conn = getConnection();
+            if (conn == null) return null;
+            
+            DatabaseMetaData metaData = conn.getMetaData();
+            
+            stats.put("database_product_name", metaData.getDatabaseProductName());
+            stats.put("database_product_version", metaData.getDatabaseProductVersion());
+            stats.put("driver_name", metaData.getDriverName());
+            stats.put("driver_version", metaData.getDriverVersion());
+            stats.put("url", url);
+            stats.put("username", username);
+            stats.put("connected", estaConectado());
+            
+            // Obtener número de tablas en la base de datos
+            ResultSet tables = metaData.getTables(database, null, "%", new String[]{"TABLE"});
+            int tableCount = 0;
+            while (tables.next()) {
+                tableCount++;
+            }
+            tables.close();
+            stats.put("table_count", tableCount);
+            
+        } catch (SQLException e) {
+            System.err.println("Error obteniendo estadísticas: " + e.getMessage());
+            return null;
+        }
+        
+        return stats;
     }
     
-    // Getters para información de conexión (sin revelar password)
-    public String getUrl() {
-        return url;
+    // Importar Scanner para el método ejecutarScript
+    private static class Scanner {
+        private final java.util.Scanner scanner;
+        
+        Scanner(InputStream input) {
+            this.scanner = new java.util.Scanner(input, "UTF-8");
+        }
+        
+        void useDelimiter(String pattern) {
+            scanner.useDelimiter(pattern);
+        }
+        
+        boolean hasNext() {
+            return scanner.hasNext();
+        }
+        
+        String next() {
+            return scanner.next();
+        }
+        
+        void close() {
+            scanner.close();
+        }
     }
     
-    public String getUsername() {
-        return username;
+    /**
+     * Ejecuta una consulta de actualización (INSERT, UPDATE, DELETE)
+     * @param sql La consulta SQL a ejecutar
+     * @return El número de filas afectadas
+     * @throws SQLException Si ocurre un error en la ejecución
+     */
+    public int executeUpdate(String sql) throws SQLException {
+        if (!estaConectado()) {
+            conectar();
+        }
+        
+        try (Statement stmt = connection.createStatement()) {
+            return stmt.executeUpdate(sql);
+        }
     }
     
-    public boolean hasValidConfig() {
-        return url != null && username != null && password != null;
+    /**
+     * Ejecuta una consulta de actualización con parámetros preparados
+     * @param sql La consulta SQL con parámetros (?)
+     * @param parametros Los valores de los parámetros
+     * @return El número de filas afectadas
+     * @throws SQLException Si ocurre un error en la ejecución
+     */
+    public int executeUpdate(String sql, Object... parametros) throws SQLException {
+        if (!estaConectado()) {
+            conectar();
+        }
+        
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            for (int i = 0; i < parametros.length; i++) {
+                pstmt.setObject(i + 1, parametros[i]);
+            }
+            return pstmt.executeUpdate();
+        }
+    }
+    
+    /**
+     * Método estático para cerrar todas las conexiones
+     */
+    public static void closeAllConnections() {
+        if (instance != null) {
+            instance.desconectar();
+            instance = null;
+        }
+    }
+    
+    @Override
+    public String toString() {
+        return "DatabaseConnection{" +
+               "host='" + host + "'" +
+               ", port='" + port + "'" +
+               ", database='" + database + "'" +
+               ", username='" + username + "'" +
+               ", connected=" + estaConectado() +
+               "}";
     }
 }

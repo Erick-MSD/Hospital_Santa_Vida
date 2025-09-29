@@ -5,31 +5,15 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 /**
- * Modelo de datos para citas médicas ambulatorias
- * Solo para pacientes nivel AZUL que no requieren atención de urgencia
+ * Clase modelo que representa una cita médica ambulatoria
+ * Solo para pacientes de nivel AZUL que requieren cita programada
+ * Mapea directamente con la tabla 'citas_medicas' de la base de datos
  */
 public class CitaMedica {
-    
-    // Enumeración para estados de cita
-    public enum EstadoCita {
-        PROGRAMADA("Cita programada"),
-        CONFIRMADA("Cita confirmada por paciente"),
-        CANCELADA("Cita cancelada"),
-        COMPLETADA("Cita completada"),
-        NO_ASISTIO("Paciente no asistió");
-        
-        private final String descripcion;
-        
-        EstadoCita(String descripcion) {
-            this.descripcion = descripcion;
-        }
-        
-        public String getDescripcion() { return descripcion; }
-    }
-    
-    // Atributos principales
     private int id;
     private int registroTriageId;
+    private int pacienteId;  // Campo agregado
+    private int medicoId;    // Campo agregado
     private int asistenteMedicaId;
     private LocalDate fechaProgramada;
     private LocalTime horaProgramada;
@@ -41,24 +25,57 @@ public class CitaMedica {
     private LocalDateTime fechaCreacion;
     private String observaciones;
     
-    // Referencias a otros objetos
+    // Campos adicionales para compatibilidad
+    private String motivoCita;
+    private int usuarioCreacionId;
+    private String pacienteNombre;
+    private String numeroExpediente;
+    private String medicoNombre;
+    private String usuarioCreacionNombre;
+    
+    // Referencias a objetos relacionados
     private RegistroTriage registroTriage;
     private Usuario asistenteMedica;
     
-    // Constructores
+    // Constructor vacío
     public CitaMedica() {
         this.fechaCreacion = LocalDateTime.now();
         this.estadoCita = EstadoCita.PROGRAMADA;
     }
     
-    public CitaMedica(int registroTriageId, int asistenteMedicaId, 
-                     LocalDate fechaProgramada, LocalTime horaProgramada, String especialidad) {
+    // Constructor básico
+    public CitaMedica(int registroTriageId, int asistenteMedicaId, LocalDate fechaProgramada, 
+                     LocalTime horaProgramada, String especialidad) {
         this();
         this.registroTriageId = registroTriageId;
         this.asistenteMedicaId = asistenteMedicaId;
         this.fechaProgramada = fechaProgramada;
         this.horaProgramada = horaProgramada;
         this.especialidad = especialidad;
+    }
+    
+    // Enum para estados de cita
+    public enum EstadoCita {
+        PROGRAMADA("Programada"),
+        CONFIRMADA("Confirmada"),
+        CANCELADA("Cancelada"),
+        COMPLETADA("Completada"),
+        NO_ASISTIO("No asistió");
+        
+        private final String nombre;
+        
+        EstadoCita(String nombre) {
+            this.nombre = nombre;
+        }
+        
+        public String getNombre() {
+            return nombre;
+        }
+        
+        @Override
+        public String toString() {
+            return nombre;
+        }
     }
     
     // Getters y Setters
@@ -86,6 +103,26 @@ public class CitaMedica {
         this.asistenteMedicaId = asistenteMedicaId;
     }
     
+    public int getPacienteId() {
+        return pacienteId;
+    }
+    
+    public void setPacienteId(int pacienteId) {
+        this.pacienteId = pacienteId;
+    }
+    
+    public int getMedicoId() {
+        return medicoId;
+    }
+    
+    public void setMedicoId(int medicoId) {
+        this.medicoId = medicoId;
+    }
+    
+    public LocalTime getHoraCita() {
+        return horaProgramada;
+    }
+    
     public LocalDate getFechaProgramada() {
         return fechaProgramada;
     }
@@ -108,6 +145,15 @@ public class CitaMedica {
     
     public void setEspecialidad(String especialidad) {
         this.especialidad = especialidad;
+    }
+    
+    // Métodos de compatibilidad para enum Especialidad
+    public void setEspecialidad(Especialidad especialidad) {
+        this.especialidad = especialidad != null ? especialidad.name() : null;
+    }
+    
+    public Especialidad getEspecialidadEnum() {
+        return especialidad != null ? Especialidad.valueOf(especialidad) : null;
     }
     
     public String getMedicoAsignado() {
@@ -134,6 +180,11 @@ public class CitaMedica {
         this.estadoCita = estadoCita;
     }
     
+    // Método de compatibilidad para String
+    public void setEstadoCita(String estadoCita) {
+        this.estadoCita = estadoCita != null ? EstadoCita.valueOf(estadoCita) : null;
+    }
+    
     public String getMotivoCancelacion() {
         return motivoCancelacion;
     }
@@ -158,6 +209,68 @@ public class CitaMedica {
         this.observaciones = observaciones;
     }
     
+    // Getters y setters para campos adicionales
+    public String getMotivoCita() {
+        return motivoCita;
+    }
+    
+    public void setMotivoCita(String motivoCita) {
+        this.motivoCita = motivoCita;
+    }
+    
+    public int getUsuarioCreacionId() {
+        return usuarioCreacionId;
+    }
+    
+    public void setUsuarioCreacionId(int usuarioCreacionId) {
+        this.usuarioCreacionId = usuarioCreacionId;
+    }
+    
+    public String getPacienteNombre() {
+        return pacienteNombre;
+    }
+    
+    public void setPacienteNombre(String pacienteNombre) {
+        this.pacienteNombre = pacienteNombre;
+    }
+    
+    public String getNumeroExpediente() {
+        return numeroExpediente;
+    }
+    
+    public void setNumeroExpediente(String numeroExpediente) {
+        this.numeroExpediente = numeroExpediente;
+    }
+    
+    public String getMedicoNombre() {
+        return medicoNombre;
+    }
+    
+    public void setMedicoNombre(String medicoNombre) {
+        this.medicoNombre = medicoNombre;
+    }
+    
+    public String getUsuarioCreacionNombre() {
+        return usuarioCreacionNombre;
+    }
+    
+    public void setUsuarioCreacionNombre(String usuarioCreacionNombre) {
+        this.usuarioCreacionNombre = usuarioCreacionNombre;
+    }
+    
+    // Métodos de conveniencia adicionales
+    public void setFechaCita(LocalDate fecha) {
+        this.fechaProgramada = fecha;
+    }
+    
+    public LocalDate getFechaCita() {
+        return this.fechaProgramada;
+    }
+    
+    public void setHoraCita(LocalTime hora) {
+        this.horaProgramada = hora;
+    }
+    
     public RegistroTriage getRegistroTriage() {
         return registroTriage;
     }
@@ -175,107 +288,60 @@ public class CitaMedica {
     }
     
     // Métodos de utilidad
-    public LocalDateTime getFechaHoraCompleta() {
+    public String getFechaHoraFormateada() {
         if (fechaProgramada != null && horaProgramada != null) {
-            return LocalDateTime.of(fechaProgramada, horaProgramada);
+            return fechaProgramada.toString() + " " + horaProgramada.toString();
         }
-        return null;
+        return "No programada";
     }
     
     public boolean esCitaVigente() {
-        LocalDateTime fechaHora = getFechaHoraCompleta();
-        return fechaHora != null && fechaHora.isAfter(LocalDateTime.now()) &&
+        if (fechaProgramada == null) return false;
+        LocalDate hoy = LocalDate.now();
+        return !fechaProgramada.isBefore(hoy) && 
                (estadoCita == EstadoCita.PROGRAMADA || estadoCita == EstadoCita.CONFIRMADA);
     }
     
-    public boolean esCitaVencida() {
-        LocalDateTime fechaHora = getFechaHoraCompleta();
-        return fechaHora != null && fechaHora.isBefore(LocalDateTime.now()) &&
-               estadoCita != EstadoCita.COMPLETADA && estadoCita != EstadoCita.CANCELADA;
-    }
-    
-    public boolean puedeConfirmarse() {
-        return estadoCita == EstadoCita.PROGRAMADA && esCitaVigente();
-    }
-    
-    public boolean puedeCancelarse() {
-        return (estadoCita == EstadoCita.PROGRAMADA || estadoCita == EstadoCita.CONFIRMADA) && 
-               esCitaVigente();
-    }
-    
-    public boolean puedeCompletarse() {
-        return estadoCita == EstadoCita.CONFIRMADA;
-    }
-    
-    public long getDiasHastaCita() {
-        if (fechaProgramada == null) return 0;
-        return java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), fechaProgramada);
-    }
-    
-    public boolean esHoy() {
+    public boolean esCitaHoy() {
         return fechaProgramada != null && fechaProgramada.equals(LocalDate.now());
     }
     
-    public boolean esMañana() {
-        return fechaProgramada != null && fechaProgramada.equals(LocalDate.now().plusDays(1));
+    public boolean esCitaPasada() {
+        if (fechaProgramada == null) return false;
+        return fechaProgramada.isBefore(LocalDate.now());
     }
     
-    public boolean requiereRecordatorio() {
-        long dias = getDiasHastaCita();
-        return esCitaVigente() && (dias == 1 || dias == 3); // Recordar 1 y 3 días antes
+    public boolean estaCancelada() {
+        return estadoCita == EstadoCita.CANCELADA;
     }
     
-    public void confirmar() {
-        if (puedeConfirmarse()) {
-            setEstadoCita(EstadoCita.CONFIRMADA);
-        }
+    public boolean estaCompleta() {
+        return estadoCita == EstadoCita.COMPLETADA;
     }
     
     public void cancelar(String motivo) {
-        if (puedeCancelarse()) {
-            setEstadoCita(EstadoCita.CANCELADA);
-            setMotivoCancelacion(motivo);
+        this.estadoCita = EstadoCita.CANCELADA;
+        this.motivoCancelacion = motivo;
+    }
+    
+    public void confirmar() {
+        if (estadoCita == EstadoCita.PROGRAMADA) {
+            this.estadoCita = EstadoCita.CONFIRMADA;
         }
     }
     
     public void completar() {
-        if (puedeCompletarse()) {
-            setEstadoCita(EstadoCita.COMPLETADA);
-        }
+        this.estadoCita = EstadoCita.COMPLETADA;
     }
     
-    public void marcarNoAsistio() {
-        if (estadoCita == EstadoCita.CONFIRMADA || estadoCita == EstadoCita.PROGRAMADA) {
-            setEstadoCita(EstadoCita.NO_ASISTIO);
-        }
-    }
-    
-    public String getDescripcionCompleta() {
-        StringBuilder desc = new StringBuilder();
-        desc.append("Cita de ").append(especialidad);
-        
-        if (medicoAsignado != null && !medicoAsignado.trim().isEmpty()) {
-            desc.append(" con ").append(medicoAsignado);
-        }
-        
-        if (consultorio != null && !consultorio.trim().isEmpty()) {
-            desc.append(" en ").append(consultorio);
-        }
-        
-        return desc.toString();
+    public void marcarNoAsistencia() {
+        this.estadoCita = EstadoCita.NO_ASISTIO;
     }
     
     @Override
     public String toString() {
-        return "CitaMedica{" +
-                "id=" + id +
-                ", fechaProgramada=" + fechaProgramada +
-                ", horaProgramada=" + horaProgramada +
-                ", especialidad='" + especialidad + '\'' +
-                ", medicoAsignado='" + medicoAsignado + '\'' +
-                ", estadoCita=" + estadoCita +
-                ", diasHastaCita=" + getDiasHastaCita() +
-                '}';
+        return "Cita " + especialidad + " - " + getFechaHoraFormateada() + 
+               " [" + estadoCita.getNombre() + "]";
     }
     
     @Override

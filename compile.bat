@@ -15,7 +15,7 @@ REM Compilar con JavaFX
 echo Compilando aplicacion...
 javac -d out ^
 -cp "lib\mysql-connector-j-8.0.33.jar;C:\Users\Erick\Downloads\openjfx-21.0.8_windows-x64_bin-sdk\javafx-sdk-21.0.8\lib\*;src" ^
-src\TriageApp.java ^
+src\HospitalSantaVidaApp.java ^
 src\controllers\*.java ^
 src\models\*.java ^
 src\dao\*.java ^

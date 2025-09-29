@@ -1,293 +1,490 @@
 package controllers;
 
-import dao.PacienteDAO;
-import models.Paciente;
-import models.Usuario;
-
+import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
-import javafx.scene.layout.AnchorPane;
+import javafx.scene.control.cell.PropertyValueFactory;
+import models.*;
+import services.*;
+import services.PacienteServiceResults.*;
+import utils.ValidationUtils;
 import java.net.URL;
-import java.util.ResourceBundle;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.ResourceBundle;
 
 /**
- * Controlador para el registro de pacientes (interfaz FXML)
- * Solo accesible para Asistentes Médicas
+ * Controlador para el registro de pacientes
+ * Maneja el alta de nuevos pacientes y búsqueda/edición de existentes
  */
 public class RegistroPacienteController extends BaseController implements Initializable {
     
-    // Componentes FXML - campos del formulario
+    // Información del usuario
+    @FXML private Label lblUsuarioActual;
+    @FXML private Label lblFechaHora;
+    
+    // Formulario de registro
     @FXML private TextField txtNombre;
     @FXML private TextField txtApellidoPaterno;
     @FXML private TextField txtApellidoMaterno;
-    @FXML private TextField txtCurp;
     @FXML private DatePicker dpFechaNacimiento;
-    @FXML private TextField txtEdad;
-    @FXML private ComboBox<String> cmbSexo;
-    @FXML private TextField txtTelefonoPrincipal;
-    @FXML private TextField txtTelefonoSecundario;
+    @FXML private ComboBox<String> cbSexo;
+    @FXML private TextField txtCurp;
+    @FXML private TextField txtRfc;
+    @FXML private TextField txtTelefono;
     @FXML private TextField txtEmail;
+    
+    // Dirección
     @FXML private TextField txtCalle;
     @FXML private TextField txtNumero;
     @FXML private TextField txtColonia;
-    @FXML private ComboBox<String> cmbDireccionCiudad;
-    @FXML private ComboBox<String> cmbDireccionEstado;
+    @FXML private TextField txtCiudad;
+    @FXML private TextField txtEstado;
     @FXML private TextField txtCodigoPostal;
-    @FXML private TextField txtContactoEmergencia;
-    @FXML private TextField txtTelefonoEmergencia;
-    @FXML private ComboBox<String> cmbContactoEmergenciaRelacion;
-    @FXML private ComboBox<String> cmbSeguroMedico;
-    @FXML private TextField txtNumeroPoliza;
     
-    // Componentes de la interfaz
+    // Información médica
+    @FXML private TextArea txtAlergias;
+    @FXML private TextArea txtMedicamentos;
+    @FXML private TextArea txtEnfermedadesPrevias;
+    @FXML private TextArea txtObservacionesMedicas;
+    
+    // Contacto de emergencia
+    @FXML private TextField txtNombreEmergencia;
+    @FXML private TextField txtTelefonoEmergencia;
+    @FXML private TextField txtParentesco;
+    
+    // Botones
     @FXML private Button btnGuardar;
     @FXML private Button btnLimpiar;
-    @FXML private Button btnCancelar;
+    @FXML private Button btnBuscar;
+    @FXML private Button btnNuevo;
+    
+    // Búsqueda
+    @FXML private TextField txtBusqueda;
+    @FXML private TableView<PacienteInfo> tblPacientes;
+    @FXML private TableColumn<PacienteInfo, String> colExpediente;
+    @FXML private TableColumn<PacienteInfo, String> colNombre;
+    @FXML private TableColumn<PacienteInfo, String> colFechaNacimiento;
+    @FXML private TableColumn<PacienteInfo, String> colTelefono;
+    @FXML private TableColumn<PacienteInfo, String> colEstado;
+    
+    // Mensajes
     @FXML private Label lblMensaje;
-    @FXML private Label lblUsuarioActual;
-    @FXML private Label lblEstado;
-    @FXML private AnchorPane mainPane;
     
     // Servicios
-    private PacienteDAO pacienteDAO;
+    private PacienteService pacienteService;
     
-    public RegistroPacienteController() {
-        this.pacienteDAO = new PacienteDAO();
-    }
+    // Estado actual
+    private Paciente pacienteActual;
+    private boolean modoEdicion = false;
+    private ObservableList<PacienteInfo> listaPacientes;
     
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        System.out.println("🏥 Inicializando interfaz de Registro de Pacientes...");
+        // Inicializar servicios
+        pacienteService = new PacienteService();
         
-        // Inicializar componentes
-        configurarComponentes();
+        // Configurar ComboBox de sexo
+        cbSexo.getItems().addAll("MASCULINO", "FEMENINO", "OTRO");
         
-        // Llamar métodos del BaseController
-        super.initialize();
+        // Configurar tabla
+        setupTable();
+        
+        // Configurar lista observable
+        listaPacientes = FXCollections.observableArrayList();
+        tblPacientes.setItems(listaPacientes);
+        
+        // Configurar validaciones
+        setupValidations();
+        
+        // Estado inicial
+        limpiarFormulario();
     }
     
     @Override
-    protected void configurarInterfaz() {
+    protected void onSesionInicializada() {
+        // Verificar permisos
+        if (!tienePermiso(AuthenticationService.Permiso.REGISTRAR_PACIENTES)) {
+            showAlert("Sin permisos", "No tiene permisos para registrar pacientes");
+            return;
+        }
+        
+        // Configurar información del usuario
+        lblUsuarioActual.setText(usuarioActual.getNombreCompleto());
+        
+        // Cargar lista de pacientes recientes
+        cargarPacientesRecientes();
+    }
+    
+    /**
+     * Configura la tabla de pacientes
+     */
+    private void setupTable() {
+        colExpediente.setCellValueFactory(new PropertyValueFactory<>("expediente"));
+        colNombre.setCellValueFactory(new PropertyValueFactory<>("nombreCompleto"));
+        colFechaNacimiento.setCellValueFactory(new PropertyValueFactory<>("fechaNacimiento"));
+        colTelefono.setCellValueFactory(new PropertyValueFactory<>("telefono"));
+        colEstado.setCellValueFactory(new PropertyValueFactory<>("estado"));
+        
+        // Listener para selección
+        tblPacientes.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null) {
+                cargarPacienteEnFormulario(newValue.getPacienteId());
+            }
+        });
+    }
+    
+    /**
+     * Configura las validaciones de campos
+     */
+    private void setupValidations() {
+        // Validación de CURP en tiempo real
+        txtCurp.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null && !newValue.isEmpty()) {
+                if (!ValidationUtils.isValidCURP(newValue)) {
+                    txtCurp.setStyle("-fx-border-color: #E74C3C; -fx-border-width: 1px;");
+                } else {
+                    txtCurp.setStyle("");
+                }
+            }
+        });
+        
+        // Validación de RFC en tiempo real
+        txtRfc.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null && !newValue.isEmpty()) {
+                if (!ValidationUtils.isValidRFC(newValue)) {
+                    txtRfc.setStyle("-fx-border-color: #E74C3C; -fx-border-width: 1px;");
+                } else {
+                    txtRfc.setStyle("");
+                }
+            }
+        });
+        
+        // Validación de email
+        txtEmail.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null && !newValue.isEmpty()) {
+                if (!ValidationUtils.isValidEmail(newValue)) {
+                    txtEmail.setStyle("-fx-border-color: #E74C3C; -fx-border-width: 1px;");
+                } else {
+                    txtEmail.setStyle("");
+                }
+            }
+        });
+        
+        // Solo números en teléfono
+        txtTelefono.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null && !newValue.matches("\\d*")) {
+                txtTelefono.setText(newValue.replaceAll("[^\\d]", ""));
+            }
+        });
+        
+        txtTelefonoEmergencia.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null && !newValue.matches("\\d*")) {
+                txtTelefonoEmergencia.setText(newValue.replaceAll("[^\\d]", ""));
+            }
+        });
+    }
+    
+    /**
+     * Carga los pacientes registrados recientemente
+     */
+    private void cargarPacientesRecientes() {
         try {
-            // Verificar permisos
-            if (authService != null) {
-                authService.requireRole(Usuario.TipoUsuario.ASISTENTE_MEDICA);
-            }
+            ResultadoBusqueda resultado = pacienteService.obtenerPacientesRecientes(tokenSesion, 50);
             
-            // Configurar información del usuario
-            if (usuarioActual != null && lblUsuarioActual != null) {
-                lblUsuarioActual.setText("👩‍⚕️ " + usuarioActual.getNombreCompleto());
-            }
+            listaPacientes.clear();
             
-            // Configurar estado
-            if (lblEstado != null) {
-                lblEstado.setText("📋 PENDIENTE DE EVALUACIÓN");
-                lblEstado.setStyle("-fx-text-fill: #FF9800; -fx-font-weight: bold;");
+            for (Paciente paciente : resultado.getPacientes()) {
+                PacienteInfo info = new PacienteInfo(
+                    paciente.getId(),
+                    paciente.getNumeroExpediente(),
+                    paciente.getNombreCompleto(),
+                    paciente.getFechaNacimiento().toString(),
+                    paciente.getTelefono(),
+                    paciente.isActivo() ? "ACTIVO" : "INACTIVO"
+                );
+                listaPacientes.add(info);
             }
-            
-            System.out.println("✅ Interfaz configurada correctamente para: " + 
-                             (usuarioActual != null ? usuarioActual.getNombreCompleto() : "Usuario desconocido"));
             
         } catch (Exception e) {
-            System.err.println("❌ Error de permisos: " + e.getMessage());
-            mostrarMensaje("Error: Sin permisos para acceder a esta función", "#D32F2F");
-        }
-    }
-    
-    @Override
-    protected void cargarDatos() {
-        // Método implementado para cumplir con BaseController
-        System.out.println("🔄 Datos iniciales cargados para registro de pacientes");
-    }
-    
-    /**
-     * Configura los componentes de la interfaz
-     */
-    private void configurarComponentes() {
-        // Configurar ComboBox de sexo
-        if (cmbSexo != null) {
-            cmbSexo.getItems().addAll("MASCULINO", "FEMENINO", "OTRO");
-        }
-        
-        // Configurar ComboBox de relación de contacto de emergencia
-        if (cmbContactoEmergenciaRelacion != null) {
-            cmbContactoEmergenciaRelacion.getItems().addAll(
-                "Esposo/a", "Hijo/a", "Padre/Madre", "Hermano/a", 
-                "Abuelo/a", "Tío/a", "Primo/a", "Amigo/a", 
-                "Conocido", "Pareja", "Otro"
-            );
-        }
-        
-        // Configurar listener para calcular edad automáticamente
-        if (dpFechaNacimiento != null && txtEdad != null) {
-            dpFechaNacimiento.valueProperty().addListener((obs, oldDate, newDate) -> {
-                if (newDate != null) {
-                    int edad = java.time.Period.between(newDate, java.time.LocalDate.now()).getYears();
-                    txtEdad.setText(String.valueOf(edad));
-                }
-            });
-        }
-        
-        // Configurar ComboBox de estados mexicanos
-        if (cmbDireccionEstado != null) {
-            cmbDireccionEstado.getItems().addAll(
-                "Aguascalientes", "Baja California", "Baja California Sur", "Campeche", 
-                "Chiapas", "Chihuahua", "Ciudad de México", "Coahuila", "Colima", 
-                "Durango", "Estado de México", "Guanajuato", "Guerrero", "Hidalgo", 
-                "Jalisco", "Michoacán", "Morelos", "Nayarit", "Nuevo León", "Oaxaca", 
-                "Puebla", "Querétaro", "Quintana Roo", "San Luis Potosí", "Sinaloa", 
-                "Sonora", "Tabasco", "Tamaulipas", "Tlaxcala", "Veracruz", "Yucatán", "Zacatecas"
-            );
-            
-            // Listener para actualizar ciudades cuando cambie el estado
-            cmbDireccionEstado.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
-                if (newVal != null && cmbDireccionCiudad != null) {
-                    actualizarCiudades(newVal);
-                }
-            });
-        }
-        
-        // Configurar ComboBox de aseguradoras mexicanas
-        if (cmbSeguroMedico != null) {
-            cmbSeguroMedico.getItems().addAll(
-                "SIN SEGURO", "GNP Seguros", "AXA Seguros", "MetLife México", 
-                "Monterrey New York Life", "Seguros Inbursa", "Allianz México", 
-                "MAPFRE México", "Zurich México", "Bupa México", "Plan Seguro", 
-                "Atlas Seguros", "HDI Seguros", "Qualitas Compañía de Seguros", 
-                "IMSS", "ISSSTE", "Seguro Popular", "PEMEX", "SEDENA", "SEMAR"
-            );
-            cmbSeguroMedico.setValue("SIN SEGURO");
+            showAlert("Error", "Error al cargar pacientes: " + e.getMessage());
         }
     }
     
     /**
-     * Actualiza las ciudades disponibles según el estado seleccionado
-     */
-    private void actualizarCiudades(String estado) {
-        if (cmbDireccionCiudad == null) return;
-        
-        cmbDireccionCiudad.getItems().clear();
-        
-        // Agregar ciudades principales según el estado
-        switch (estado) {
-            case "Nuevo León":
-                cmbDireccionCiudad.getItems().addAll("Monterrey", "Guadalupe", "San Nicolás de los Garza", 
-                    "Apodaca", "General Escobedo", "Santa Catarina", "San Pedro Garza García");
-                break;
-            case "Ciudad de México":
-                cmbDireccionCiudad.getItems().addAll("Álvaro Obregón", "Azcapotzalco", "Benito Juárez", 
-                    "Coyoacán", "Cuauhtémoc", "Gustavo A. Madero", "Iztacalco", "Iztapalapa");
-                break;
-            case "Jalisco":
-                cmbDireccionCiudad.getItems().addAll("Guadalajara", "Zapopan", "Tlaquepaque", 
-                    "Tonalá", "Puerto Vallarta", "Tlajomulco de Zúñiga");
-                break;
-            default:
-                // Para otros estados, agregar una opción genérica
-                cmbDireccionCiudad.getItems().addAll("Capital del Estado", "Ciudad Principal", "Otra Ciudad");
-                break;
-        }
-    }
-    
-    /**
-     * Maneja el evento de guardar paciente
+     * Busca pacientes según criterio
      */
     @FXML
-    private void handleGuardarPaciente() {
+    private void handleBuscar() {
+        String criterio = txtBusqueda.getText().trim();
+        
+        if (criterio.isEmpty()) {
+            cargarPacientesRecientes();
+            return;
+        }
+        
         try {
-            System.out.println("💾 Iniciando guardado de paciente...");
+            ResultadoBusqueda resultado = pacienteService.buscarPacientes(tokenSesion, criterio);
             
-            // Validar campos obligatorios
-            if (!validarCamposObligatorios()) {
-                return;
+            listaPacientes.clear();
+            
+            for (Paciente paciente : resultado.getPacientes()) {
+                PacienteInfo info = new PacienteInfo(
+                    paciente.getId(),
+                    paciente.getNumeroExpediente(),
+                    paciente.getNombreCompleto(),
+                    paciente.getFechaNacimiento().toString(),
+                    paciente.getTelefono(),
+                    paciente.isActivo() ? "ACTIVO" : "INACTIVO"
+                );
+                listaPacientes.add(info);
             }
             
-            // Crear objeto paciente
-            Paciente nuevoPaciente = crearPacienteDesdeFormulario();
+            if (listaPacientes.isEmpty()) {
+                showMessage("No se encontraron pacientes con ese criterio", "info");
+            }
             
-            // Guardar en base de datos
-            int idPaciente = pacienteDAO.crear(nuevoPaciente);
+        } catch (Exception e) {
+            showAlert("Error", "Error en la búsqueda: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Carga un paciente en el formulario para edición
+     */
+    private void cargarPacienteEnFormulario(int pacienteId) {
+        try {
+            pacienteActual = pacienteService.buscarPorId(tokenSesion, pacienteId);
             
-            if (idPaciente > 0) {
-                nuevoPaciente.setId(idPaciente);
-                mostrarMensaje("✅ Paciente registrado exitosamente! ID: " + idPaciente, "#4CAF50");
-                System.out.println("✅ Paciente guardado con ID: " + idPaciente);
+            if (pacienteActual != null) {
+                // Cargar datos básicos
+                txtNombre.setText(pacienteActual.getNombre());
+                txtApellidoPaterno.setText(pacienteActual.getApellidoPaterno());
+                txtApellidoMaterno.setText(pacienteActual.getApellidoMaterno());
+                dpFechaNacimiento.setValue(pacienteActual.getFechaNacimiento());
+                cbSexo.setValue(pacienteActual.getSexo());
+                txtCurp.setText(pacienteActual.getCurp());
+                txtRfc.setText(pacienteActual.getRfc());
+                txtTelefono.setText(pacienteActual.getTelefono());
+                txtEmail.setText(pacienteActual.getEmail());
                 
-                // Limpiar el formulario
-                limpiarFormulario();
+                // Cargar dirección
+                txtCalle.setText(pacienteActual.getDireccionCalle());
+                txtNumero.setText(pacienteActual.getDireccionNumero());
+                txtColonia.setText(pacienteActual.getDireccionColonia());
+                txtCiudad.setText(pacienteActual.getDireccionCiudad());
+                txtEstado.setText(pacienteActual.getDireccionEstado());
+                txtCodigoPostal.setText(pacienteActual.getCodigoPostal());
+                
+                // Cargar información médica
+                txtAlergias.setText(pacienteActual.getAlergias());
+                txtMedicamentos.setText(pacienteActual.getMedicamentos());
+                txtEnfermedadesPrevias.setText(pacienteActual.getEnfermedadesPrevias());
+                txtObservacionesMedicas.setText(pacienteActual.getObservacionesMedicas());
+                
+                // Cargar contacto de emergencia
+                txtNombreEmergencia.setText(pacienteActual.getContactoEmergenciaNombre());
+                txtTelefonoEmergencia.setText(pacienteActual.getContactoEmergenciaTelefono());
+                txtParentesco.setText(pacienteActual.getContactoEmergenciaParentesco());
+                
+                modoEdicion = true;
+                btnGuardar.setText("Actualizar Paciente");
+                showMessage("Paciente cargado para edición", "success");
+            }
+            
+        } catch (Exception e) {
+            showAlert("Error", "Error al cargar paciente: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Guarda o actualiza un paciente
+     */
+    @FXML
+    private void handleGuardar() {
+        if (!validarFormulario()) {
+            return;
+        }
+        
+        try {
+            // Crear datos de registro
+            DatosRegistroPaciente datos = new DatosRegistroPaciente();
+            datos.setNombre(txtNombre.getText().trim());
+            datos.setApellidoPaterno(txtApellidoPaterno.getText().trim());
+            datos.setApellidoMaterno(txtApellidoMaterno.getText().trim());
+            datos.setFechaNacimiento(dpFechaNacimiento.getValue());
+            datos.setSexo(cbSexo.getValue());
+            datos.setCurp(txtCurp.getText().trim().toUpperCase());
+            datos.setRfc(txtRfc.getText().trim().toUpperCase());
+            datos.setTelefono(txtTelefono.getText().trim());
+            datos.setEmail(txtEmail.getText().trim());
+            
+            // Dirección
+            datos.setDireccionCalle(txtCalle.getText().trim());
+            datos.setDireccionNumero(txtNumero.getText().trim());
+            datos.setDireccionColonia(txtColonia.getText().trim());
+            datos.setDireccionCiudad(txtCiudad.getText().trim());
+            datos.setDireccionEstado(txtEstado.getText().trim());
+            datos.setCodigoPostal(txtCodigoPostal.getText().trim());
+            
+            // Información médica
+            datos.setAlergias(txtAlergias.getText().trim());
+            datos.setMedicamentos(txtMedicamentos.getText().trim());
+            datos.setEnfermedadesPrevias(txtEnfermedadesPrevias.getText().trim());
+            datos.setObservacionesMedicas(txtObservacionesMedicas.getText().trim());
+            
+            // Contacto de emergencia
+            datos.setContactoEmergenciaNombre(txtNombreEmergencia.getText().trim());
+            datos.setContactoEmergenciaTelefono(txtTelefonoEmergencia.getText().trim());
+            datos.setContactoEmergenciaParentesco(txtParentesco.getText().trim());
+            
+            if (modoEdicion && pacienteActual != null) {
+                // Actualizar paciente existente
+                boolean actualizado = pacienteService.actualizarPaciente(tokenSesion, pacienteActual.getId(), datos);
+                
+                if (actualizado) {
+                    showMessage("Paciente actualizado correctamente", "success");
+                    cargarPacientesRecientes();
+                    limpiarFormulario();
+                } else {
+                    showMessage("Error al actualizar el paciente", "error");
+                }
                 
             } else {
-                mostrarMensaje("❌ Error al registrar el paciente. Intente nuevamente.", "#D32F2F");
+                // Registrar nuevo paciente
+                ResultadoRegistro resultado = pacienteService.registrarPaciente(tokenSesion, datos);
+                
+                if (resultado.isExitoso()) {
+                    showMessage("Paciente registrado exitosamente. ID: " + resultado.getPacienteId(), "success");
+                    cargarPacientesRecientes();
+                    limpiarFormulario();
+                } else {
+                    showMessage("Error al registrar: " + resultado.getMensaje(), "error");
+                }
             }
             
         } catch (Exception e) {
-            System.err.println("❌ Error al guardar paciente: " + e.getMessage());
-            e.printStackTrace();
-            mostrarMensaje("❌ Error durante el registro: " + e.getMessage(), "#D32F2F");
+            showAlert("Error", "Error al guardar paciente: " + e.getMessage());
         }
     }
     
     /**
-     * Maneja el evento de guardar y continuar (alias para guardar)
+     * Prepara el formulario para un nuevo paciente
      */
     @FXML
-    private void handleGuardarContinuar() {
-        // Mismo comportamiento que guardar paciente
-        handleGuardarPaciente();
-    }
-    
-    /**
-     * Maneja el evento de limpiar formulario
-     */
-    @FXML
-    private void handleLimpiarFormulario() {
+    private void handleNuevo() {
         limpiarFormulario();
     }
     
     /**
-     * Maneja el evento de cancelar
+     * Limpia el formulario
      */
     @FXML
-    private void handleCancelar() {
-        // Cerrar la ventana
-        if (mainPane != null && mainPane.getScene() != null) {
-            mainPane.getScene().getWindow().hide();
-        }
+    private void handleLimpiar() {
+        limpiarFormulario();
     }
     
     /**
-     * Valida que los campos obligatorios estén llenos
+     * Limpia todos los campos del formulario
      */
-    private boolean validarCamposObligatorios() {
-        if (txtNombre == null || txtNombre.getText().trim().isEmpty()) {
-            mostrarMensaje("❌ El nombre es obligatorio", "#D32F2F");
-            if (txtNombre != null) txtNombre.requestFocus();
-            return false;
+    private void limpiarFormulario() {
+        // Limpiar campos básicos
+        txtNombre.clear();
+        txtApellidoPaterno.clear();
+        txtApellidoMaterno.clear();
+        dpFechaNacimiento.setValue(null);
+        cbSexo.setValue(null);
+        txtCurp.clear();
+        txtRfc.clear();
+        txtTelefono.clear();
+        txtEmail.clear();
+        
+        // Limpiar dirección
+        txtCalle.clear();
+        txtNumero.clear();
+        txtColonia.clear();
+        txtCiudad.clear();
+        txtEstado.clear();
+        txtCodigoPostal.clear();
+        
+        // Limpiar información médica
+        txtAlergias.clear();
+        txtMedicamentos.clear();
+        txtEnfermedadesPrevias.clear();
+        txtObservacionesMedicas.clear();
+        
+        // Limpiar contacto de emergencia
+        txtNombreEmergencia.clear();
+        txtTelefonoEmergencia.clear();
+        txtParentesco.clear();
+        
+        // Limpiar estilos de validación
+        limpiarEstilosValidacion();
+        
+        // Reset estado
+        pacienteActual = null;
+        modoEdicion = false;
+        btnGuardar.setText("Guardar Paciente");
+        
+        // Limpiar mensaje
+        lblMensaje.setText("");
+        
+        // Limpiar selección de tabla
+        tblPacientes.getSelectionModel().clearSelection();
+        
+        // Focus al primer campo
+        Platform.runLater(() -> txtNombre.requestFocus());
+    }
+    
+    /**
+     * Valida el formulario antes de guardar
+     */
+    private boolean validarFormulario() {
+        StringBuilder errores = new StringBuilder();
+        
+        // Validar campos obligatorios
+        if (txtNombre.getText().trim().isEmpty()) {
+            errores.append("- El nombre es obligatorio\n");
         }
         
-        if (txtApellidoPaterno == null || txtApellidoPaterno.getText().trim().isEmpty()) {
-            mostrarMensaje("❌ El apellido paterno es obligatorio", "#D32F2F");
-            if (txtApellidoPaterno != null) txtApellidoPaterno.requestFocus();
-            return false;
+        if (txtApellidoPaterno.getText().trim().isEmpty()) {
+            errores.append("- El apellido paterno es obligatorio\n");
         }
         
-        if (dpFechaNacimiento == null || dpFechaNacimiento.getValue() == null) {
-            mostrarMensaje("❌ La fecha de nacimiento es obligatoria", "#D32F2F");
-            if (dpFechaNacimiento != null) dpFechaNacimiento.requestFocus();
-            return false;
+        if (dpFechaNacimiento.getValue() == null) {
+            errores.append("- La fecha de nacimiento es obligatoria\n");
+        } else if (dpFechaNacimiento.getValue().isAfter(LocalDate.now())) {
+            errores.append("- La fecha de nacimiento no puede ser futura\n");
         }
         
-        if (txtTelefonoPrincipal == null || txtTelefonoPrincipal.getText().trim().isEmpty()) {
-            mostrarMensaje("❌ El teléfono principal es obligatorio", "#D32F2F");
-            if (txtTelefonoPrincipal != null) txtTelefonoPrincipal.requestFocus();
-            return false;
+        if (cbSexo.getValue() == null) {
+            errores.append("- El sexo es obligatorio\n");
         }
         
-        if (txtContactoEmergencia == null || txtContactoEmergencia.getText().trim().isEmpty()) {
-            mostrarMensaje("❌ El contacto de emergencia es obligatorio", "#D32F2F");
-            if (txtContactoEmergencia != null) txtContactoEmergencia.requestFocus();
+        if (txtTelefono.getText().trim().isEmpty()) {
+            errores.append("- El teléfono es obligatorio\n");
+        }
+        
+        // Validar CURP si se proporciona
+        if (!txtCurp.getText().trim().isEmpty() && !ValidationUtils.isValidCURP(txtCurp.getText().trim())) {
+            errores.append("- El CURP no tiene el formato correcto\n");
+        }
+        
+        // Validar RFC si se proporciona
+        if (!txtRfc.getText().trim().isEmpty() && !ValidationUtils.isValidRFC(txtRfc.getText().trim())) {
+            errores.append("- El RFC no tiene el formato correcto\n");
+        }
+        
+        // Validar email si se proporciona
+        if (!txtEmail.getText().trim().isEmpty() && !ValidationUtils.isValidEmail(txtEmail.getText().trim())) {
+            errores.append("- El email no tiene el formato correcto\n");
+        }
+        
+        if (errores.length() > 0) {
+            showAlert("Errores de validación", errores.toString());
             return false;
         }
         
@@ -295,116 +492,81 @@ public class RegistroPacienteController extends BaseController implements Initia
     }
     
     /**
-     * Crea un objeto Paciente a partir de los datos del formulario
+     * Limpia los estilos de validación
      */
-    private Paciente crearPacienteDesdeFormulario() {
-        Paciente paciente = new Paciente();
+    private void limpiarEstilosValidacion() {
+        txtCurp.setStyle("");
+        txtRfc.setStyle("");
+        txtEmail.setStyle("");
+    }
+    
+    /**
+     * Muestra un mensaje en la etiqueta de mensajes
+     */
+    private void showMessage(String message, String type) {
+        lblMensaje.setText(message);
         
-        // Datos personales
-        paciente.setNombre(txtNombre.getText().trim());
-        paciente.setApellidoPaterno(txtApellidoPaterno.getText().trim());
-        paciente.setApellidoMaterno(txtApellidoMaterno != null ? txtApellidoMaterno.getText().trim() : null);
-        paciente.setCurp(txtCurp != null ? txtCurp.getText().trim().toUpperCase() : null);
-        paciente.setFechaNacimiento(dpFechaNacimiento.getValue());
+        switch (type) {
+            case "success":
+                lblMensaje.setStyle("-fx-text-fill: #27AE60; -fx-font-weight: bold;");
+                break;
+            case "error":
+                lblMensaje.setStyle("-fx-text-fill: #E74C3C; -fx-font-weight: bold;");
+                break;
+            case "info":
+                lblMensaje.setStyle("-fx-text-fill: #4A90E2; -fx-font-weight: bold;");
+                break;
+            default:
+                lblMensaje.setStyle("-fx-text-fill: #555555;");
+        }
         
-        // Sexo
-        if (cmbSexo != null && cmbSexo.getValue() != null) {
-            switch (cmbSexo.getValue()) {
-                case "MASCULINO":
-                    paciente.setSexo(Paciente.Sexo.MASCULINO);
-                    break;
-                case "FEMENINO":
-                    paciente.setSexo(Paciente.Sexo.FEMENINO);
-                    break;
-                default:
-                    paciente.setSexo(Paciente.Sexo.OTRO);
-                    break;
+        // Limpiar mensaje después de 5 segundos
+        Platform.runLater(() -> {
+            try {
+                Thread.sleep(5000);
+                Platform.runLater(() -> lblMensaje.setText(""));
+            } catch (InterruptedException e) {
+                // Ignorar
             }
-        }
-        
-        // Contacto
-        paciente.setTelefonoPrincipal(txtTelefonoPrincipal.getText().trim());
-        paciente.setTelefonoSecundario(txtTelefonoSecundario != null ? txtTelefonoSecundario.getText().trim() : null);
-        paciente.setEmail(txtEmail != null && !txtEmail.getText().trim().isEmpty() ? txtEmail.getText().trim() : null);
-        
-        // Dirección
-        paciente.setDireccionCalle(txtCalle != null ? txtCalle.getText().trim() : null);
-        paciente.setDireccionNumero(txtNumero != null ? txtNumero.getText().trim() : null);
-        paciente.setDireccionColonia(txtColonia != null ? txtColonia.getText().trim() : null);
-        paciente.setDireccionCiudad(cmbDireccionCiudad != null ? cmbDireccionCiudad.getValue() : null);
-        paciente.setDireccionEstado(cmbDireccionEstado != null ? cmbDireccionEstado.getValue() : null);
-        paciente.setDireccionCp(txtCodigoPostal != null ? txtCodigoPostal.getText().trim() : null);
-        
-        // Contacto de emergencia
-        paciente.setContactoEmergenciaNombre(txtContactoEmergencia.getText().trim());
-        paciente.setContactoEmergenciaTelefono(txtTelefonoEmergencia != null ? txtTelefonoEmergencia.getText().trim() : null);
-        paciente.setContactoEmergenciaRelacion(cmbContactoEmergenciaRelacion != null ? cmbContactoEmergenciaRelacion.getValue() : null);
-        
-        // Seguro médico
-        paciente.setSeguroMedico(cmbSeguroMedico != null && cmbSeguroMedico.getValue() != null ? cmbSeguroMedico.getValue() : "SIN SEGURO");
-        paciente.setNumeroPoliza(txtNumeroPoliza != null && !txtNumeroPoliza.getText().trim().isEmpty() ? txtNumeroPoliza.getText().trim() : null);
-        
-        return paciente;
+        });
     }
     
     /**
-     * Limpiar todos los campos del formulario
+     * Muestra un alert
      */
-    @Override
-    protected void limpiarFormulario() {
-        if (txtNombre != null) txtNombre.clear();
-        if (txtApellidoPaterno != null) txtApellidoPaterno.clear();
-        if (txtApellidoMaterno != null) txtApellidoMaterno.clear();
-        if (txtCurp != null) txtCurp.clear();
-        if (dpFechaNacimiento != null) dpFechaNacimiento.setValue(null);
-        if (txtEdad != null) txtEdad.clear();
-        if (cmbSexo != null) cmbSexo.setValue(null);
-        if (txtTelefonoPrincipal != null) txtTelefonoPrincipal.clear();
-        if (txtTelefonoSecundario != null) txtTelefonoSecundario.clear();
-        if (txtEmail != null) txtEmail.clear();
-        if (txtCalle != null) txtCalle.clear();
-        if (txtNumero != null) txtNumero.clear();
-        if (txtColonia != null) txtColonia.clear();
-        if (cmbDireccionCiudad != null) cmbDireccionCiudad.setValue(null);
-        if (cmbDireccionEstado != null) cmbDireccionEstado.setValue(null);
-        if (txtCodigoPostal != null) txtCodigoPostal.clear();
-        if (txtContactoEmergencia != null) txtContactoEmergencia.clear();
-        if (txtTelefonoEmergencia != null) txtTelefonoEmergencia.clear();
-        if (cmbContactoEmergenciaRelacion != null) cmbContactoEmergenciaRelacion.setValue(null);
-        if (cmbSeguroMedico != null) cmbSeguroMedico.setValue("SIN SEGURO");
-        if (txtNumeroPoliza != null) txtNumeroPoliza.clear();
+    private void showAlert(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+    
+    // Clase de datos para la tabla
+    public static class PacienteInfo {
+        private int pacienteId;
+        private String expediente;
+        private String nombreCompleto;
+        private String fechaNacimiento;
+        private String telefono;
+        private String estado;
         
-        mostrarMensaje("🧹 Formulario limpiado", "#4CAF50");
-    }
-    
-    /**
-     * Muestra un mensaje en la interfaz
-     */
-    private void mostrarMensaje(String mensaje, String color) {
-        if (lblMensaje != null) {
-            lblMensaje.setText(mensaje);
-            lblMensaje.setStyle("-fx-text-fill: " + color + ";");
+        public PacienteInfo(int pacienteId, String expediente, String nombreCompleto, 
+                          String fechaNacimiento, String telefono, String estado) {
+            this.pacienteId = pacienteId;
+            this.expediente = expediente;
+            this.nombreCompleto = nombreCompleto;
+            this.fechaNacimiento = fechaNacimiento;
+            this.telefono = telefono;
+            this.estado = estado;
         }
-        System.out.println("💬 " + mensaje);
-    }
-    
-    /**
-     * Maneja el evento de cerrar sesión
-     */
-    @FXML
-    public void handleLogout() {
-        try {
-            // Cargar la pantalla de login
-            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/ui/login.fxml"));
-            javafx.scene.Scene loginScene = new javafx.scene.Scene(loader.load());
-            
-            javafx.stage.Stage currentStage = (javafx.stage.Stage) btnCancelar.getScene().getWindow();
-            currentStage.setScene(loginScene);
-            currentStage.setTitle("Iniciar Sesión - Hospital Santa Vida");
-            currentStage.centerOnScreen();
-            
-        } catch (Exception e) {
-            mostrarMensaje("Error al cerrar sesión: " + e.getMessage(), "red");
-        }
+        
+        // Getters
+        public int getPacienteId() { return pacienteId; }
+        public String getExpediente() { return expediente; }
+        public String getNombreCompleto() { return nombreCompleto; }
+        public String getFechaNacimiento() { return fechaNacimiento; }
+        public String getTelefono() { return telefono; }
+        public String getEstado() { return estado; }
     }
 }

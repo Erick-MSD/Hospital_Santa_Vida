@@ -10,10 +10,7 @@ import javafx.stage.Stage;
 import models.DatosSociales;
 import models.Paciente;
 import models.RegistroTriage;
-import models.Usuario;
 import dao.DatosSocialesDAO;
-import services.TriageService;
-import services.AuthenticationService;
 
 import java.io.IOException;
 import java.net.URL;
@@ -55,8 +52,6 @@ public class TrabajoSocialController extends BaseController implements Initializ
     // Variables del controlador
     private RegistroTriage registroTriageActual;
     private DatosSocialesDAO datosSocialesDAO;
-    private TriageService triageService;
-    private AuthenticationService authService;
     
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -66,27 +61,21 @@ public class TrabajoSocialController extends BaseController implements Initializ
     }
     
     /**
-     * Método requerido por BaseController
-     */
-    @Override
-    protected void cargarDatos() {
-        cargarPacientePendiente();
-    }
-    
-    /**
      * Inicializa los servicios necesarios
      */
     private void inicializarServicios() {
-        datosSocialesDAO = new DatosSocialesDAO();
-        authService = new AuthenticationService();
-        triageService = new TriageService(authService);
+        try {
+            datosSocialesDAO = new DatosSocialesDAO();
+        } catch (Exception e) {
+            System.err.println("Error al inicializar servicios: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
     
     /**
      * Configura la interfaz inicial
      */
-    @Override
-    protected void configurarInterfaz() {
+    private void configurarInterfaz() {
         // Configurar usuario actual (obtener del contexto de sesión)
         lblUsuarioNombre.setText("Trabajadora Social Ana López");
         
@@ -103,8 +92,11 @@ public class TrabajoSocialController extends BaseController implements Initializ
      */
     private void cargarPacientePendiente() {
         try {
-            // Obtener el siguiente paciente que necesita evaluación social
-            registroTriageActual = triageService.obtenerSiguientePacienteParaTrabajoSocial();
+            // Simulación de obtener paciente - se debe implementar método en TriageService
+            // registroTriageActual = triageService.obtenerSiguientePacienteParaTrabajoSocial();
+            
+            // Por ahora, simulamos que no hay pacientes pendientes
+            registroTriageActual = null;
             
             if (registroTriageActual != null) {
                 actualizarInformacionPaciente();
@@ -126,7 +118,8 @@ public class TrabajoSocialController extends BaseController implements Initializ
             Paciente paciente = registroTriageActual.getPaciente();
             
             lblNombrePaciente.setText(paciente.getNombre() + " " + paciente.getApellidoPaterno());
-            lblClasificacion.setText("Verde"); // Temporal hasta que se arregle el getter
+            lblClasificacion.setText(registroTriageActual.getNivelUrgencia() != null ? 
+                                   registroTriageActual.getNivelUrgencia().name() : "Sin clasificar");
             lblMotivo.setText(registroTriageActual.getMotivoConsulta());
             
             // Cargar datos sociales existentes si los hay
@@ -139,20 +132,23 @@ public class TrabajoSocialController extends BaseController implements Initializ
      */
     private void cargarDatosSocialesExistentes() {
         try {
-            DatosSociales datosExistentes = datosSocialesDAO.obtenerPorRegistroTriage(registroTriageActual.getId());
-            
-            if (datosExistentes != null) {
-                // Cargar datos existentes en los campos
-                txtAntecedentesFamiliares.setText(datosExistentes.getAntecedentesFamiliares());
-                txtSituacionSocioeconomica.setText(datosExistentes.getSituacionSocioeconomica());
-                txtMedicamentosActuales.setText(datosExistentes.getMedicamentosActuales());
-                txtAlergiasConocidas.setText(datosExistentes.getAlergiasConocidas());
-                txtEnfermedadesCronicas.setText(datosExistentes.getEnfermedadesCronicas());
-                txtCirugiasPrevias.setText(datosExistentes.getCirugiasPrevias());
-                txtHospitalizacionesPrevias.setText(datosExistentes.getHospitalizacionesPrevias());
-                txtHabitosToxicos.setText(datosExistentes.getHabitosToxicos());
-                txtVacunasRecientes.setText(datosExistentes.getVacunasRecientes());
-                txtObservacionesAdicionales.setText(datosExistentes.getObservacionesAdicionales());
+            if (registroTriageActual != null && registroTriageActual.getPaciente() != null) {
+                // Buscar datos por paciente en lugar de por registro de triage
+                DatosSociales datosExistentes = datosSocialesDAO.obtenerUltimoPorPaciente(registroTriageActual.getPaciente().getId());
+                
+                if (datosExistentes != null) {
+                    // Cargar datos existentes en los campos
+                    txtAntecedentesFamiliares.setText(datosExistentes.getAntecedentesFamiliares());
+                    txtSituacionSocioeconomica.setText(datosExistentes.getSituacionSocioeconomica());
+                    txtMedicamentosActuales.setText(datosExistentes.getMedicamentosActuales());
+                    txtAlergiasConocidas.setText(datosExistentes.getAlergiasConocidas());
+                    txtEnfermedadesCronicas.setText(datosExistentes.getEnfermedadesCronicas());
+                    txtCirugiasPrevias.setText(datosExistentes.getCirugiasPrevias());
+                    txtHospitalizacionesPrevias.setText(datosExistentes.getHospitalizacionesPrevias());
+                    txtHabitosToxicos.setText(datosExistentes.getHabitosToxicos());
+                    txtVacunasRecientes.setText(datosExistentes.getVacunasRecientes());
+                    txtObservacionesAdicionales.setText(datosExistentes.getObservacionesAdicionales());
+                }
             }
             
         } catch (Exception e) {
@@ -251,7 +247,7 @@ public class TrabajoSocialController extends BaseController implements Initializ
     private DatosSociales crearDatosSociales() {
         DatosSociales datos = new DatosSociales(
             registroTriageActual.getId(),
-            1 // ID temporal del trabajador social
+            1 // ID temporal del trabajador social - se debe obtener del contexto de sesión
         );
         
         // Asignar todos los campos
@@ -277,8 +273,8 @@ public class TrabajoSocialController extends BaseController implements Initializ
             boolean resultado = datosSocialesDAO.insertar(datos);
             
             if (resultado) {
-                // Actualizar el estado del registro de triage
-                triageService.marcarEvaluacionSocialCompleta(registroTriageActual.getId());
+                // TODO: Actualizar el estado del registro de triage - implementar método en TriageService
+                // triageService.marcarEvaluacionSocialCompleta(registroTriageActual.getId());
                 System.out.println("Datos sociales guardados exitosamente para registro: " + registroTriageActual.getId());
             }
             
@@ -323,8 +319,7 @@ public class TrabajoSocialController extends BaseController implements Initializ
     /**
      * Limpia todos los campos del formulario
      */
-    @Override
-    protected void limpiarFormulario() {
+    private void limpiarFormulario() {
         txtAntecedentesFamiliares.clear();
         txtSituacionSocioeconomica.clear();
         txtMedicamentosActuales.clear();
@@ -361,6 +356,9 @@ public class TrabajoSocialController extends BaseController implements Initializ
     @FXML
     private void handleCerrarSesion(ActionEvent event) {
         try {
+            // Limpiar sesión usando método de BaseController
+            cerrarSesion();
+            
             // Cargar la pantalla de login
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/ui/login.fxml"));
             Scene loginScene = new Scene(loader.load());

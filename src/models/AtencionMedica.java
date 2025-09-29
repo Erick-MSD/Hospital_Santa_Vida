@@ -1,31 +1,13 @@
 package models;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 /**
- * Modelo de datos para atención médica final
- * Representa el diagnóstico y tratamiento dado por el médico de urgencias
+ * Clase modelo que representa la atención médica final de un paciente
+ * Mapea directamente con la tabla 'atencion_medica' de la base de datos
  */
 public class AtencionMedica {
-    
-    // Enumeración para tipos de alta
-    public enum TipoAlta {
-        DOMICILIO("Alta a domicilio"),
-        HOSPITALIZACION("Hospitalización"),
-        REFERENCIA("Referencia a otro hospital"),
-        DEFUNCION("Defunción");
-        
-        private final String descripcion;
-        
-        TipoAlta(String descripcion) {
-            this.descripcion = descripcion;
-        }
-        
-        public String getDescripcion() { return descripcion; }
-    }
-    
-    // Atributos principales
     private int id;
     private int registroTriageId;
     private int medicoUrgenciasId;
@@ -38,28 +20,46 @@ public class AtencionMedica {
     private String instruccionesAlta;
     private TipoAlta tipoAlta;
     private String hospitalReferencia;
-    private Integer tiempoTotalAtencion; // minutos
+    private Integer tiempoTotalAtencion; // en minutos
     private boolean seguimientoRequerido;
     private LocalDate fechaSeguimiento;
     private String observacionesMedicas;
     
-    // Referencias a otros objetos
+    // Referencias a objetos relacionados
     private RegistroTriage registroTriage;
     private Usuario medicoUrgencias;
     
-    // Constructores
+    // Campos adicionales para compatibilidad con DAO
+    private int pacienteId;
+    private int medicoId;
+    private LocalDateTime fechaConsulta;
+    private Especialidad especialidadMedica;
+    private String motivoConsulta;
+    private String exploracionFisica;
+    private String diagnostico;
+    private String tratamientoPrescrito;
+    private LocalDateTime proximaCita;
+    private boolean requiereHospitalizacion;
+    private boolean requiereCirugia;
+    private boolean requiereInterconsulta;
+    private Especialidad especialidadInterconsulta;
+    private String pacienteNombre;
+    private String numeroExpediente;
+    private String medicoNombre;
+    
+    // Constructor vacío
     public AtencionMedica() {
         this.fechaHoraInicio = LocalDateTime.now();
         this.seguimientoRequerido = false;
     }
     
-    public AtencionMedica(int registroTriageId, int medicoUrgenciasId, 
-                         String diagnosticoPrincipal, String tratamientoAplicado) {
+    // Constructor básico
+    public AtencionMedica(int registroTriageId, int medicoUrgenciasId, String diagnosticoPrincipal, TipoAlta tipoAlta) {
         this();
         this.registroTriageId = registroTriageId;
         this.medicoUrgenciasId = medicoUrgenciasId;
         this.diagnosticoPrincipal = diagnosticoPrincipal;
-        this.tratamientoAplicado = tratamientoAplicado;
+        this.tipoAlta = tipoAlta;
     }
     
     // Getters y Setters
@@ -101,6 +101,9 @@ public class AtencionMedica {
     
     public void setFechaHoraFin(LocalDateTime fechaHoraFin) {
         this.fechaHoraFin = fechaHoraFin;
+        if (fechaHoraInicio != null && fechaHoraFin != null) {
+            this.tiempoTotalAtencion = (int) java.time.Duration.between(fechaHoraInicio, fechaHoraFin).toMinutes();
+        }
     }
     
     public String getDiagnosticoPrincipal() {
@@ -208,117 +211,55 @@ public class AtencionMedica {
     }
     
     // Métodos de utilidad
-    public boolean estaCompleta() {
-        return diagnosticoPrincipal != null && !diagnosticoPrincipal.trim().isEmpty() &&
-               tratamientoAplicado != null && !tratamientoAplicado.trim().isEmpty() &&
-               tipoAlta != null &&
-               fechaHoraFin != null;
+    public boolean esAtencionCompletada() {
+        return fechaHoraFin != null && diagnosticoPrincipal != null && 
+               !diagnosticoPrincipal.trim().isEmpty() && tipoAlta != null;
+    }
+    
+    public String getDuracionAtencionFormateada() {
+        if (tiempoTotalAtencion == null) return "No calculado";
+        
+        int horas = tiempoTotalAtencion / 60;
+        int minutos = tiempoTotalAtencion % 60;
+        
+        if (horas > 0) {
+            return horas + "h " + minutos + "min";
+        } else {
+            return minutos + " minutos";
+        }
+    }
+    
+    public boolean tieneMedicamentosPrescritos() {
+        return medicamentosPrescritos != null && !medicamentosPrescritos.trim().isEmpty() &&
+               !medicamentosPrescritos.toLowerCase().contains("ninguno");
+    }
+    
+    public boolean requiereReferencia() {
+        return tipoAlta == TipoAlta.REFERENCIA;
     }
     
     public boolean requiereHospitalizacion() {
         return tipoAlta == TipoAlta.HOSPITALIZACION;
     }
     
-    public boolean esReferencia() {
-        return tipoAlta == TipoAlta.REFERENCIA;
-    }
-    
     public boolean esAltaDomicilio() {
         return tipoAlta == TipoAlta.DOMICILIO;
-    }
-    
-    public boolean esDefuncion() {
-        return tipoAlta == TipoAlta.DEFUNCION;
-    }
-    
-    public void completarAtencion() {
-        if (fechaHoraFin == null) {
-            setFechaHoraFin(LocalDateTime.now());
-            calcularTiempoTotal();
-        }
-    }
-    
-    public void calcularTiempoTotal() {
-        if (registroTriage != null && registroTriage.getFechaHoraLlegada() != null && fechaHoraFin != null) {
-            long minutos = java.time.Duration.between(registroTriage.getFechaHoraLlegada(), fechaHoraFin).toMinutes();
-            setTiempoTotalAtencion((int) minutos);
-        }
-    }
-    
-    public long getDuracionConsulta() {
-        if (fechaHoraInicio != null && fechaHoraFin != null) {
-            return java.time.Duration.between(fechaHoraInicio, fechaHoraFin).toMinutes();
-        }
-        return 0;
-    }
-    
-    public boolean enProceso() {
-        return fechaHoraInicio != null && fechaHoraFin == null;
-    }
-    
-    public boolean finalizada() {
-        return fechaHoraFin != null;
-    }
-    
-    public boolean prescribeMedicamentos() {
-        return medicamentosPrescritos != null && !medicamentosPrescritos.trim().isEmpty() &&
-               !medicamentosPrescritos.toLowerCase().contains("ninguno") &&
-               !medicamentosPrescritos.toLowerCase().contains("no se prescriben");
     }
     
     public boolean tieneDiagnosticosSecundarios() {
         return diagnosticosSecundarios != null && !diagnosticosSecundarios.trim().isEmpty();
     }
     
-    public String getResumenDiagnostico() {
-        StringBuilder resumen = new StringBuilder();
-        resumen.append("Principal: ").append(diagnosticoPrincipal);
-        
-        if (tieneDiagnosticosSecundarios()) {
-            resumen.append(" | Secundarios: ").append(diagnosticosSecundarios);
-        }
-        
-        return resumen.toString();
-    }
-    
-    public String getResumenTratamiento() {
-        StringBuilder resumen = new StringBuilder();
-        resumen.append("Tratamiento: ").append(tratamientoAplicado);
-        
-        if (prescribeMedicamentos()) {
-            resumen.append(" | Medicamentos: ").append(medicamentosPrescritos);
-        }
-        
-        if (tipoAlta != null) {
-            resumen.append(" | Alta: ").append(tipoAlta.getDescripcion());
-        }
-        
-        return resumen.toString();
-    }
-    
-    public void validarReferencia() throws IllegalStateException {
-        if (esReferencia() && (hospitalReferencia == null || hospitalReferencia.trim().isEmpty())) {
-            throw new IllegalStateException("Se debe especificar el hospital de referencia");
-        }
-    }
-    
-    public void validarSeguimiento() throws IllegalStateException {
-        if (seguimientoRequerido && fechaSeguimiento == null) {
-            throw new IllegalStateException("Se debe especificar la fecha de seguimiento");
+    public void finalizarAtencion() {
+        if (fechaHoraFin == null) {
+            setFechaHoraFin(LocalDateTime.now());
         }
     }
     
     @Override
     public String toString() {
-        return "AtencionMedica{" +
-                "id=" + id +
-                ", diagnosticoPrincipal='" + diagnosticoPrincipal + '\'' +
-                ", tipoAlta=" + tipoAlta +
-                ", duracionConsulta=" + getDuracionConsulta() + " min" +
-                ", tiempoTotal=" + tiempoTotalAtencion + " min" +
-                ", finalizada=" + finalizada() +
-                ", seguimientoRequerido=" + seguimientoRequerido +
-                '}';
+        return "Atención Médica - " + diagnosticoPrincipal + 
+               " [" + (tipoAlta != null ? tipoAlta.getNombre() : "Sin alta") + "]";
     }
     
     @Override
@@ -332,5 +273,198 @@ public class AtencionMedica {
     @Override
     public int hashCode() {
         return Integer.hashCode(id);
+    }
+    
+    // Getters y setters adicionales para compatibilidad con DAO
+    public int getPacienteId() {
+        return pacienteId;
+    }
+    
+    public void setPacienteId(int pacienteId) {
+        this.pacienteId = pacienteId;
+    }
+    
+    public int getMedicoId() {
+        return medicoId;
+    }
+    
+    public void setMedicoId(int medicoId) {
+        this.medicoId = medicoId;
+    }
+    
+    public LocalDateTime getFechaConsulta() {
+        return fechaConsulta;
+    }
+    
+    public void setFechaConsulta(LocalDateTime fechaConsulta) {
+        this.fechaConsulta = fechaConsulta;
+    }
+    
+    public Especialidad getEspecialidadMedica() {
+        return especialidadMedica;
+    }
+    
+    public void setEspecialidadMedica(Especialidad especialidadMedica) {
+        this.especialidadMedica = especialidadMedica;
+    }
+    
+    public String getMotivoConsulta() {
+        return motivoConsulta;
+    }
+    
+    public void setMotivoConsulta(String motivoConsulta) {
+        this.motivoConsulta = motivoConsulta;
+    }
+    
+    public String getExploracionFisica() {
+        return exploracionFisica;
+    }
+    
+    public void setExploracionFisica(String exploracionFisica) {
+        this.exploracionFisica = exploracionFisica;
+    }
+    
+    public String getDiagnostico() {
+        return diagnostico;
+    }
+    
+    public void setDiagnostico(String diagnostico) {
+        this.diagnostico = diagnostico;
+    }
+    
+    public String getTratamientoPrescrito() {
+        return tratamientoPrescrito;
+    }
+    
+    public void setTratamientoPrescrito(String tratamientoPrescrito) {
+        this.tratamientoPrescrito = tratamientoPrescrito;
+    }
+    
+    public LocalDateTime getProximaCita() {
+        return proximaCita;
+    }
+    
+    public void setProximaCita(LocalDateTime proximaCita) {
+        this.proximaCita = proximaCita;
+    }
+    
+    public boolean isRequiereHospitalizacion() {
+        return requiereHospitalizacion;
+    }
+    
+    public void setRequiereHospitalizacion(boolean requiereHospitalizacion) {
+        this.requiereHospitalizacion = requiereHospitalizacion;
+    }
+    
+    public boolean isRequiereCirugia() {
+        return requiereCirugia;
+    }
+    
+    public void setRequiereCirugia(boolean requiereCirugia) {
+        this.requiereCirugia = requiereCirugia;
+    }
+    
+    public boolean isRequiereInterconsulta() {
+        return requiereInterconsulta;
+    }
+    
+    public void setRequiereInterconsulta(boolean requiereInterconsulta) {
+        this.requiereInterconsulta = requiereInterconsulta;
+    }
+    
+    public Especialidad getEspecialidadInterconsulta() {
+        return especialidadInterconsulta;
+    }
+    
+    public void setEspecialidadInterconsulta(Especialidad especialidadInterconsulta) {
+        this.especialidadInterconsulta = especialidadInterconsulta;
+    }
+    
+    public String getPacienteNombre() {
+        return pacienteNombre;
+    }
+    
+    public void setPacienteNombre(String pacienteNombre) {
+        this.pacienteNombre = pacienteNombre;
+    }
+    
+    public String getNumeroExpediente() {
+        return numeroExpediente;
+    }
+    
+    public void setNumeroExpediente(String numeroExpediente) {
+        this.numeroExpediente = numeroExpediente;
+    }
+    
+    public String getMedicoNombre() {
+        return medicoNombre;
+    }
+    
+    public void setMedicoNombre(String medicoNombre) {
+        this.medicoNombre = medicoNombre;
+    }
+    
+    // Métodos adicionales requeridos por los controladores
+    
+    public void setFechaAtencion(LocalDate fechaAtencion) {
+        this.fechaConsulta = fechaAtencion.atStartOfDay();
+    }
+    
+    public void setHoraAtencion(LocalDateTime horaAtencion) {
+        this.fechaConsulta = horaAtencion;
+    }
+    
+    public void setHistoriaEnfermedadActual(String historia) {
+        this.motivoConsulta = historia;
+    }
+    
+    public void setSignosVitales(String signosVitales) {
+        this.exploracionFisica = signosVitales;
+    }
+    
+    public void setDiagnosticoSecundario(String diagnosticoSecundario) {
+        this.diagnosticosSecundarios = diagnosticoSecundario;
+    }
+    
+    public void setTipoDiagnostico(String tipoDiagnostico) {
+        // Almacenar como parte del diagnóstico principal
+        if (this.diagnosticoPrincipal == null) {
+            this.diagnosticoPrincipal = "";
+        }
+        this.diagnosticoPrincipal = tipoDiagnostico + ": " + this.diagnosticoPrincipal;
+    }
+    
+    public void setPrescripcionMedica(String prescripcionMedica) {
+        this.medicamentosPrescritos = prescripcionMedica;
+    }
+    
+    public void setIndicacionesMedicas(String indicacionesMedicas) {
+        this.instruccionesAlta = indicacionesMedicas;
+    }
+    
+    public void setRecomendaciones(String recomendaciones) {
+        this.observacionesMedicas = recomendaciones;
+    }
+    
+    public void setEstadoPaciente(String estadoPaciente) {
+        // Convertir string a TipoAlta si es posible
+        try {
+            this.tipoAlta = TipoAlta.valueOf(estadoPaciente.toUpperCase());
+        } catch (Exception e) {
+            // Si no se puede convertir, usar DOMICILIO por defecto
+            this.tipoAlta = TipoAlta.DOMICILIO;
+        }
+    }
+    
+    public void setObservaciones(String observaciones) {
+        this.observacionesMedicas = observaciones;
+    }
+    
+    public void setObservacionesAlta(String observacionesAlta) {
+        this.observacionesMedicas = observacionesAlta;
+    }
+    
+    public void setFechaAlta(LocalDate fechaAlta) {
+        this.fechaHoraFin = fechaAlta.atTime(LocalDateTime.now().toLocalTime());
     }
 }

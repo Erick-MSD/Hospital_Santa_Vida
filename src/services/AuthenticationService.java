@@ -2,406 +2,498 @@ package services;
 
 import dao.UsuarioDAO;
 import models.Usuario;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
+import models.TipoUsuario;
+import utils.PasswordUtils;
+import utils.ValidationUtils;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
-import java.util.Base64;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
+import java.util.UUID;
 
 /**
- * Servicio de autenticación y autorización
- * Maneja login, logout, validación de sesiones y encriptación de contraseñas
+ * Servicio de autenticación y autorización para el sistema hospitalario
+ * Maneja el login, logout, gestión de sesiones y permisos de usuarios
+ * Implementa seguridad con sesiones temporales y control de acceso
  */
 public class AuthenticationService {
     
     private final UsuarioDAO usuarioDAO;
-    private Usuario usuarioActual;
-    private LocalDateTime inicioSesion;
-    private static final int TIEMPO_INACTIVIDAD_MINUTOS = 30;
+    private final Map<String, SesionUsuario> sesionesActivas;
+    private static final long DURACION_SESION_MINUTOS = 480; // 8 horas
+    private static final int MAX_INTENTOS_LOGIN = 3;
+    private final Map<String, IntentoLogin> intentosLogin;
     
+    /**
+     * Constructor del servicio de autenticación
+     */
     public AuthenticationService() {
         this.usuarioDAO = new UsuarioDAO();
-        this.usuarioActual = null;
-        this.inicioSesion = null;
+        this.sesionesActivas = new ConcurrentHashMap<>();
+        this.intentosLogin = new ConcurrentHashMap<>();
     }
     
     /**
-     * Autentica un usuario con username/email y contraseña
+     * Autentica un usuario con sus credenciales
+     * @param nombreUsuario Nombre de usuario
+     * @param password Contraseña
+     * @return ResultadoLogin con el resultado de la autenticación
      */
-    public boolean login(String usernameOEmail, String password) {
+    public ResultadoLogin login(String nombreUsuario, String password) {
         try {
-            // Durante desarrollo, usar contraseñas de texto plano
-            // TODO: En producción, usar contraseñas encriptadas
-            Usuario usuario = usuarioDAO.validarCredencialesPlainText(usernameOEmail, password);
-            
-            if (usuario != null) {
-                this.usuarioActual = usuario;
-                this.inicioSesion = LocalDateTime.now();
-                
-                System.out.println("Login exitoso para: " + usuario.getNombreCompleto());
-                System.out.println("Tipo de usuario: " + usuario.getTipoUsuario());
-                
-                return true;
-            } else {
-                System.out.println("Credenciales inválidas para: " + usernameOEmail);
-                return false;
+            // Validar parámetros de entrada
+            if (nombreUsuario == null || nombreUsuario.trim().isEmpty()) {
+                return new ResultadoLogin(false, "Nombre de usuario es obligatorio", null, null);
             }
             
+            if (password == null || password.isEmpty()) {
+                return new ResultadoLogin(false, "Contraseña es obligatoria", null, null);
+            }
+            
+            // Verificar si el usuario está bloqueado por intentos fallidos
+            String claveIntentos = nombreUsuario.toLowerCase().trim();
+            IntentoLogin intentos = intentosLogin.get(claveIntentos);
+            
+            if (intentos != null && intentos.estaBloqueado()) {
+                return new ResultadoLogin(false, 
+                    "Usuario bloqueado temporalmente. Intente más tarde.", null, null);
+            }
+            
+            // Autenticar con el DAO
+            Usuario usuario = usuarioDAO.autenticar(nombreUsuario.trim(), password);
+            
+            if (usuario == null) {
+                // Registrar intento fallido
+                registrarIntentoFallido(claveIntentos);
+                return new ResultadoLogin(false, 
+                    "Credenciales incorrectas", null, null);
+            }
+            
+            if (!usuario.isActivo()) {
+                return new ResultadoLogin(false, 
+                    "Usuario desactivado. Contacte al administrador.", null, null);
+            }
+            
+            // Limpiar intentos fallidos al tener éxito
+            intentosLogin.remove(claveIntentos);
+            
+            // Crear sesión
+            String tokenSesion = crearSesion(usuario);
+            
+            return new ResultadoLogin(true, 
+                "Login exitoso", usuario, tokenSesion);
+            
         } catch (SQLException e) {
-            System.err.println("Error de base de datos durante login: " + e.getMessage());
+            System.err.println("Error en autenticación: " + e.getMessage());
+            return new ResultadoLogin(false, 
+                "Error del sistema. Intente más tarde.", null, null);
+        }
+    }
+    
+    /**
+     * Alias del método login para compatibilidad
+     * @param nombreUsuario Nombre de usuario
+     * @param password Contraseña
+     * @return ResultadoLogin con el resultado de la autenticación
+     */
+    public ResultadoLogin iniciarSesion(String nombreUsuario, String password) {
+        return login(nombreUsuario, password);
+    }
+    
+    /**
+     * Cierra la sesión de un usuario
+     * @param tokenSesion Token de la sesión a cerrar
+     * @return true si se cerró correctamente
+     */
+    public boolean logout(String tokenSesion) {
+        if (tokenSesion == null || tokenSesion.trim().isEmpty()) {
             return false;
-        } catch (Exception e) {
-            System.err.println("Error durante login: " + e.getMessage());
+        }
+        
+        SesionUsuario sesion = sesionesActivas.remove(tokenSesion.trim());
+        return sesion != null;
+    }
+    
+    /**
+     * Alias del método logout para compatibilidad
+     * @param tokenSesion Token de la sesión a cerrar
+     * @return true si se cerró correctamente
+     */
+    public boolean cerrarSesion(String tokenSesion) {
+        return logout(tokenSesion);
+    }
+    
+    /**
+     * Valida si un token de sesión es válido y no ha expirado
+     * @param tokenSesion Token a validar
+     * @return true si la sesión es válida
+     */
+    public boolean validarSesion(String tokenSesion) {
+        if (tokenSesion == null || tokenSesion.trim().isEmpty()) {
             return false;
         }
-    }
-    
-    /**
-     * Cierra la sesión actual
-     */
-    public void logout() {
-        if (usuarioActual != null) {
-            System.out.println("Logout para: " + usuarioActual.getNombreCompleto());
+        
+        SesionUsuario sesion = sesionesActivas.get(tokenSesion.trim());
+        
+        if (sesion == null) {
+            return false;
         }
         
-        this.usuarioActual = null;
-        this.inicioSesion = null;
-    }
-    
-    /**
-     * Verifica si hay un usuario autenticado actualmente
-     */
-    public boolean isAuthenticated() {
-        return usuarioActual != null && !sesionExpirada();
-    }
-    
-    /**
-     * Verifica si la sesión actual ha expirado por inactividad
-     */
-    public boolean sesionExpirada() {
-        if (inicioSesion == null) {
-            return true;
+        // Verificar si la sesión ha expirado
+        if (sesion.haExpirado()) {
+            sesionesActivas.remove(tokenSesion.trim());
+            return false;
         }
         
-        LocalDateTime tiempoLimite = inicioSesion.plusMinutes(TIEMPO_INACTIVIDAD_MINUTOS);
-        return LocalDateTime.now().isAfter(tiempoLimite);
+        // Actualizar último acceso
+        sesion.actualizarAcceso();
+        return true;
     }
     
     /**
-     * Renueva la sesión actual (actualiza el tiempo de actividad)
+     * Obtiene el usuario asociado a un token de sesión
+     * @param tokenSesion Token de sesión
+     * @return Usuario asociado o null si no es válido
      */
-    public void renovarSesion() {
-        if (isAuthenticated()) {
-            this.inicioSesion = LocalDateTime.now();
+    public Usuario obtenerUsuarioPorToken(String tokenSesion) {
+        if (!validarSesion(tokenSesion)) {
+            return null;
         }
-    }
-    
-    /**
-     * Obtiene el usuario actualmente autenticado
-     */
-    public Usuario getUsuarioActual() {
-        if (isAuthenticated()) {
-            return usuarioActual;
-        }
-        return null;
-    }
-    
-    /**
-     * Verifica si el usuario actual tiene un tipo específico
-     */
-    public boolean hasRole(Usuario.TipoUsuario tipoRequerido) {
-        Usuario usuario = getUsuarioActual();
-        return usuario != null && usuario.getTipoUsuario() == tipoRequerido;
-    }
-    
-    /**
-     * Verifica si el usuario actual es administrador
-     */
-    public boolean isAdmin() {
-        return hasRole(Usuario.TipoUsuario.ADMINISTRADOR);
-    }
-    
-    /**
-     * Verifica si el usuario actual puede realizar triage
-     */
-    public boolean canPerformTriage() {
-        return hasRole(Usuario.TipoUsuario.MEDICO_TRIAGE);
-    }
-    
-    /**
-     * Verifica si el usuario actual puede registrar pacientes
-     */
-    public boolean canRegisterPatients() {
-        return hasRole(Usuario.TipoUsuario.ASISTENTE_MEDICA);
-    }
-    
-    /**
-     * Verifica si el usuario actual puede realizar entrevista social
-     */
-    public boolean canPerformSocialInterview() {
-        return hasRole(Usuario.TipoUsuario.TRABAJADOR_SOCIAL);
-    }
-    
-    /**
-     * Verifica si el usuario actual puede atender en urgencias
-     */
-    public boolean canAttendEmergencies() {
-        return hasRole(Usuario.TipoUsuario.MEDICO_URGENCIAS);
-    }
-    
-    /**
-     * Verifica si el usuario actual puede ver estadísticas
-     */
-    public boolean canViewStatistics() {
-        Usuario usuario = getUsuarioActual();
-        return usuario != null && 
-               (usuario.getTipoUsuario() == Usuario.TipoUsuario.ADMINISTRADOR ||
-                usuario.getTipoUsuario() == Usuario.TipoUsuario.MEDICO_URGENCIAS);
-    }
-    
-    /**
-     * Establece un usuario como autenticado (para login temporal/testing)
-     */
-    public void setUsuarioActual(Usuario usuario) {
-        this.usuarioActual = usuario;
-        this.inicioSesion = LocalDateTime.now();
         
-        if (usuario != null) {
-            System.out.println("Usuario establecido como actual: " + usuario.getNombreCompleto());
-            System.out.println("Tipo de usuario: " + usuario.getTipoUsuario());
-        }
+        SesionUsuario sesion = sesionesActivas.get(tokenSesion.trim());
+        return sesion != null ? sesion.getUsuario() : null;
     }
     
     /**
-     * Requiere que el usuario esté autenticado, lanza excepción si no
+     * Verifica si un usuario tiene un permiso específico
+     * @param tokenSesion Token de sesión del usuario
+     * @param permiso Permiso a verificar
+     * @return true si tiene el permiso
      */
-    public void requireAuthentication() throws SecurityException {
-        if (!isAuthenticated()) {
-            throw new SecurityException("Se requiere autenticación para esta operación");
+    public boolean tienePermiso(String tokenSesion, Permiso permiso) {
+        Usuario usuario = obtenerUsuarioPorToken(tokenSesion);
+        if (usuario == null) {
+            return false;
         }
-    }
-    
-    /**
-     * Requiere un rol específico, lanza excepción si no lo tiene
-     */
-    public void requireRole(Usuario.TipoUsuario tipoRequerido) throws SecurityException {
-        requireAuthentication();
         
-        if (!hasRole(tipoRequerido)) {
-            throw new SecurityException("Se requiere rol " + tipoRequerido + " para esta operación");
+        return tienePermiso(usuario.getTipoUsuario(), permiso);
+    }
+    
+    /**
+     * Verifica si un tipo de usuario tiene un permiso específico
+     * @param tipoUsuario Tipo de usuario
+     * @param permiso Permiso a verificar
+     * @return true si tiene el permiso
+     */
+    public boolean tienePermiso(TipoUsuario tipoUsuario, Permiso permiso) {
+        if (tipoUsuario == null || permiso == null) {
+            return false;
+        }
+        
+        switch (tipoUsuario) {
+            case ADMINISTRADOR:
+                return true; // El admin tiene todos los permisos
+                
+            case MEDICO:
+                return permiso == Permiso.VER_PACIENTES ||
+                       permiso == Permiso.CREAR_ATENCION_MEDICA ||
+                       permiso == Permiso.VER_ATENCION_MEDICA ||
+                       permiso == Permiso.ACTUALIZAR_ATENCION_MEDICA ||
+                       permiso == Permiso.CREAR_CITAS ||
+                       permiso == Permiso.VER_CITAS ||
+                       permiso == Permiso.ACTUALIZAR_CITAS ||
+                       permiso == Permiso.VER_REPORTES_MEDICOS;
+                       
+            case ENFERMERO_TRIAGE:
+                return permiso == Permiso.VER_PACIENTES ||
+                       permiso == Permiso.CREAR_PACIENTES ||
+                       permiso == Permiso.ACTUALIZAR_PACIENTES ||
+                       permiso == Permiso.CREAR_TRIAGE ||
+                       permiso == Permiso.VER_TRIAGE ||
+                       permiso == Permiso.ACTUALIZAR_TRIAGE ||
+                       permiso == Permiso.VER_COLA_TRIAGE;
+                       
+            case TRABAJADOR_SOCIAL:
+                return permiso == Permiso.VER_PACIENTES ||
+                       permiso == Permiso.CREAR_DATOS_SOCIALES ||
+                       permiso == Permiso.VER_DATOS_SOCIALES ||
+                       permiso == Permiso.ACTUALIZAR_DATOS_SOCIALES ||
+                       permiso == Permiso.VER_REPORTES_SOCIALES;
+                       
+            case RECEPCIONISTA:
+                return permiso == Permiso.VER_PACIENTES ||
+                       permiso == Permiso.CREAR_PACIENTES ||
+                       permiso == Permiso.ACTUALIZAR_PACIENTES ||
+                       permiso == Permiso.CREAR_CITAS ||
+                       permiso == Permiso.VER_CITAS ||
+                       permiso == Permiso.ACTUALIZAR_CITAS;
+                       
+            default:
+                return false;
         }
     }
     
     /**
-     * Cambia la contraseña del usuario actual
+     * Cambia la contraseña de un usuario
+     * @param tokenSesion Token de sesión del usuario
+     * @param passwordActual Contraseña actual
+     * @param nuevaPassword Nueva contraseña
+     * @return ResultadoCambioPassword con el resultado
      */
-    public boolean cambiarPassword(String passwordActual, String nuevoPassword) {
+    public ResultadoCambioPassword cambiarPassword(String tokenSesion, 
+            String passwordActual, String nuevaPassword) {
         try {
-            requireAuthentication();
+            Usuario usuario = obtenerUsuarioPorToken(tokenSesion);
+            if (usuario == null) {
+                return new ResultadoCambioPassword(false, "Sesión inválida");
+            }
             
             // Verificar contraseña actual
-            String passwordActualHash = hashPassword(passwordActual);
-            if (!passwordActualHash.equals(usuarioActual.getPasswordHash())) {
-                System.err.println("Contraseña actual incorrecta");
-                return false;
+            if (!PasswordUtils.verificarPassword(passwordActual, usuario.getPasswordHash())) {
+                return new ResultadoCambioPassword(false, "Contraseña actual incorrecta");
             }
             
             // Validar nueva contraseña
-            if (!esPasswordValido(nuevoPassword)) {
-                System.err.println("La nueva contraseña no cumple con los requisitos de seguridad");
-                return false;
+            if (!ValidationUtils.validarPassword(nuevaPassword)) {
+                return new ResultadoCambioPassword(false, 
+                    "La nueva contraseña no cumple con los requisitos de seguridad");
             }
             
-            // Actualizar contraseña
-            String nuevoPasswordHash = hashPassword(nuevoPassword);
-            boolean actualizado = usuarioDAO.actualizarPassword(usuarioActual.getId(), nuevoPasswordHash);
+            // Cambiar contraseña
+            boolean exito = usuarioDAO.cambiarPassword(usuario.getId(), nuevaPassword);
             
-            if (actualizado) {
-                usuarioActual.setPasswordHash(nuevoPasswordHash);
-                System.out.println("Contraseña actualizada exitosamente");
-                return true;
+            if (exito) {
+                return new ResultadoCambioPassword(true, "Contraseña cambiada exitosamente");
+            } else {
+                return new ResultadoCambioPassword(false, "Error al cambiar la contraseña");
             }
             
         } catch (SQLException e) {
-            System.err.println("Error de base de datos al cambiar contraseña: " + e.getMessage());
-        } catch (Exception e) {
             System.err.println("Error al cambiar contraseña: " + e.getMessage());
+            return new ResultadoCambioPassword(false, "Error del sistema");
         }
-        
-        return false;
     }
     
     /**
-     * Crea un nuevo usuario (solo administradores)
+     * Obtiene lista de usuarios activos por tipo
+     * @param tokenSesion Token de sesión (debe tener permisos)
+     * @param tipoUsuario Tipo de usuario a buscar
+     * @return Lista de usuarios o null si no tiene permisos
      */
-    public boolean crearUsuario(Usuario nuevoUsuario, String password) {
+    public List<Usuario> obtenerUsuariosPorTipo(String tokenSesion, TipoUsuario tipoUsuario) {
+        if (!tienePermiso(tokenSesion, Permiso.VER_USUARIOS)) {
+            return null;
+        }
+        
         try {
-            requireRole(Usuario.TipoUsuario.ADMINISTRADOR);
-            
-            // Validar datos del nuevo usuario
-            if (!validarDatosUsuario(nuevoUsuario, password)) {
-                return false;
-            }
-            
-            // Verificar que no exista username o email
-            if (usuarioDAO.existeUsername(nuevoUsuario.getUsername())) {
-                System.err.println("Ya existe un usuario con username: " + nuevoUsuario.getUsername());
-                return false;
-            }
-            
-            if (usuarioDAO.existeEmail(nuevoUsuario.getEmail())) {
-                System.err.println("Ya existe un usuario con email: " + nuevoUsuario.getEmail());
-                return false;
-            }
-            
-            // Encriptar contraseña y establecer metadatos
-            nuevoUsuario.setPasswordHash(hashPassword(password));
-            nuevoUsuario.setCreatedBy(usuarioActual.getId());
-            
-            // Crear en base de datos
-            int nuevoId = usuarioDAO.crear(nuevoUsuario);
-            nuevoUsuario.setId(nuevoId);
-            
-            System.out.println("Usuario creado exitosamente: " + nuevoUsuario.getUsername());
-            return true;
-            
+            return usuarioDAO.obtenerPorTipo(tipoUsuario);
         } catch (SQLException e) {
-            System.err.println("Error de base de datos al crear usuario: " + e.getMessage());
-        } catch (SecurityException e) {
-            System.err.println("Error de permisos: " + e.getMessage());
-        } catch (Exception e) {
-            System.err.println("Error al crear usuario: " + e.getMessage());
-        }
-        
-        return false;
-    }
-    
-    /**
-     * Encripta una contraseña usando SHA-256 con salt
-     */
-    public static String hashPassword(String password) {
-        try {
-            // Por simplicidad académica, usamos SHA-256 simple
-            // En producción se recomendaría bcrypt o argon2
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            
-            // Agregar salt fijo para consistencia (en producción sería único por usuario)
-            String saltedPassword = password + "hospital_santa_vida_salt_2024";
-            
-            byte[] hashedBytes = md.digest(saltedPassword.getBytes());
-            return Base64.getEncoder().encodeToString(hashedBytes);
-            
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Error al encriptar contraseña", e);
-        }
-    }
-    
-    /**
-     * Valida que una contraseña cumple con los requisitos de seguridad
-     */
-    private boolean esPasswordValido(String password) {
-        if (password == null || password.length() < 8) {
-            System.err.println("La contraseña debe tener al menos 8 caracteres");
-            return false;
-        }
-        
-        boolean tieneMinuscula = password.matches(".*[a-z].*");
-        boolean tieneMayuscula = password.matches(".*[A-Z].*");
-        boolean tieneNumero = password.matches(".*[0-9].*");
-        
-        if (!tieneMinuscula || !tieneMayuscula || !tieneNumero) {
-            System.err.println("La contraseña debe contener al menos una minúscula, una mayúscula y un número");
-            return false;
-        }
-        
-        return true;
-    }
-    
-    /**
-     * Valida los datos de un nuevo usuario
-     */
-    private boolean validarDatosUsuario(Usuario usuario, String password) {
-        if (usuario.getUsername() == null || usuario.getUsername().trim().isEmpty()) {
-            System.err.println("Username es requerido");
-            return false;
-        }
-        
-        if (usuario.getEmail() == null || !usuario.getEmail().contains("@")) {
-            System.err.println("Email válido es requerido");
-            return false;
-        }
-        
-        if (usuario.getNombreCompleto() == null || usuario.getNombreCompleto().trim().isEmpty()) {
-            System.err.println("Nombre completo es requerido");
-            return false;
-        }
-        
-        if (usuario.getTipoUsuario() == null) {
-            System.err.println("Tipo de usuario es requerido");
-            return false;
-        }
-        
-        if (!esPasswordValido(password)) {
-            return false;
-        }
-        
-        return true;
-    }
-    
-    /**
-     * Obtiene información de la sesión actual
-     */
-    public String getSessionInfo() {
-        if (!isAuthenticated()) {
-            return "Sin sesión activa";
-        }
-        
-        return String.format("Usuario: %s (%s) - Sesión iniciada: %s - Tiempo restante: %d min",
-                usuarioActual.getNombreCompleto(),
-                usuarioActual.getTipoUsuario(),
-                inicioSesion.toString(),
-                getTiempoRestanteSesion()
-        );
-    }
-    
-    /**
-     * Obtiene el tiempo restante de sesión en minutos
-     */
-    public long getTiempoRestanteSesion() {
-        if (inicioSesion == null) {
-            return 0;
-        }
-        
-        LocalDateTime tiempoLimite = inicioSesion.plusMinutes(TIEMPO_INACTIVIDAD_MINUTOS);
-        return java.time.Duration.between(LocalDateTime.now(), tiempoLimite).toMinutes();
-    }
-    
-    /**
-     * Genera un token de sesión simple (para uso futuro con APIs)
-     */
-    public String generarTokenSesion() {
-        if (!isAuthenticated()) {
-            return null;
-        }
-        
-        try {
-            SecureRandom random = new SecureRandom();
-            byte[] bytes = new byte[32];
-            random.nextBytes(bytes);
-            return Base64.getEncoder().encodeToString(bytes);
-        } catch (Exception e) {
-            System.err.println("Error al generar token: " + e.getMessage());
+            System.err.println("Error al obtener usuarios por tipo: " + e.getMessage());
             return null;
         }
     }
     
-    @Override
-    public String toString() {
-        return "AuthenticationService{" +
-                "usuarioActual=" + (usuarioActual != null ? usuarioActual.getUsername() : "null") +
-                ", sesionActiva=" + isAuthenticated() +
-                ", tiempoRestante=" + getTiempoRestanteSesion() + " min" +
-                '}';
+    /**
+     * Obtiene estadísticas de usuarios (solo para administradores)
+     * @param tokenSesion Token de sesión del administrador
+     * @return Estadísticas o null si no tiene permisos
+     */
+    public List<UsuarioDAO.EstadisticaUsuario> obtenerEstadisticasUsuarios(String tokenSesion) {
+        if (!tienePermiso(tokenSesion, Permiso.VER_ESTADISTICAS_SISTEMA)) {
+            return null;
+        }
+        
+        try {
+            return usuarioDAO.obtenerEstadisticasPorTipo();
+        } catch (SQLException e) {
+            System.err.println("Error al obtener estadísticas de usuarios: " + e.getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * Limpia sesiones expiradas del sistema
+     */
+    public void limpiarSesionesExpiradas() {
+        sesionesActivas.entrySet().removeIf(entry -> entry.getValue().haExpirado());
+    }
+    
+    /**
+     * Obtiene el número de sesiones activas
+     * @return Número de sesiones activas
+     */
+    public int contarSesionesActivas() {
+        limpiarSesionesExpiradas();
+        return sesionesActivas.size();
+    }
+    
+    // Métodos privados auxiliares
+    
+    private String crearSesion(Usuario usuario) {
+        String token = UUID.randomUUID().toString();
+        SesionUsuario sesion = new SesionUsuario(usuario);
+        sesionesActivas.put(token, sesion);
+        return token;
+    }
+    
+    private void registrarIntentoFallido(String claveUsuario) {
+        IntentoLogin intento = intentosLogin.getOrDefault(claveUsuario, new IntentoLogin());
+        intento.registrarIntento();
+        intentosLogin.put(claveUsuario, intento);
+    }
+    
+    // Clases internas
+    
+    /**
+     * Representa una sesión de usuario activa
+     */
+    private static class SesionUsuario {
+        private final Usuario usuario;
+        private final LocalDateTime fechaCreacion;
+        private LocalDateTime ultimoAcceso;
+        
+        public SesionUsuario(Usuario usuario) {
+            this.usuario = usuario;
+            this.fechaCreacion = LocalDateTime.now();
+            this.ultimoAcceso = LocalDateTime.now();
+        }
+        
+        public Usuario getUsuario() {
+            return usuario;
+        }
+        
+        public boolean haExpirado() {
+            return LocalDateTime.now().isAfter(ultimoAcceso.plusMinutes(DURACION_SESION_MINUTOS));
+        }
+        
+        public void actualizarAcceso() {
+            this.ultimoAcceso = LocalDateTime.now();
+        }
+    }
+    
+    /**
+     * Controla los intentos fallidos de login
+     */
+    private static class IntentoLogin {
+        private int intentos = 0;
+        private LocalDateTime ultimoIntento;
+        private static final int MINUTOS_BLOQUEO = 15;
+        
+        public void registrarIntento() {
+            this.intentos++;
+            this.ultimoIntento = LocalDateTime.now();
+        }
+        
+        public boolean estaBloqueado() {
+            if (intentos < MAX_INTENTOS_LOGIN) {
+                return false;
+            }
+            
+            if (ultimoIntento == null) {
+                return false;
+            }
+            
+            // Verificar si el bloqueo ha expirado
+            if (LocalDateTime.now().isAfter(ultimoIntento.plusMinutes(MINUTOS_BLOQUEO))) {
+                intentos = 0; // Resetear intentos
+                return false;
+            }
+            
+            return true;
+        }
+    }
+    
+    /**
+     * Resultado de un intento de login
+     */
+    public static class ResultadoLogin {
+        private final boolean exitoso;
+        private final String mensaje;
+        private final Usuario usuario;
+        private final String tokenSesion;
+        
+        public ResultadoLogin(boolean exitoso, String mensaje, Usuario usuario, String tokenSesion) {
+            this.exitoso = exitoso;
+            this.mensaje = mensaje;
+            this.usuario = usuario;
+            this.tokenSesion = tokenSesion;
+        }
+        
+        public boolean isExitoso() { return exitoso; }
+        public String getMensaje() { return mensaje; }
+        public Usuario getUsuario() { return usuario; }
+        public String getTokenSesion() { return tokenSesion; }
+    }
+    
+    /**
+     * Resultado de un cambio de contraseña
+     */
+    public static class ResultadoCambioPassword {
+        private final boolean exitoso;
+        private final String mensaje;
+        
+        public ResultadoCambioPassword(boolean exitoso, String mensaje) {
+            this.exitoso = exitoso;
+            this.mensaje = mensaje;
+        }
+        
+        public boolean isExitoso() { return exitoso; }
+        public String getMensaje() { return mensaje; }
+    }
+    
+    /**
+     * Enum de permisos del sistema
+     */
+    public enum Permiso {
+        // Permisos de usuarios
+        VER_USUARIOS,
+        CREAR_USUARIOS,
+        ACTUALIZAR_USUARIOS,
+        ELIMINAR_USUARIOS,
+        
+        // Permisos de pacientes
+        VER_PACIENTES,
+        CREAR_PACIENTES,
+        ACTUALIZAR_PACIENTES,
+        ELIMINAR_PACIENTES,
+        REGISTRAR_PACIENTES,
+        
+        // Permisos de triage
+        VER_TRIAGE,
+        CREAR_TRIAGE,
+        ACTUALIZAR_TRIAGE,
+        VER_COLA_TRIAGE,
+        REALIZAR_TRIAGE,
+        
+        // Permisos de atención médica
+        VER_ATENCION_MEDICA,
+        CREAR_ATENCION_MEDICA,
+        ACTUALIZAR_ATENCION_MEDICA,
+        REALIZAR_CONSULTAS,
+        
+        // Permisos de datos sociales
+        VER_DATOS_SOCIALES,
+        CREAR_DATOS_SOCIALES,
+        ACTUALIZAR_DATOS_SOCIALES,
+        REALIZAR_EVALUACION_SOCIAL,
+        
+        // Permisos de citas
+        VER_CITAS,
+        CREAR_CITAS,
+        ACTUALIZAR_CITAS,
+        CANCELAR_CITAS,
+        
+        // Permisos de reportes
+        VER_REPORTES_MEDICOS,
+        VER_REPORTES_SOCIALES,
+        VER_REPORTES_ADMINISTRATIVOS,
+        VER_ESTADISTICAS_SISTEMA,
+        EXPORTAR_REPORTES,
+        
+        // Permisos de dashboard
+        VER_DASHBOARD_ADMIN,
+        VER_DASHBOARD_MEDICO,
+        VER_DASHBOARD_ENFERMERO
     }
 }

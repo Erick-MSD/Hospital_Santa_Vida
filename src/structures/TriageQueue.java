@@ -1,359 +1,367 @@
 package structures;
 
 import models.RegistroTriage;
+import models.NivelUrgencia;
 import java.util.*;
+import java.time.LocalDateTime;
 
 /**
- * Cola de prioridad especializada para el sistema de triage
- * Maneja diferentes niveles de urgencia con diferentes estructuras de datos según la especificación:
- * - ROJO: Stack (LIFO) - último en llegar es el primero en atenderse
- * - NARANJA, AMARILLO, VERDE: Queue (FIFO) - primero en llegar es el primero en atenderse  
- * - AZUL: Queue especial para citas ambulatorias
+ * Cola de prioridad especializada para el sistema de triage hospitalario
+ * Implementa una cola que prioriza por nivel de urgencia y tiempo de llegada
+ * ROJO > NARANJA > AMARILLO > VERDE > AZUL
+ * Dentro del mismo nivel, se aplica FIFO (First In, First Out)
  */
 public class TriageQueue {
     
-    // Stack para pacientes nivel ROJO (críticos)
-    private final Stack<RegistroTriage> nivelRojo;
+    // Cola de prioridad principal usando un comparador personalizado
+    private PriorityQueue<RegistroTriage> cola;
     
-    // Queues para pacientes urgentes pero no críticos
-    private final Queue<RegistroTriage> nivelNaranja;
-    private final Queue<RegistroTriage> nivelAmarillo;
-    private final Queue<RegistroTriage> nivelVerde;
+    // Mapas para acceso rápido por nivel y estadísticas
+    private Map<NivelUrgencia, List<RegistroTriage>> porNivel;
+    private Map<String, RegistroTriage> porFolio;
     
-    // Queue especial para pacientes ambulatorios
-    private final Queue<RegistroTriage> nivelAzul;
+    // Estadísticas de la cola
+    private int totalPacientes;
+    private LocalDateTime ultimaActualizacion;
     
-    // HashMap para búsquedas rápidas O(1)
-    private final Map<String, RegistroTriage> registrosPorFolio;
-    private final Map<Integer, RegistroTriage> registrosPorId;
-    
-    // Contador para estadísticas
-    private int totalPacientesAtendidos;
-    private final Map<RegistroTriage.NivelUrgencia, Integer> contadorPorNivel;
-    
+    /**
+     * Constructor que inicializa la cola con el comparador de prioridad
+     */
     public TriageQueue() {
-        // Inicializar estructuras de datos
-        this.nivelRojo = new Stack<>();
-        this.nivelNaranja = new LinkedList<>();
-        this.nivelAmarillo = new LinkedList<>();
-        this.nivelVerde = new LinkedList<>();
-        this.nivelAzul = new LinkedList<>();
+        // Comparador personalizado: primero por prioridad (menor número = mayor prioridad),
+        // luego por tiempo de llegada (más temprano = mayor prioridad)
+        this.cola = new PriorityQueue<>((r1, r2) -> {
+            // Comparar primero por prioridad de urgencia
+            int prioridadComparacion = Integer.compare(
+                r1.getNivelUrgencia().getPrioridad(), 
+                r2.getNivelUrgencia().getPrioridad()
+            );
+            
+            if (prioridadComparacion != 0) {
+                return prioridadComparacion;
+            }
+            
+            // Si tienen la misma prioridad, el que llegó primero tiene prioridad
+            return r1.getFechaHoraLlegada().compareTo(r2.getFechaHoraLlegada());
+        });
         
-        // HashMaps para búsquedas rápidas
-        this.registrosPorFolio = new HashMap<>();
-        this.registrosPorId = new HashMap<>();
+        this.porNivel = new HashMap<>();
+        this.porFolio = new HashMap<>();
         
-        // Contadores
-        this.totalPacientesAtendidos = 0;
-        this.contadorPorNivel = new EnumMap<>(RegistroTriage.NivelUrgencia.class);
-        for (RegistroTriage.NivelUrgencia nivel : RegistroTriage.NivelUrgencia.values()) {
-            contadorPorNivel.put(nivel, 0);
+        // Inicializar listas por nivel
+        for (NivelUrgencia nivel : NivelUrgencia.values()) {
+            porNivel.put(nivel, new ArrayList<>());
         }
+        
+        this.totalPacientes = 0;
+        this.ultimaActualizacion = LocalDateTime.now();
     }
     
     /**
-     * Agrega un nuevo paciente a la cola correspondiente según su nivel de urgencia
-     * Complejidad: O(1)
+     * Añade un paciente a la cola de triage
+     * @param registro El registro de triage del paciente
      */
-    public synchronized void agregarPaciente(RegistroTriage registro) {
+    public void encolar(RegistroTriage registro) {
         if (registro == null || registro.getNivelUrgencia() == null) {
-            throw new IllegalArgumentException("Registro y nivel de urgencia no pueden ser nulos");
+            throw new IllegalArgumentException("El registro y su nivel de urgencia no pueden ser nulos");
         }
         
-        // Agregar a los HashMap para búsquedas rápidas
-        if (registro.getFolio() != null) {
-            registrosPorFolio.put(registro.getFolio(), registro);
-        }
-        registrosPorId.put(registro.getId(), registro);
+        cola.offer(registro);
+        porNivel.get(registro.getNivelUrgencia()).add(registro);
+        porFolio.put(registro.getFolio(), registro);
         
-        // Agregar a la estructura correspondiente según el nivel
-        switch (registro.getNivelUrgencia()) {
-            case ROJO:
-                nivelRojo.push(registro); // Stack - LIFO
-                break;
-            case NARANJA:
-                nivelNaranja.offer(registro); // Queue - FIFO
-                break;
-            case AMARILLO:
-                nivelAmarillo.offer(registro); // Queue - FIFO
-                break;
-            case VERDE:
-                nivelVerde.offer(registro); // Queue - FIFO
-                break;
-            case AZUL:
-                nivelAzul.offer(registro); // Queue especial - FIFO
-                break;
-        }
+        totalPacientes++;
+        ultimaActualizacion = LocalDateTime.now();
         
-        // Incrementar contador
-        contadorPorNivel.merge(registro.getNivelUrgencia(), 1, Integer::sum);
-        
-        System.out.println("Paciente agregado: " + registro.getFolio() + 
-                          " - Nivel " + registro.getNivelUrgencia());
+        // Actualizar orden de prioridad para colas internas
+        actualizarPrioridades();
     }
     
     /**
-     * Obtiene el siguiente paciente que debe ser atendido según prioridad
-     * Orden de prioridad: ROJO > NARANJA > AMARILLO > VERDE
-     * AZUL se maneja por separado (citas ambulatorias)
-     * Complejidad: O(1)
+     * Extrae el paciente con mayor prioridad de la cola
+     * @return El registro de triage del paciente con mayor prioridad, o null si está vacía
      */
-    public synchronized RegistroTriage obtenerSiguientePaciente() {
-        RegistroTriage siguiente = null;
+    public RegistroTriage desencolar() {
+        RegistroTriage registro = cola.poll();
         
-        // Prioridad 1: ROJO (Stack - último en llegar)
-        if (!nivelRojo.isEmpty()) {
-            siguiente = nivelRojo.pop();
-        }
-        // Prioridad 2: NARANJA (Queue - primero en llegar)
-        else if (!nivelNaranja.isEmpty()) {
-            siguiente = nivelNaranja.poll();
-        }
-        // Prioridad 3: AMARILLO (Queue - primero en llegar)
-        else if (!nivelAmarillo.isEmpty()) {
-            siguiente = nivelAmarillo.poll();
-        }
-        // Prioridad 4: VERDE (Queue - primero en llegar)
-        else if (!nivelVerde.isEmpty()) {
-            siguiente = nivelVerde.poll();
+        if (registro != null) {
+            porNivel.get(registro.getNivelUrgencia()).remove(registro);
+            porFolio.remove(registro.getFolio());
+            totalPacientes--;
+            ultimaActualizacion = LocalDateTime.now();
         }
         
-        if (siguiente != null) {
-            // Actualizar estado del paciente
-            siguiente.setEstado(RegistroTriage.Estado.EN_ATENCION);
-            totalPacientesAtendidos++;
-            
-            System.out.println("Siguiente paciente: " + siguiente.getFolio() + 
-                              " - Nivel " + siguiente.getNivelUrgencia());
-        }
-        
-        return siguiente;
+        return registro;
     }
     
     /**
-     * Obtiene el siguiente paciente nivel AZUL para cita ambulatoria
-     * Complejidad: O(1)
+     * Ve el siguiente paciente sin removerlo de la cola
+     * @return El registro de triage del próximo paciente, o null si está vacía
      */
-    public synchronized RegistroTriage obtenerSiguientePacienteAzul() {
-        if (!nivelAzul.isEmpty()) {
-            RegistroTriage siguiente = nivelAzul.poll();
-            siguiente.setEstado(RegistroTriage.Estado.CITA_PROGRAMADA);
-            totalPacientesAtendidos++;
-            
-            System.out.println("Paciente AZUL para cita: " + siguiente.getFolio());
-            return siguiente;
-        }
-        return null;
+    public RegistroTriage verSiguiente() {
+        return cola.peek();
     }
     
     /**
-     * Busca un paciente por folio
-     * Complejidad: O(1)
+     * Busca un paciente por su folio
+     * @param folio El folio del paciente
+     * @return El registro de triage, o null si no se encuentra
      */
     public RegistroTriage buscarPorFolio(String folio) {
-        return registrosPorFolio.get(folio);
+        return porFolio.get(folio);
     }
     
     /**
-     * Busca un paciente por ID
-     * Complejidad: O(1)
+     * Obtiene todos los pacientes de un nivel específico de urgencia
+     * @param nivel El nivel de urgencia
+     * @return Lista de registros de ese nivel
      */
-    public RegistroTriage buscarPorId(int id) {
-        return registrosPorId.get(id);
+    public List<RegistroTriage> obtenerPorNivel(NivelUrgencia nivel) {
+        return new ArrayList<>(porNivel.get(nivel));
     }
     
     /**
-     * Remueve un paciente de todas las estructuras (cuando se completa su atención)
+     * Remueve un paciente específico de la cola (cuando pasa a la siguiente etapa)
+     * @param folio El folio del paciente a remover
+     * @return true si se removió exitosamente, false si no se encontró
      */
-    public synchronized void removerPaciente(RegistroTriage registro) {
-        if (registro == null) return;
+    public boolean remover(String folio) {
+        RegistroTriage registro = porFolio.get(folio);
         
-        // Remover de HashMap
-        if (registro.getFolio() != null) {
-            registrosPorFolio.remove(registro.getFolio());
-        }
-        registrosPorId.remove(registro.getId());
-        
-        // Remover de la estructura correspondiente
-        switch (registro.getNivelUrgencia()) {
-            case ROJO:
-                nivelRojo.remove(registro);
-                break;
-            case NARANJA:
-                nivelNaranja.remove(registro);
-                break;
-            case AMARILLO:
-                nivelAmarillo.remove(registro);
-                break;
-            case VERDE:
-                nivelVerde.remove(registro);
-                break;
-            case AZUL:
-                nivelAzul.remove(registro);
-                break;
+        if (registro != null) {
+            cola.remove(registro);
+            porNivel.get(registro.getNivelUrgencia()).remove(registro);
+            porFolio.remove(folio);
+            totalPacientes--;
+            ultimaActualizacion = LocalDateTime.now();
+            return true;
         }
         
-        System.out.println("Paciente removido: " + registro.getFolio());
+        return false;
     }
     
     /**
-     * Obtiene la lista de pacientes en sala de espera ordenada por prioridad
+     * Actualiza el nivel de urgencia de un paciente en la cola
+     * @param folio El folio del paciente
+     * @param nuevoNivel El nuevo nivel de urgencia
+     * @return true si se actualizó exitosamente
      */
-    public synchronized List<RegistroTriage> obtenerSalaEspera() {
-        List<RegistroTriage> salaEspera = new ArrayList<>();
+    public boolean actualizarNivelUrgencia(String folio, NivelUrgencia nuevoNivel) {
+        RegistroTriage registro = porFolio.get(folio);
         
-        // Agregar en orden de prioridad (sin remover de las colas)
-        salaEspera.addAll(nivelRojo);
-        salaEspera.addAll(nivelNaranja);
-        salaEspera.addAll(nivelAmarillo);
-        salaEspera.addAll(nivelVerde);
-        
-        return salaEspera;
-    }
-    
-    /**
-     * Obtiene la lista de pacientes nivel AZUL esperando cita
-     */
-    public synchronized List<RegistroTriage> obtenerPacientesAzul() {
-        return new ArrayList<>(nivelAzul);
-    }
-    
-    // Métodos de estadísticas
-    public int getTotalPacientesEspera() {
-        return nivelRojo.size() + nivelNaranja.size() + 
-               nivelAmarillo.size() + nivelVerde.size();
-    }
-    
-    public int getTotalPacientesAzul() {
-        return nivelAzul.size();
-    }
-    
-    public int getTotalPacientesAtendidos() {
-        return totalPacientesAtendidos;
-    }
-    
-    public int getCantidadPorNivel(RegistroTriage.NivelUrgencia nivel) {
-        switch (nivel) {
-            case ROJO: return nivelRojo.size();
-            case NARANJA: return nivelNaranja.size();
-            case AMARILLO: return nivelAmarillo.size();
-            case VERDE: return nivelVerde.size();
-            case AZUL: return nivelAzul.size();
-            default: return 0;
-        }
-    }
-    
-    public Map<RegistroTriage.NivelUrgencia, Integer> getEstadisticasPorNivel() {
-        Map<RegistroTriage.NivelUrgencia, Integer> stats = new EnumMap<>(RegistroTriage.NivelUrgencia.class);
-        stats.put(RegistroTriage.NivelUrgencia.ROJO, nivelRojo.size());
-        stats.put(RegistroTriage.NivelUrgencia.NARANJA, nivelNaranja.size());
-        stats.put(RegistroTriage.NivelUrgencia.AMARILLO, nivelAmarillo.size());
-        stats.put(RegistroTriage.NivelUrgencia.VERDE, nivelVerde.size());
-        stats.put(RegistroTriage.NivelUrgencia.AZUL, nivelAzul.size());
-        return stats;
-    }
-    
-    /**
-     * Calcula el tiempo estimado de espera para un nuevo paciente según su nivel
-     */
-    public int calcularTiempoEsperaEstimado(RegistroTriage.NivelUrgencia nivel) {
-        // Tiempos promedio estimados por consulta (en minutos)
-        final int TIEMPO_CONSULTA_ROJO = 45;
-        final int TIEMPO_CONSULTA_NARANJA = 30;
-        final int TIEMPO_CONSULTA_AMARILLO = 20;
-        final int TIEMPO_CONSULTA_VERDE = 15;
-        
-        int tiempoEstimado = 0;
-        
-        // Calcular basado en pacientes por delante según prioridad
-        switch (nivel) {
-            case ROJO:
-                // Solo cuenta otros pacientes ROJO por delante
-                tiempoEstimado = nivelRojo.size() * TIEMPO_CONSULTA_ROJO;
-                break;
-            case NARANJA:
-                // Cuenta ROJOS + NARANJAS por delante
-                tiempoEstimado = (nivelRojo.size() * TIEMPO_CONSULTA_ROJO) +
-                               (nivelNaranja.size() * TIEMPO_CONSULTA_NARANJA);
-                break;
-            case AMARILLO:
-                // Cuenta ROJOS + NARANJAS + AMARILLOS por delante
-                tiempoEstimado = (nivelRojo.size() * TIEMPO_CONSULTA_ROJO) +
-                               (nivelNaranja.size() * TIEMPO_CONSULTA_NARANJA) +
-                               (nivelAmarillo.size() * TIEMPO_CONSULTA_AMARILLO);
-                break;
-            case VERDE:
-                // Cuenta todos los niveles por delante
-                tiempoEstimado = (nivelRojo.size() * TIEMPO_CONSULTA_ROJO) +
-                               (nivelNaranja.size() * TIEMPO_CONSULTA_NARANJA) +
-                               (nivelAmarillo.size() * TIEMPO_CONSULTA_AMARILLO) +
-                               (nivelVerde.size() * TIEMPO_CONSULTA_VERDE);
-                break;
-            case AZUL:
-                // Para citas ambulatorias, el tiempo es diferente
-                return -1; // Indicar que se programa cita
+        if (registro != null) {
+            // Remover del nivel anterior
+            porNivel.get(registro.getNivelUrgencia()).remove(registro);
+            
+            // Actualizar el nivel
+            registro.setNivelUrgencia(nuevoNivel);
+            
+            // Añadir al nuevo nivel
+            porNivel.get(nuevoNivel).add(registro);
+            
+            // Reconstruir la cola para mantener el orden correcto
+            reconstruirCola();
+            
+            ultimaActualizacion = LocalDateTime.now();
+            return true;
         }
         
-        return tiempoEstimado;
+        return false;
     }
     
     /**
-     * Verifica si hay pacientes críticos esperando
+     * Obtiene estadísticas de la cola
+     * @return Map con las estadísticas actuales
      */
-    public boolean hayPacientesCriticos() {
-        return !nivelRojo.isEmpty();
-    }
-    
-    /**
-     * Obtiene el paciente que lleva más tiempo esperando (solo para estadísticas)
-     */
-    public RegistroTriage obtenerPacienteMayorEspera() {
-        RegistroTriage mayorEspera = null;
-        long maxMinutos = 0;
+    public Map<String, Object> obtenerEstadisticas() {
+        Map<String, Object> estadisticas = new HashMap<>();
         
-        // Buscar en todas las colas
-        List<RegistroTriage> todosPacientes = obtenerSalaEspera();
+        estadisticas.put("total_pacientes", totalPacientes);
+        estadisticas.put("ultima_actualizacion", ultimaActualizacion);
         
-        for (RegistroTriage registro : todosPacientes) {
-            long minutosEspera = registro.getMinutosEspera();
-            if (minutosEspera > maxMinutos) {
-                maxMinutos = minutosEspera;
-                mayorEspera = registro;
+        // Contar por nivel
+        for (NivelUrgencia nivel : NivelUrgencia.values()) {
+            estadisticas.put("nivel_" + nivel.name().toLowerCase(), porNivel.get(nivel).size());
+        }
+        
+        // Tiempo de espera promedio por nivel
+        for (NivelUrgencia nivel : NivelUrgencia.values()) {
+            List<RegistroTriage> registros = porNivel.get(nivel);
+            if (!registros.isEmpty()) {
+                double promedioEspera = registros.stream()
+                    .mapToLong(RegistroTriage::getMinutosEspera)
+                    .average()
+                    .orElse(0.0);
+                estadisticas.put("tiempo_promedio_" + nivel.name().toLowerCase(), promedioEspera);
             }
         }
         
-        return mayorEspera;
+        return estadisticas;
     }
     
     /**
-     * Limpia todas las colas (para reiniciar el sistema)
+     * Obtiene una lista ordenada de todos los pacientes en la cola
+     * @return Lista ordenada por prioridad
      */
-    public synchronized void limpiarTodo() {
-        nivelRojo.clear();
-        nivelNaranja.clear();
-        nivelAmarillo.clear();
-        nivelVerde.clear();
-        nivelAzul.clear();
-        registrosPorFolio.clear();
-        registrosPorId.clear();
-        totalPacientesAtendidos = 0;
-        
-        for (RegistroTriage.NivelUrgencia nivel : RegistroTriage.NivelUrgencia.values()) {
-            contadorPorNivel.put(nivel, 0);
+    public List<RegistroTriage> obtenerTodosOrdenados() {
+        List<RegistroTriage> lista = new ArrayList<>(cola);
+        return lista;
+    }
+    
+    /**
+     * Obtiene los pacientes más urgentes (nivel ROJO)
+     * @return Lista de pacientes con nivel ROJO
+     */
+    public List<RegistroTriage> obtenerUrgentes() {
+        return obtenerPorNivel(NivelUrgencia.ROJO);
+    }
+    
+    /**
+     * Verifica si la cola está vacía
+     * @return true si no hay pacientes en espera
+     */
+    public boolean estaVacia() {
+        return cola.isEmpty();
+    }
+    
+    /**
+     * Obtiene el tamaño actual de la cola
+     * @return Número de pacientes en espera
+     */
+    public int tamaño() {
+        return totalPacientes;
+    }
+    
+    /**
+     * Limpia completamente la cola
+     */
+    public void limpiar() {
+        cola.clear();
+        porFolio.clear();
+        for (List<RegistroTriage> lista : porNivel.values()) {
+            lista.clear();
         }
+        totalPacientes = 0;
+        ultimaActualizacion = LocalDateTime.now();
+    }
+    
+    /**
+     * Actualiza las prioridades numéricas de los registros
+     */
+    private void actualizarPrioridades() {
+        int orden = 1;
         
-        System.out.println("Sistema de colas reiniciado");
+        // Actualizar orden por prioridad
+        for (NivelUrgencia nivel : NivelUrgencia.values()) {
+            List<RegistroTriage> registros = porNivel.get(nivel);
+            registros.sort((r1, r2) -> r1.getFechaHoraLlegada().compareTo(r2.getFechaHoraLlegada()));
+            
+            for (RegistroTriage registro : registros) {
+                registro.setPrioridadOrden(orden++);
+            }
+        }
+    }
+    
+    /**
+     * Reconstruye la cola manteniendo el orden correcto
+     */
+    private void reconstruirCola() {
+        List<RegistroTriage> temp = new ArrayList<>(cola);
+        cola.clear();
+        
+        for (RegistroTriage registro : temp) {
+            cola.offer(registro);
+        }
     }
     
     @Override
     public String toString() {
-        return "TriageQueue{" +
-                "ROJO=" + nivelRojo.size() +
-                ", NARANJA=" + nivelNaranja.size() +
-                ", AMARILLO=" + nivelAmarillo.size() +
-                ", VERDE=" + nivelVerde.size() +
-                ", AZUL=" + nivelAzul.size() +
-                ", totalAtendidos=" + totalPacientesAtendidos +
-                '}';
+        StringBuilder sb = new StringBuilder();
+        sb.append("TriageQueue - Total: ").append(totalPacientes).append(" pacientes\\n");
+        
+        for (NivelUrgencia nivel : NivelUrgencia.values()) {
+            int cantidad = porNivel.get(nivel).size();
+            if (cantidad > 0) {
+                sb.append("  ").append(nivel.name()).append(": ").append(cantidad).append("\\n");
+            }
+        }
+        
+        return sb.toString();
+    }
+    
+    // Métodos adicionales para compatibilidad con servicios
+    
+    /**
+     * Alias de encolar para compatibilidad
+     */
+    public void agregar(RegistroTriage registro) {
+        encolar(registro);
+    }
+    
+    /**
+     * Obtiene el siguiente paciente sin removerlo (alias de verSiguiente)
+     */
+    public RegistroTriage siguiente() {
+        return verSiguiente();
+    }
+    
+    /**
+     * Obtiene el siguiente paciente sin removerlo (alias de siguiente)
+     */
+    public RegistroTriage obtenerSiguiente() {
+        return siguiente();
+    }
+    
+    /**
+     * Obtiene todos los registros (alias de obtenerTodosOrdenados)
+     */
+    public List<RegistroTriage> obtenerTodos() {
+        return obtenerTodosOrdenados();
+    }
+    
+    /**
+     * Obtiene el tamaño de la cola
+     */
+    public int size() {
+        return totalPacientes;
+    }
+    
+    /**
+     * Actualiza un registro existente
+     */
+    public void actualizar(RegistroTriage registro) {
+        if (registro != null && porFolio.containsKey(registro.getFolio())) {
+            // Remover y volver a agregar para mantener orden correcto
+            remover(registro.getFolio());
+            agregar(registro);
+        }
+    }
+    
+    /**
+     * Remover por ID (convertir int a String)
+     */
+    public void remover(int registroId) {
+        // Buscar por ID y remover
+        RegistroTriage aRemover = null;
+        for (RegistroTriage registro : cola) {
+            if (registro.getId() == registroId) {
+                aRemover = registro;
+                break;
+            }
+        }
+        if (aRemover != null) {
+            remover(aRemover.getFolio());
+        }
+    }
+    
+    /**
+     * Obtiene conteos por nivel de urgencia
+     */
+    public Map<NivelUrgencia, Integer> obtenerConteos() {
+        Map<NivelUrgencia, Integer> conteos = new HashMap<>();
+        for (NivelUrgencia nivel : NivelUrgencia.values()) {
+            conteos.put(nivel, porNivel.get(nivel).size());
+        }
+        return conteos;
     }
 }

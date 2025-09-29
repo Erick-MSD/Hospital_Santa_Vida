@@ -1,55 +1,12 @@
 package models;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * Modelo de datos para registros de triage
- * Cada visita a urgencias genera un nuevo registro
+ * Clase modelo que representa un registro de triage hospitalario
+ * Mapea directamente con la tabla 'registros_triage' de la base de datos
  */
 public class RegistroTriage {
-    
-    // Enumeraciones
-    public enum NivelUrgencia {
-        ROJO("Crítico", "Resucitación inmediata", 1),
-        NARANJA("Muy urgente", "Atención en 10 minutos", 2),
-        AMARILLO("Urgente", "Atención en 60 minutos", 3),
-        VERDE("Menos urgente", "Atención en 120 minutos", 4),
-        AZUL("No urgente", "Cita médica ambulatoria", 5);
-        
-        private final String descripcion;
-        private final String tiempoEsperado;
-        private final int prioridad;
-        
-        NivelUrgencia(String descripcion, String tiempoEsperado, int prioridad) {
-            this.descripcion = descripcion;
-            this.tiempoEsperado = tiempoEsperado;
-            this.prioridad = prioridad;
-        }
-        
-        public String getDescripcion() { return descripcion; }
-        public String getTiempoEsperado() { return tiempoEsperado; }
-        public int getPrioridad() { return prioridad; }
-    }
-    
-    public enum Estado {
-        ESPERANDO_ASISTENTE("Esperando registro de datos"),
-        ESPERANDO_TRABAJO_SOCIAL("Esperando entrevista social"),
-        ESPERANDO_MEDICO("Esperando atención médica"),
-        EN_ATENCION("Siendo atendido por médico"),
-        COMPLETADO("Atención completada"),
-        CITA_PROGRAMADA("Cita médica programada");
-        
-        private final String descripcion;
-        
-        Estado(String descripcion) {
-            this.descripcion = descripcion;
-        }
-        
-        public String getDescripcion() { return descripcion; }
-    }
-    
-    // Atributos principales
     private int id;
     private String folio;
     private int pacienteId;
@@ -64,35 +21,42 @@ public class RegistroTriage {
     private Integer presionDiastolica;
     private Integer frecuenciaCardiaca;
     private Integer frecuenciaRespiratoria;
-    private BigDecimal temperatura;
+    private Double temperatura;
     private Integer saturacionOxigeno;
     private Integer glasgow;
     
-    // Clasificación de triage
+    // Clasificación
     private NivelUrgencia nivelUrgencia;
     private String especialidadAsignada;
     private String observacionesTriage;
     
     // Estado del proceso
-    private Estado estado;
+    private EstadoPaciente estado;
     private Integer prioridadOrden;
     private LocalDateTime fechaUltimaActualizacion;
     
-    // Referencias a otros objetos (no persistidas directamente)
+    // Referencias a objetos relacionados (no persistidas directamente)
     private Paciente paciente;
     private Usuario medicoTriage;
     
-    // Constructores
+    // Campos adicionales para compatibilidad con DAOs
+    private String pacienteNombre;
+    private String numeroExpediente;
+    private String usuarioNombre;
+    private Integer nivelDolor;
+    private Integer tiempoEstimadoAtencion;
+    
+    // Constructor vacío
     public RegistroTriage() {
         this.fechaHoraLlegada = LocalDateTime.now();
+        this.estado = EstadoPaciente.ESPERANDO_ASISTENTE;
         this.fechaUltimaActualizacion = LocalDateTime.now();
-        this.estado = Estado.ESPERANDO_ASISTENTE;
     }
     
-    public RegistroTriage(int pacienteId, int medicoTriageId, String motivoConsulta) {
+    // Constructor básico
+    public RegistroTriage(int pacienteId, String motivoConsulta) {
         this();
         this.pacienteId = pacienteId;
-        this.medicoTriageId = medicoTriageId;
         this.motivoConsulta = motivoConsulta;
     }
     
@@ -193,11 +157,11 @@ public class RegistroTriage {
         this.frecuenciaRespiratoria = frecuenciaRespiratoria;
     }
     
-    public BigDecimal getTemperatura() {
+    public Double getTemperatura() {
         return temperatura;
     }
     
-    public void setTemperatura(BigDecimal temperatura) {
+    public void setTemperatura(Double temperatura) {
         this.temperatura = temperatura;
     }
     
@@ -241,11 +205,11 @@ public class RegistroTriage {
         this.observacionesTriage = observacionesTriage;
     }
     
-    public Estado getEstado() {
+    public EstadoPaciente getEstado() {
         return estado;
     }
     
-    public void setEstado(Estado estado) {
+    public void setEstado(EstadoPaciente estado) {
         this.estado = estado;
         this.fechaUltimaActualizacion = LocalDateTime.now();
     }
@@ -285,9 +249,9 @@ public class RegistroTriage {
     // Métodos de utilidad
     public String getPresionArterial() {
         if (presionSistolica != null && presionDiastolica != null) {
-            return presionSistolica + "/" + presionDiastolica;
+            return presionSistolica + "/" + presionDiastolica + " mmHg";
         }
-        return null;
+        return "No registrada";
     }
     
     public boolean tieneSignosVitalesCompletos() {
@@ -296,71 +260,152 @@ public class RegistroTriage {
                temperatura != null && saturacionOxigeno != null;
     }
     
-    public boolean esTriageCompleto() {
-        return nivelUrgencia != null && 
-               especialidadAsignada != null && !especialidadAsignada.trim().isEmpty() &&
-               tieneSignosVitalesCompletos();
-    }
-    
     public long getMinutosEspera() {
         if (fechaHoraLlegada == null) return 0;
         return java.time.Duration.between(fechaHoraLlegada, LocalDateTime.now()).toMinutes();
     }
     
-    public boolean esNivelCritico() {
+    public boolean requiereAtencionInmediata() {
         return nivelUrgencia == NivelUrgencia.ROJO;
     }
     
-    public boolean esNivelAmbulatorio() {
-        return nivelUrgencia == NivelUrgencia.AZUL;
+    public boolean esTriageCompleto() {
+        return fechaHoraTriage != null && nivelUrgencia != null && 
+               especialidadAsignada != null && tieneSignosVitalesCompletos();
     }
     
-    public boolean puedeAtenderseAmbulatorio() {
-        return esNivelAmbulatorio() && estado == Estado.ESPERANDO_ASISTENTE;
+    // Métodos de conveniencia adicionales para compatibilidad
+    public void setUsuarioTriageId(int usuarioId) {
+        this.medicoTriageId = usuarioId;
     }
     
-    public boolean requiereTrabajoSocial() {
-        return !esNivelAmbulatorio() && estado == Estado.ESPERANDO_TRABAJO_SOCIAL;
+    public void setFechaTriage(LocalDateTime fechaTriage) {
+        this.fechaHoraTriage = fechaTriage;
     }
     
-    public boolean estaEnProceso() {
-        return estado != Estado.COMPLETADO && estado != Estado.CITA_PROGRAMADA;
-    }
-    
-    public void avanzarEstado() {
-        switch (estado) {
-            case ESPERANDO_ASISTENTE:
-                if (esNivelAmbulatorio()) {
-                    setEstado(Estado.CITA_PROGRAMADA);
-                } else {
-                    setEstado(Estado.ESPERANDO_TRABAJO_SOCIAL);
+    public void setSignosVitalesPresion(String presion) {
+        // Parsear presión en formato "120/80"
+        if (presion != null && presion.contains("/")) {
+            String[] partes = presion.split("/");
+            if (partes.length == 2) {
+                try {
+                    this.presionSistolica = Integer.parseInt(partes[0]);
+                    this.presionDiastolica = Integer.parseInt(partes[1]);
+                } catch (NumberFormatException e) {
+                    // Ignorar si no se puede parsear
                 }
-                break;
-            case ESPERANDO_TRABAJO_SOCIAL:
-                setEstado(Estado.ESPERANDO_MEDICO);
-                break;
-            case ESPERANDO_MEDICO:
-                setEstado(Estado.EN_ATENCION);
-                break;
-            case EN_ATENCION:
-                setEstado(Estado.COMPLETADO);
-                break;
-            case COMPLETADO:
-            case CITA_PROGRAMADA:
-                // Estados finales, no se pueden avanzar más
-                break;
+            }
         }
+    }
+    
+    public void setSignosVitalesPulso(int pulso) {
+        this.frecuenciaCardiaca = pulso;
+    }
+    
+    public void setSignosVitalesTemperatura(double temp) {
+        this.temperatura = temp;
+    }
+    
+    public void setSignosVitalesRespiracion(int respiracion) {
+        this.frecuenciaRespiratoria = respiracion;
+    }
+    
+    public void setSignosVitalesSaturacion(int saturacion) {
+        this.saturacionOxigeno = saturacion;
+    }
+    
+    public void setNivelDolor(int nivelDolor) {
+        this.nivelDolor = nivelDolor;
+    }
+    
+    public void setEscalaGlasgow(int glasgow) {
+        this.glasgow = glasgow;
+    }
+    
+    public void setTiempoEstimadoAtencion(int tiempoMinutos) {
+        this.tiempoEstimadoAtencion = tiempoMinutos;
+    }
+    
+    public void setPrioridadNumerica(int prioridadNumerica) {
+        this.prioridadOrden = prioridadNumerica;
+    }
+    
+    // Métodos getter adicionales para compatibilidad con DAOs
+    public Integer getUsuarioTriageId() {
+        return this.medicoTriageId;
+    }
+    
+    public LocalDateTime getFechaTriage() {
+        return this.fechaHoraTriage;
+    }
+    
+    public String getSignosVitalesPresion() {
+        if (presionSistolica != null && presionDiastolica != null) {
+            return presionSistolica + "/" + presionDiastolica;
+        }
+        return null;
+    }
+    
+    public Integer getSignosVitalesPulso() {
+        return this.frecuenciaCardiaca;
+    }
+    
+    public Double getSignosVitalesTemperatura() {
+        return this.temperatura;
+    }
+    
+    public Integer getSignosVitalesRespiracion() {
+        return this.frecuenciaRespiratoria;
+    }
+    
+    public Integer getSignosVitalesSaturacion() {
+        return this.saturacionOxigeno;
+    }
+    
+    public Integer getNivelDolor() {
+        return this.nivelDolor;
+    }
+    
+    public Integer getEscalaGlasgow() {
+        return this.glasgow;
+    }
+    
+    public Integer getTiempoEstimadoAtencion() {
+        return this.tiempoEstimadoAtencion;
+    }
+    
+    public Integer getPrioridadNumerica() {
+        return this.prioridadOrden;
+    }
+    
+    public String getPacienteNombre() {
+        return pacienteNombre;
+    }
+    
+    public void setPacienteNombre(String pacienteNombre) {
+        this.pacienteNombre = pacienteNombre;
+    }
+    
+    public String getNumeroExpediente() {
+        return numeroExpediente;
+    }
+    
+    public void setNumeroExpediente(String numeroExpediente) {
+        this.numeroExpediente = numeroExpediente;
+    }
+    
+    public String getUsuarioNombre() {
+        return usuarioNombre;
+    }
+    
+    public void setUsuarioNombre(String usuarioNombre) {
+        this.usuarioNombre = usuarioNombre;
     }
     
     @Override
     public String toString() {
-        return "RegistroTriage{" +
-                "folio='" + folio + '\'' +
-                ", nivelUrgencia=" + nivelUrgencia +
-                ", estado=" + estado +
-                ", minutosEspera=" + getMinutosEspera() +
-                ", especialidad='" + especialidadAsignada + '\'' +
-                '}';
+        return folio + " - " + (paciente != null ? paciente.getNombreCompleto() : "Paciente ID: " + pacienteId) +
+               " [" + (nivelUrgencia != null ? nivelUrgencia.name() : "Sin nivel") + "]";
     }
     
     @Override

@@ -1,0 +1,611 @@
+package dao;
+
+import models.CitaMedica;
+import models.Especialidad;
+import utils.ValidationUtils;
+import java.sql.*;
+import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.ArrayList;
+
+/**
+ * DAO para la gestión de citas médicas en el sistema hospitalario
+ * Maneja todas las operaciones CRUD para la tabla citas_medicas
+ * Incluye funcionalidades específicas de programación de citas
+ */
+public class CitaMedicaDAO extends BaseDAO<CitaMedica> {
+    
+    private static final String TABLA = "citas_medicas";
+    
+    // Consultas SQL predefinidas
+    private static final String SQL_INSERTAR = 
+        "INSERT INTO " + TABLA + " (paciente_id, medico_id, fecha_cita, hora_cita, " +
+        "especialidad, motivo_cita, observaciones, estado_cita, fecha_creacion, " +
+        "usuario_creacion_id) " +
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    
+    private static final String SQL_ACTUALIZAR = 
+        "UPDATE " + TABLA + " SET paciente_id = ?, medico_id = ?, fecha_cita = ?, " +
+        "hora_cita = ?, especialidad = ?, motivo_cita = ?, observaciones = ?, " +
+        "estado_cita = ? WHERE id = ?";
+    
+    private static final String SQL_ELIMINAR = 
+        "DELETE FROM " + TABLA + " WHERE id = ?";
+    
+    private static final String SQL_BUSCAR_POR_ID = 
+        "SELECT cm.*, p.nombre_completo as paciente_nombre, CONCAT('EXP-', p.id) as numero_expediente, " +
+        "m.nombre_completo as medico_nombre, u.nombre_completo as usuario_creacion_nombre " +
+        "FROM " + TABLA + " cm " +
+        "JOIN pacientes p ON cm.paciente_id = p.id " +
+        "LEFT JOIN usuarios m ON cm.medico_id = m.id " +
+        "JOIN usuarios u ON cm.usuario_creacion_id = u.id " +
+        "WHERE cm.id = ?";
+    
+    private static final String SQL_OBTENER_TODOS = 
+        "SELECT cm.*, p.nombre_completo as paciente_nombre, CONCAT('EXP-', p.id) as numero_expediente, " +
+        "m.nombre_completo as medico_nombre, u.nombre_completo as usuario_creacion_nombre " +
+        "FROM " + TABLA + " cm " +
+        "JOIN pacientes p ON cm.paciente_id = p.id " +
+        "LEFT JOIN usuarios m ON cm.medico_id = m.id " +
+        "JOIN usuarios u ON cm.usuario_creacion_id = u.id " +
+        "ORDER BY cm.fecha_cita, cm.hora_cita";
+    
+    private static final String SQL_BUSCAR_POR_PACIENTE = 
+        "SELECT cm.*, p.nombre_completo as paciente_nombre, CONCAT('EXP-', p.id) as numero_expediente, " +
+        "m.nombre_completo as medico_nombre, u.nombre_completo as usuario_creacion_nombre " +
+        "FROM " + TABLA + " cm " +
+        "JOIN pacientes p ON cm.paciente_id = p.id " +
+        "LEFT JOIN usuarios m ON cm.medico_id = m.id " +
+        "JOIN usuarios u ON cm.usuario_creacion_id = u.id " +
+        "WHERE cm.paciente_id = ? ORDER BY cm.fecha_cita DESC, cm.hora_cita DESC";
+    
+    private static final String SQL_BUSCAR_POR_MEDICO = 
+        "SELECT cm.*, p.nombre_completo as paciente_nombre, CONCAT('EXP-', p.id) as numero_expediente, " +
+        "m.nombre_completo as medico_nombre, u.nombre_completo as usuario_creacion_nombre " +
+        "FROM " + TABLA + " cm " +
+        "JOIN pacientes p ON cm.paciente_id = p.id " +
+        "LEFT JOIN usuarios m ON cm.medico_id = m.id " +
+        "JOIN usuarios u ON cm.usuario_creacion_id = u.id " +
+        "WHERE cm.medico_id = ? ORDER BY cm.fecha_cita, cm.hora_cita";
+    
+    private static final String SQL_BUSCAR_POR_FECHA = 
+        "SELECT cm.*, p.nombre_completo as paciente_nombre, CONCAT('EXP-', p.id) as numero_expediente, " +
+        "m.nombre_completo as medico_nombre, u.nombre_completo as usuario_creacion_nombre " +
+        "FROM " + TABLA + " cm " +
+        "JOIN pacientes p ON cm.paciente_id = p.id " +
+        "LEFT JOIN usuarios m ON cm.medico_id = m.id " +
+        "JOIN usuarios u ON cm.usuario_creacion_id = u.id " +
+        "WHERE DATE(cm.fecha_cita) = ? ORDER BY cm.hora_cita";
+    
+    private static final String SQL_BUSCAR_POR_ESPECIALIDAD = 
+        "SELECT cm.*, p.nombre_completo as paciente_nombre, CONCAT('EXP-', p.id) as numero_expediente, " +
+        "m.nombre_completo as medico_nombre, u.nombre_completo as usuario_creacion_nombre " +
+        "FROM " + TABLA + " cm " +
+        "JOIN pacientes p ON cm.paciente_id = p.id " +
+        "LEFT JOIN usuarios m ON cm.medico_id = m.id " +
+        "JOIN usuarios u ON cm.usuario_creacion_id = u.id " +
+        "WHERE cm.especialidad = ? ORDER BY cm.fecha_cita, cm.hora_cita";
+    
+    private static final String SQL_BUSCAR_POR_ESTADO = 
+        "SELECT cm.*, p.nombre_completo as paciente_nombre, CONCAT('EXP-', p.id) as numero_expediente, " +
+        "m.nombre_completo as medico_nombre, u.nombre_completo as usuario_creacion_nombre " +
+        "FROM " + TABLA + " cm " +
+        "JOIN pacientes p ON cm.paciente_id = p.id " +
+        "LEFT JOIN usuarios m ON cm.medico_id = m.id " +
+        "JOIN usuarios u ON cm.usuario_creacion_id = u.id " +
+        "WHERE cm.estado_cita = ? ORDER BY cm.fecha_cita, cm.hora_cita";
+    
+    private static final String SQL_BUSCAR_PROGRAMADAS_HOY = 
+        "SELECT cm.*, p.nombre_completo as paciente_nombre, CONCAT('EXP-', p.id) as numero_expediente, " +
+        "m.nombre_completo as medico_nombre, u.nombre_completo as usuario_creacion_nombre " +
+        "FROM " + TABLA + " cm " +
+        "JOIN pacientes p ON cm.paciente_id = p.id " +
+        "LEFT JOIN usuarios m ON cm.medico_id = m.id " +
+        "JOIN usuarios u ON cm.usuario_creacion_id = u.id " +
+        "WHERE DATE(cm.fecha_cita) = CURDATE() AND cm.estado_cita = 'PROGRAMADA' " +
+        "ORDER BY cm.hora_cita";
+    
+    private static final String SQL_BUSCAR_PROXIMAS = 
+        "SELECT cm.*, p.nombre_completo as paciente_nombre, CONCAT('EXP-', p.id) as numero_expediente, " +
+        "m.nombre_completo as medico_nombre, u.nombre_completo as usuario_creacion_nombre " +
+        "FROM " + TABLA + " cm " +
+        "JOIN pacientes p ON cm.paciente_id = p.id " +
+        "LEFT JOIN usuarios m ON cm.medico_id = m.id " +
+        "JOIN usuarios u ON cm.usuario_creacion_id = u.id " +
+        "WHERE cm.fecha_cita >= CURDATE() AND cm.estado_cita = 'PROGRAMADA' " +
+        "ORDER BY cm.fecha_cita, cm.hora_cita LIMIT ?";
+    
+    private static final String SQL_VERIFICAR_DISPONIBILIDAD = 
+        "SELECT COUNT(*) FROM " + TABLA + " " +
+        "WHERE medico_id = ? AND DATE(fecha_cita) = ? AND hora_cita = ? " +
+        "AND estado_cita IN ('PROGRAMADA', 'EN_CURSO')";
+    
+    private static final String SQL_ACTUALIZAR_ESTADO = 
+        "UPDATE " + TABLA + " SET estado_cita = ? WHERE id = ?";
+    
+    /**
+     * Inserta una nueva cita médica en la base de datos
+     * @param cita Cita médica a insertar
+     * @return true si se insertó correctamente
+     * @throws SQLException si hay error en la operación
+     */
+    @Override
+    public boolean insertar(CitaMedica cita) throws SQLException {
+        validarCitaMedica(cita);
+        
+        // Verificar disponibilidad del médico
+        if (cita.getMedicoId() > 0) {
+            if (!verificarDisponibilidadMedico(cita.getMedicoId(), cita.getFechaCita(), cita.getHoraCita())) {
+                throw new SQLException("El médico no está disponible en esa fecha y hora");
+            }
+        }
+        
+        int idGenerado = ejecutarInsercionConClave(SQL_INSERTAR,
+            cita.getPacienteId(),
+            cita.getMedicoId() > 0 ? cita.getMedicoId() : null,
+            convertirADate(cita.getFechaCita()),
+            convertirATime(cita.getHoraCita()),
+            cita.getEspecialidad(),
+            cita.getMotivoCita(),
+            cita.getObservaciones(),
+            cita.getEstadoCita(),
+            convertirATimestamp(cita.getFechaCreacion()),
+            cita.getUsuarioCreacionId()
+        );
+        
+        if (idGenerado > 0) {
+            cita.setId(idGenerado);
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Actualiza una cita médica existente
+     * @param cita Cita médica a actualizar
+     * @return true si se actualizó correctamente
+     * @throws SQLException si hay error en la operación
+     */
+    @Override
+    public boolean actualizar(CitaMedica cita) throws SQLException {
+        validarCitaMedica(cita);
+        
+        if (cita.getId() <= 0) {
+            throw new IllegalArgumentException("ID de cita médica inválido");
+        }
+        
+        // Verificar disponibilidad del médico si cambió
+        if (cita.getMedicoId() > 0) {
+            CitaMedica citaExistente = buscarPorId(cita.getId());
+            if (citaExistente != null) {
+                boolean cambioMedico = citaExistente.getMedicoId() != cita.getMedicoId();
+                boolean cambioFecha = !citaExistente.getFechaCita().equals(cita.getFechaCita());
+                boolean cambioHora = !citaExistente.getHoraCita().equals(cita.getHoraCita());
+                
+                if (cambioMedico || cambioFecha || cambioHora) {
+                    if (!verificarDisponibilidadMedico(cita.getMedicoId(), cita.getFechaCita(), cita.getHoraCita())) {
+                        throw new SQLException("El médico no está disponible en esa fecha y hora");
+                    }
+                }
+            }
+        }
+        
+        int filasActualizadas = ejecutarActualizacion(SQL_ACTUALIZAR,
+            cita.getPacienteId(),
+            cita.getMedicoId() > 0 ? cita.getMedicoId() : null,
+            convertirADate(cita.getFechaCita()),
+            convertirATime(cita.getHoraCita()),
+            cita.getEspecialidad(),
+            cita.getMotivoCita(),
+            cita.getObservaciones(),
+            cita.getEstadoCita(),
+            cita.getId()
+        );
+        
+        return filasActualizadas > 0;
+    }
+    
+    /**
+     * Elimina una cita médica por su ID
+     * @param id ID de la cita médica a eliminar
+     * @return true si se eliminó correctamente
+     * @throws SQLException si hay error en la operación
+     */
+    @Override
+    public boolean eliminar(int id) throws SQLException {
+        if (id <= 0) {
+            throw new IllegalArgumentException("ID de cita médica inválido");
+        }
+        
+        int filasEliminadas = ejecutarActualizacion(SQL_ELIMINAR, id);
+        return filasEliminadas > 0;
+    }
+    
+    /**
+     * Busca una cita médica por su ID
+     * @param id ID de la cita médica
+     * @return Cita médica encontrada o null si no existe
+     * @throws SQLException si hay error en la operación
+     */
+    @Override
+    public CitaMedica buscarPorId(int id) throws SQLException {
+        if (id <= 0) {
+            throw new IllegalArgumentException("ID de cita médica inválido");
+        }
+        
+        return ejecutarConsultaUnica(SQL_BUSCAR_POR_ID, id);
+    }
+    
+    /**
+     * Obtiene todas las citas médicas
+     * @return Lista de todas las citas médicas
+     * @throws SQLException si hay error en la operación
+     */
+    @Override
+    public List<CitaMedica> obtenerTodos() throws SQLException {
+        return ejecutarConsulta(SQL_OBTENER_TODOS);
+    }
+    
+    /**
+     * Obtiene todas las citas de un paciente
+     * @param pacienteId ID del paciente
+     * @return Lista de citas del paciente
+     * @throws SQLException si hay error en la operación
+     */
+    public List<CitaMedica> obtenerPorPaciente(int pacienteId) throws SQLException {
+        if (pacienteId <= 0) {
+            throw new IllegalArgumentException("ID de paciente inválido");
+        }
+        
+        return ejecutarConsulta(SQL_BUSCAR_POR_PACIENTE, pacienteId);
+    }
+    
+    /**
+     * Obtiene todas las citas de un médico
+     * @param medicoId ID del médico
+     * @return Lista de citas del médico
+     * @throws SQLException si hay error en la operación
+     */
+    public List<CitaMedica> obtenerPorMedico(int medicoId) throws SQLException {
+        if (medicoId <= 0) {
+            throw new IllegalArgumentException("ID de médico inválido");
+        }
+        
+        return ejecutarConsulta(SQL_BUSCAR_POR_MEDICO, medicoId);
+    }
+    
+    /**
+     * Obtiene citas de una fecha específica
+     * @param fecha Fecha a buscar
+     * @return Lista de citas de esa fecha
+     * @throws SQLException si hay error en la operación
+     */
+    public List<CitaMedica> obtenerPorFecha(LocalDate fecha) throws SQLException {
+        if (fecha == null) {
+            throw new IllegalArgumentException("Fecha no puede ser nula");
+        }
+        
+        return ejecutarConsulta(SQL_BUSCAR_POR_FECHA, convertirADate(fecha));
+    }
+    
+    /**
+     * Obtiene citas por especialidad
+     * @param especialidad Especialidad a buscar
+     * @return Lista de citas de la especialidad
+     * @throws SQLException si hay error en la operación
+     */
+    public List<CitaMedica> obtenerPorEspecialidad(Especialidad especialidad) throws SQLException {
+        if (especialidad == null) {
+            throw new IllegalArgumentException("Especialidad no puede ser nula");
+        }
+        
+        return ejecutarConsulta(SQL_BUSCAR_POR_ESPECIALIDAD, especialidad.name());
+    }
+    
+    /**
+     * Obtiene citas por estado
+     * @param estado Estado de la cita a buscar
+     * @return Lista de citas con ese estado
+     * @throws SQLException si hay error en la operación
+     */
+    public List<CitaMedica> obtenerPorEstado(String estado) throws SQLException {
+        if (estado == null || estado.trim().isEmpty()) {
+            throw new IllegalArgumentException("Estado no puede estar vacío");
+        }
+        
+        return ejecutarConsulta(SQL_BUSCAR_POR_ESTADO, estado.trim().toUpperCase());
+    }
+    
+    /**
+     * Obtiene citas programadas para hoy
+     * @return Lista de citas programadas para hoy
+     * @throws SQLException si hay error en la operación
+     */
+    public List<CitaMedica> obtenerProgramadasHoy() throws SQLException {
+        return ejecutarConsulta(SQL_BUSCAR_PROGRAMADAS_HOY);
+    }
+    
+    /**
+     * Obtiene las próximas citas programadas
+     * @param limite Número máximo de citas a obtener
+     * @return Lista de próximas citas
+     * @throws SQLException si hay error en la operación
+     */
+    public List<CitaMedica> obtenerProximas(int limite) throws SQLException {
+        if (limite <= 0) {
+            limite = 10; // Límite por defecto
+        }
+        
+        return ejecutarConsulta(SQL_BUSCAR_PROXIMAS, limite);
+    }
+    
+    /**
+     * Verifica la disponibilidad de un médico en una fecha y hora específica
+     * @param medicoId ID del médico
+     * @param fecha Fecha a verificar
+     * @param hora Hora a verificar
+     * @return true si el médico está disponible
+     * @throws SQLException si hay error en la operación
+     */
+    public boolean verificarDisponibilidadMedico(int medicoId, LocalDate fecha, 
+                                               java.time.LocalTime hora) throws SQLException {
+        if (medicoId <= 0 || fecha == null || hora == null) {
+            throw new IllegalArgumentException("Parámetros de verificación inválidos");
+        }
+        
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = getConnection();
+            stmt = conn.prepareStatement(SQL_VERIFICAR_DISPONIBILIDAD);
+            stmt.setInt(1, medicoId);
+            stmt.setDate(2, convertirADate(fecha));
+            stmt.setTime(3, convertirATime(hora));
+            
+            rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                int citasExistentes = rs.getInt(1);
+                return citasExistentes == 0;
+            }
+            
+            return true;
+            
+        } finally {
+            cerrarRecursos(rs, stmt, conn);
+        }
+    }
+    
+    /**
+     * Actualiza el estado de una cita
+     * @param citaId ID de la cita
+     * @param nuevoEstado Nuevo estado de la cita
+     * @return true si se actualizó correctamente
+     * @throws SQLException si hay error en la operación
+     */
+    public boolean actualizarEstado(int citaId, String nuevoEstado) throws SQLException {
+        if (citaId <= 0) {
+            throw new IllegalArgumentException("ID de cita inválido");
+        }
+        
+        if (nuevoEstado == null || nuevoEstado.trim().isEmpty()) {
+            throw new IllegalArgumentException("Estado no puede estar vacío");
+        }
+        
+        int filasActualizadas = ejecutarActualizacion(SQL_ACTUALIZAR_ESTADO,
+            nuevoEstado.trim().toUpperCase(), citaId);
+        
+        return filasActualizadas > 0;
+    }
+    
+    /**
+     * Cuenta citas por estado
+     * @return Lista de conteos por estado
+     * @throws SQLException si hay error en la operación
+     */
+    public List<ConteoEstado> contarPorEstado() throws SQLException {
+        String sql = "SELECT estado_cita, COUNT(*) as cantidad " +
+                    "FROM " + TABLA + " " +
+                    "GROUP BY estado_cita";
+        
+        List<ConteoEstado> conteos = new ArrayList<>();
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = getConnection();
+            stmt = conn.prepareStatement(sql);
+            rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                String estado = rs.getString("estado_cita");
+                int cantidad = rs.getInt("cantidad");
+                ConteoEstado conteo = new ConteoEstado(estado, cantidad);
+                conteos.add(conteo);
+            }
+            
+        } finally {
+            cerrarRecursos(rs, stmt, conn);
+        }
+        
+        return conteos;
+    }
+    
+    /**
+     * Mapea un ResultSet a un objeto CitaMedica
+     * @param rs ResultSet con los datos
+     * @return CitaMedica mapeado
+     * @throws SQLException si hay error en el mapeo
+     */
+    @Override
+    protected CitaMedica mapearResultSet(ResultSet rs) throws SQLException {
+        CitaMedica cita = new CitaMedica();
+        
+        cita.setId(rs.getInt("id"));
+        cita.setPacienteId(rs.getInt("paciente_id"));
+        
+        int medicoId = rs.getInt("medico_id");
+        if (!rs.wasNull()) {
+            cita.setMedicoId(medicoId);
+        }
+        
+        // Conversión de fechas y horas
+        Date fechaCita = rs.getDate("fecha_cita");
+        if (fechaCita != null) {
+            cita.setFechaCita(fechaCita.toLocalDate());
+        }
+        
+        Time horaCita = rs.getTime("hora_cita");
+        if (horaCita != null) {
+            cita.setHoraCita(horaCita.toLocalTime());
+        }
+        
+        String especialidad = rs.getString("especialidad");
+        if (especialidad != null) {
+            cita.setEspecialidad(especialidad); // Usar método String
+        }
+        
+        cita.setMotivoCita(rs.getString("motivo_cita"));
+        cita.setObservaciones(rs.getString("observaciones"));
+        String estadoCita = rs.getString("estado_cita");
+        if (estadoCita != null) {
+            cita.setEstadoCita(estadoCita); // Usar método String que convertirá a enum
+        }
+        
+        Timestamp fechaCreacion = rs.getTimestamp("fecha_creacion");
+        if (fechaCreacion != null) {
+            cita.setFechaCreacion(fechaCreacion.toLocalDateTime());
+        }
+        
+        cita.setUsuarioCreacionId(rs.getInt("usuario_creacion_id"));
+        
+        // Campos adicionales de los JOINs (si están disponibles)
+        try {
+            cita.setPacienteNombre(rs.getString("paciente_nombre"));
+            cita.setNumeroExpediente(rs.getString("numero_expediente"));
+            cita.setMedicoNombre(rs.getString("medico_nombre"));
+            cita.setUsuarioCreacionNombre(rs.getString("usuario_creacion_nombre"));
+        } catch (SQLException e) {
+            // Los campos no están disponibles en esta consulta
+        }
+        
+        return cita;
+    }
+    
+    /**
+     * Valida los datos de cita médica antes de insertarlos/actualizarlos
+     * @param cita Cita médica a validar
+     * @throws IllegalArgumentException si los datos no son válidos
+     */
+    private void validarCitaMedica(CitaMedica cita) {
+        if (cita == null) {
+            throw new IllegalArgumentException("Cita médica no puede ser nula");
+        }
+        
+        if (cita.getPacienteId() <= 0) {
+            throw new IllegalArgumentException("ID de paciente es obligatorio");
+        }
+        
+        if (cita.getFechaCita() == null) {
+            throw new IllegalArgumentException("Fecha de cita es obligatoria");
+        }
+        
+        if (cita.getFechaCita().isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException("La fecha de cita no puede ser en el pasado");
+        }
+        
+        if (cita.getHoraCita() == null) {
+            throw new IllegalArgumentException("Hora de cita es obligatoria");
+        }
+        
+        if (cita.getEspecialidad() == null) {
+            throw new IllegalArgumentException("Especialidad es obligatoria");
+        }
+        
+        if (!ValidationUtils.validarTexto(cita.getMotivoCita(), 5, 200)) {
+            throw new IllegalArgumentException("Motivo de cita debe tener entre 5 y 200 caracteres");
+        }
+        
+        if (cita.getObservaciones() != null && !cita.getObservaciones().isEmpty()) {
+            if (!ValidationUtils.validarTexto(cita.getObservaciones(), 5, 500)) {
+                throw new IllegalArgumentException("Observaciones deben tener entre 5 y 500 caracteres");
+            }
+        }
+        
+        if (cita.getEstadoCita() == null || cita.getEstadoCita().name().trim().isEmpty()) {
+            cita.setEstadoCita("PROGRAMADA");
+        }
+        
+        if (cita.getFechaCreacion() == null) {
+            cita.setFechaCreacion(LocalDateTime.now());
+        }
+        
+        if (cita.getUsuarioCreacionId() <= 0) {
+            throw new IllegalArgumentException("ID de usuario creación es obligatorio");
+        }
+    }
+    
+    /**
+     * Contar citas de hoy
+     */
+    public int contarCitasHoy() {
+        String sql = "SELECT COUNT(*) FROM " + TABLA + " WHERE DATE(fecha_cita) = CURDATE()";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+            return 0;
+        } catch (SQLException e) {
+            throw new RuntimeException("Error al contar citas de hoy", e);
+        }
+    }
+
+    /**
+     * Contar citas de la semana
+     */
+    public int contarCitasSemana() {
+        String sql = "SELECT COUNT(*) FROM " + TABLA + 
+                    " WHERE YEARWEEK(fecha_cita, 1) = YEARWEEK(CURDATE(), 1)";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+            return 0;
+        } catch (SQLException e) {
+            throw new RuntimeException("Error al contar citas de la semana", e);
+        }
+    }
+
+    /**
+     * Clase interna para conteo de citas por estado
+     */
+    public static class ConteoEstado {
+        public String estado;
+        public int cantidad;
+        
+        public ConteoEstado(String estado, int cantidad) {
+            this.estado = estado;
+            this.cantidad = cantidad;
+        }
+        
+        public String getEstado() { return estado; }
+        public int getConteo() { return cantidad; }
+        public int getCantidad() { return cantidad; }
+        
+        @Override
+        public String toString() {
+            return String.format("Estado: %s, Cantidad: %d", estado, cantidad);
+        }
+    }
+}

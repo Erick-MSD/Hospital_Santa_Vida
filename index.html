@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - Hospital Santa Vida</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f3f0;
+            min-height: 100vh;
+            width: 1920px;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 40px;
+            border-bottom: 3px solid #e8e5e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .logo-container {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: conic-gradient(from 0deg, 
+                #e53e3e 0deg 60deg,
+                #fd7f28 60deg 120deg, 
+                #fbbf24 120deg 180deg,
+                #68d391 180deg 240deg,
+                #38b2ac 240deg 300deg,
+                #205493 300deg 360deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo-inner {
+            width: 50px;
+            height: 50px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .hospital-info h1 {
+            color: #205493;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .hospital-subtitle {
+            color: #68727e;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #68d391, #38b2ac);
+            border-radius: 25px;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            background: white;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        .quick-access {
+            background: #205493;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .quick-access:hover {
+            background: #38b2ac;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(56, 178, 172, 0.4);
+        }
+
+        .logout-btn {
+            background: linear-gradient(135deg, #e53e3e, #c53030);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(229, 62, 62, 0.4);
+        }
+
+        .main-content {
+            padding: 30px 40px;
+        }
+
+        .page-title {
+            color: #205493;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 2px solid #e8e5e0;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-number {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .stat-card:nth-child(1) .stat-number { color: #205493; }
+        .stat-card:nth-child(2) .stat-number { color: #fd7f28; }
+        .stat-card:nth-child(3) .stat-number { color: #38b2ac; }
+        .stat-card:nth-child(4) .stat-number { color: #68d391; }
+
+        .stat-label {
+            color: #68727e;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .stat-description {
+            color: #a0aec0;
+            font-size: 14px;
+        }
+
+        .main-panel {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+        }
+
+        .patients-table-container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 2px solid #e8e5e0;
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .table-title {
+            color: #205493;
+            font-size: 20px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .update-btn {
+            background: linear-gradient(135deg, #68d391, #38b2ac);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .update-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(104, 211, 145, 0.4);
+        }
+
+        .patients-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .patients-table th {
+            background: #fafaf9;
+            color: #205493;
+            font-weight: 600;
+            font-size: 14px;
+            padding: 15px 12px;
+            text-align: left;
+            border-bottom: 2px solid #e8e5e0;
+        }
+
+        .patients-table td {
+            padding: 15px 12px;
+            border-bottom: 1px solid #e8e5e0;
+            font-size: 14px;
+            color: #2d3748;
+        }
+
+        .patients-table tr:hover {
+            background: rgba(56, 178, 172, 0.05);
+        }
+
+        .level-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .level-rojo { background: #fed7d7; color: #c53030; }
+        .level-naranja { background: #fef5e7; color: #c05621; }
+        .level-amarillo { background: #fefcbf; color: #975a16; }
+        .level-verde { background: #f0fff4; color: #22543d; }
+        .level-azul { background: #e6fffa; color: #234e52; }
+
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .status-pendiente { background: #fef5e7; color: #c05621; }
+        .status-proceso { background: #e6fffa; color: #234e52; }
+        .status-completado { background: #f0fff4; color: #22543d; }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .info-card {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 2px solid #e8e5e0;
+        }
+
+        .card-title {
+            color: #205493;
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .system-info {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+        }
+
+        .info-label {
+            color: #68727e;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .info-value {
+            color: #205493;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .info-value.connected { color: #38b2ac; }
+        .info-value.admin { color: #e53e3e; }
+
+        .priority-codes {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .priority-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: #fafaf9;
+            border-radius: 12px;
+            border: 1px solid #e8e5e0;
+        }
+
+        .priority-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .priority-dot.rojo { background: #e53e3e; }
+        .priority-dot.naranja { background: #fd7f28; }
+        .priority-dot.amarillo { background: #fbbf24; }
+        .priority-dot.verde { background: #68d391; }
+        .priority-dot.azul { background: #38b2ac; }
+
+        .priority-details {
+            flex: 1;
+        }
+
+        .priority-name {
+            color: #2d3748;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .priority-description {
+            color: #68727e;
+            font-size: 12px;
+        }
+
+        .no-patients {
+            text-align: center;
+            padding: 40px;
+            color: #68727e;
+            font-size: 16px;
+        }
+
+        .no-patients-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo-header">
+            <div class="logo-container">
+                <div class="logo-inner">⚕️</div>
+            </div>
+            <div class="hospital-info">
+                <h1>HOSPITAL SANTA VIDA</h1>
+                <p class="hospital-subtitle">Sistema de Urgencias Digital - Estado de Pacientes en Tiempo Real</p>
+            </div>
+        </div>
+        
+        <div class="header-actions">
+            <div class="status-indicator">
+                <div class="status-dot"></div>
+                EN LÍNEA
+            </div>
+            <a href="#" class="quick-access">🔑 ACCESO RÁPIDO</a>
+            <button class="logout-btn">🚪 CERRAR SESIÓN</button>
+        </div>
+    </header>
+
+    <div class="main-content">
+        <h2 class="page-title">
+            📊 Sala de Espera - Estado de Pacientes
+        </h2>
+
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-number">5</div>
+                <div class="stat-label">👥 TOTAL PACIENTES</div>
+                <div class="stat-description">en el sistema hoy</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">1</div>
+                <div class="stat-label">🩺 ESPERANDO TRIAGE</div>
+                <div class="stat-description">pendientes de evaluación</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">1</div>
+                <div class="stat-label">👨‍⚕️ ESPERANDO MÉDICO</div>
+                <div class="stat-description">listos para consulta</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">8</div>
+                <div class="stat-label">✅ COMPLETADOS HOY</div>
+                <div class="stat-description">atenciones finalizadas</div>
+            </div>
+        </div>
+
+        <div class="main-panel">
+            <div class="patients-table-container">
+                <div class="table-header">
+                    <h3 class="table-title">
+                        📋 ESTADO ACTUAL DE PACIENTES EN EL SISTEMA
+                    </h3>
+                    <button class="update-btn" onclick="updateTable()">
+                        🔄 ACTUALIZAR AHORA
+                    </button>
+                </div>
+
+                <table class="patients-table">
+                    <thead>
+                        <tr>
+                            <th>📄 FOLIO</th>
+                            <th>👤 PACIENTE</th>
+                            <th>📅 EDAD</th>
+                            <th>🕐 LLEGADA</th>
+                            <th>🎯 NIVEL</th>
+                            <th>📍 ESTADO ACTUAL</th>
+                            <th>⏰ TIEMPO</th>
+                            <th>🏥 ESPECIALIDAD</th>
+                            <th>📝 OBSERVACIONES</th>
+                        </tr>
+                    </thead>
+                    <tbody id="patientsTableBody">
+                        <tr>
+                            <td>TRG-2024-0001</td>
+                            <td><strong>Juan Carlos Pérez</strong></td>
+                            <td>45</td>
+                            <td>08:30</td>
+                            <td><span class="level-badge level-amarillo">🟡 AMARILLO</span></td>
+                            <td><span class="status-badge status-proceso">EN CONSULTA</span></td>
+                            <td>2h 15m</td>
+                            <td>Cardiología</td>
+                            <td>Dolor torácico</td>
+                        </tr>
+                        <tr>
+                            <td>TRG-2024-0002</td>
+                            <td><strong>María Elena García</strong></td>
+                            <td>32</td>
+                            <td>09:15</td>
+                            <td><span class="level-badge level-verde">🟢 VERDE</span></td>
+                            <td><span class="status-badge status-pendiente">ESP. MÉDICO</span></td>
+                            <td>1h 30m</td>
+                            <td>Medicina Interna</td>
+                            <td>Revisión general</td>
+                        </tr>
+                        <tr>
+                            <td>TRG-2024-0003</td>
+                            <td><strong>Roberto Martínez</strong></td>
+                            <td>28</td>
+                            <td>10:00</td>
+                            <td><span class="level-badge level-naranja">🟠 NARANJA</span></td>
+                            <td><span class="status-badge status-proceso">EN TRIAGE</span></td>
+                            <td>45m</td>
+                            <td>Trauma</td>
+                            <td>Fractura posible</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="no-patients" style="display: none;" id="noPatientsMessage">
+                    <div class="no-patients-icon">🏥</div>
+                    <p>No hay pacientes en el sistema actualmente</p>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="info-card">
+                    <h3 class="card-title">ℹ️ INFORMACIÓN DEL SISTEMA</h3>
+                    <div class="system-info">
+                        <div class="info-item">
+                            <span class="info-label">🔄 Última actualización:</span>
+                            <span class="info-value" id="lastUpdate">17:01:41</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">👤 Usuario actual:</span>
+                            <span class="info-value admin">Administrador</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">🔗 Conexión BD:</span>
+                            <span class="info-value connected">✅ Conectado</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <h3 class="card-title">🎯 CÓDIGOS DE PRIORIDAD</h3>
+                    <div class="priority-codes">
+                        <div class="priority-item">
+                            <div class="priority-dot rojo"></div>
+                            <div class="priority-details">
+                                <div class="priority-name">🔴 ROJO</div>
+                                <div class="priority-description">CRÍTICO - Atención inmediata</div>
+                            </div>
+                        </div>
+                        <div class="priority-item">
+                            <div class="priority-dot naranja"></div>
+                            <div class="priority-details">
+                                <div class="priority-name">🟠 NARANJA</div>
+                                <div class="priority-description">MUY URGENTE - 10 minutos</div>
+                            </div>
+                        </div>
+                        <div class="priority-item">
+                            <div class="priority-dot amarillo"></div>
+                            <div class="priority-details">
+                                <div class="priority-name">🟡 AMARILLO</div>
+                                <div class="priority-description">URGENTE - 60 minutos</div>
+                            </div>
+                        </div>
+                        <div class="priority-item">
+                            <div class="priority-dot verde"></div>
+                            <div class="priority-details">
+                                <div class="priority-name">🟢 VERDE</div>
+                                <div class="priority-description">MENOS URGENTE - 120 min</div>
+                            </div>
+                        </div>
+                        <div class="priority-item">
+                            <div class="priority-dot azul"></div>
+                            <div class="priority-details">
+                                <div class="priority-name">🔵 AZUL</div>
+                                <div class="priority-description">NO URGENTE - Cita médica</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateTable() {
+            // Simular actualización de datos
+            const updateBtn = document.querySelector('.update-btn');
+            const originalText = updateBtn.innerHTML;
+            
+            updateBtn.innerHTML = '⟳ ACTUALIZANDO...';
+            updateBtn.disabled = true;
+            
+            setTimeout(() => {
+                // Actualizar timestamp
+                const now = new Date();
+                const timeString = now.toTimeString().split(' ')[0];
+                document.getElementById('lastUpdate').textContent = timeString;
+                
+                // Restaurar botón
+                updateBtn.innerHTML = originalText;
+                updateBtn.disabled = false;
+                
+                // Efecto visual en la tabla
+                const table = document.querySelector('.patients-table');
+                table.style.opacity = '0.7';
+                setTimeout(() => {
+                    table.style.opacity = '1';
+                }, 300);
+                
+            }, 1500);
+        }
+
+        // Auto-actualizar cada 30 segundos
+        setInterval(() => {
+            const now = new Date();
+            const timeString = now.toTimeString().split(' ')[0];
+            document.getElementById('lastUpdate').textContent = timeString;
+        }, 30000);
+
+        // Simular datos dinámicos
+        function simulateRealTimeUpdates() {
+            // Aquí se conectaría con el backend para obtener datos reales
+            console.log('Checking for real-time updates...');
+        }
+
+        // Actualizar datos cada minuto
+        setInterval(simulateRealTimeUpdates, 60000);
+    </script>
+</body>
+</html>

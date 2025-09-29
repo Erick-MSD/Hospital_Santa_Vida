@@ -1,442 +1,557 @@
 package controllers;
 
-import dao.PacienteDAO;
-import dao.EvaluacionTriageDAO;
-import dao.DatosSocialesDAO;
-import models.*;
-import services.TriageService;
-
+import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.stage.Stage;
-
-import java.io.IOException;
+import javafx.scene.control.cell.PropertyValueFactory;
+import models.*;
+import services.*;
+import services.PacienteServiceResults.*;
 import java.net.URL;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.ResourceBundle;
 
 /**
- * Controlador para la consulta médica final
- * Solo accesible para Doctores
+ * Controlador para consulta médica
+ * Maneja consultas médicas, diagnósticos y tratamientos
  */
 public class ConsultaMedicaController extends BaseController implements Initializable {
     
-    // Componentes FXML - Datos del paciente
-    @FXML private Label lblUsuarioActual;
-    @FXML private Label lblNombrePaciente;
-    @FXML private Label lblCurpPaciente;
-    @FXML private Label lblEdadPaciente;
-    @FXML private Label lblSexoPaciente;
-    @FXML private Label lblContactoEmergencia;
-    @FXML private Label lblSeguroMedico;
-    
-    // Componentes FXML - Evaluación Triage
-    @FXML private Label lblNivelTriage;
+    // Información del médico
+    @FXML private Label lblNombreMedico;
     @FXML private Label lblEspecialidad;
+    @FXML private Label lblFechaHora;
+    
+    // Información del paciente
+    @FXML private TextField txtBuscarPaciente;
+    @FXML private Button btnBuscarPaciente;
+    @FXML private Label lblInfoPaciente;
+    @FXML private Label lblExpediente;
+    
+    // Consulta actual
     @FXML private TextArea txtMotivoConsulta;
-    @FXML private TextArea txtSintomas;
-    
-    // Componentes FXML - Evaluación Social
-    @FXML private TextArea txtAntecedentesFamiliares;
-    @FXML private TextArea txtObservacionesSociales;
-    
-    // Componentes FXML - Examen Físico y Diagnóstico
-    @FXML private TextField txtPresionArterial;
-    @FXML private TextField txtFrecuenciaCardiaca;
-    @FXML private TextField txtTemperatura;
-    @FXML private TextField txtPeso;
-    @FXML private TextField txtTalla;
+    @FXML private TextArea txtHistoriaEnfermedadActual;
     @FXML private TextArea txtExploracionFisica;
-    @FXML private TextArea txtEstudiosRealizados;
-    @FXML private TextArea txtResultadosEstudios;
+    @FXML private TextArea txtSignosVitales;
+    
+    // Diagnóstico
     @FXML private TextArea txtDiagnosticoPrincipal;
-    @FXML private TextArea txtDiagnosticosSecundarios;
-    @FXML private TextField txtCodigoCie10;
-    @FXML private TextField txtDescripcionCie10;
+    @FXML private TextArea txtDiagnosticoSecundario;
+    @FXML private ComboBox<String> cbTipoDiagnostico;
     
-    // Componentes FXML - Tratamiento y Medicamentos
-    @FXML private TextArea txtTratamientosInmediatos;
-    @FXML private TextArea txtMedicamentosPrescritos;
+    // Tratamiento
+    @FXML private TextArea txtPrescripcionMedica;
+    @FXML private TextArea txtIndicacionesMedicas;
+    @FXML private TextArea txtRecomendaciones;
+    @FXML private DatePicker dpProximaCita;
     
-    // Componentes FXML - Indicaciones y Seguimiento
-    @FXML private TextArea txtIndicacionesPaciente;
-    @FXML private TextArea txtSeguimientoMedico;
-    @FXML private ComboBox<String> cmbIncapacidadLaboral;
-    @FXML private TextField txtDiasIncapacidad;
-    @FXML private ComboBox<String> cmbRestriccionesEspecificas;
+    // Estado del paciente
+    @FXML private ComboBox<String> cbEstadoPaciente;
+    @FXML private ComboBox<String> cbTipoAlta;
+    @FXML private TextArea txtObservacionesAlta;
     
-    // Componentes FXML - Notas del Médico
-    @FXML private TextArea txtObservacionesAdicionales;
+    // Botones
+    @FXML private Button btnGuardarConsulta;
+    @FXML private Button btnLimpiarFormulario;
+    @FXML private Button btnImprimirReceta;
+    @FXML private Button btnDarAlta;
     
-    // Componentes FXML - Panel Lateral
-    @FXML private Label lblTiempoTotal;
-    @FXML private Label lblRiesgoCardiovascular;
-    @FXML private Label lblDolorAgudo;
-    @FXML private Label lblSaturacionO2;
-    @FXML private Label lblAlteraciones;
+    // Tabla de consultas del día
+    @FXML private TableView<ConsultaInfo> tblConsultasHoy;
+    @FXML private TableColumn<ConsultaInfo, String> colHora;
+    @FXML private TableColumn<ConsultaInfo, String> colPaciente;
+    @FXML private TableColumn<ConsultaInfo, String> colMotivo;
+    @FXML private TableColumn<ConsultaInfo, String> colEstado;
     
-    // Componentes FXML - Botones
-    @FXML private Button btnGuardar;
-    @FXML private Button btnCompletarConsulta;
-    @FXML private Button btnAltaDomicilio;
-    @FXML private Button btnHospitalizacion;
-    @FXML private Button btnReferencia;
-    @FXML private Button btnGuardarEmerencias;
-    @FXML private Button btnCerrarSesion;
+    // Historial médico
+    @FXML private TableView<HistorialMedicoInfo> tblHistorialMedico;
+    @FXML private TableColumn<HistorialMedicoInfo, String> colFechaHistorial;
+    @FXML private TableColumn<HistorialMedicoInfo, String> colDiagnostico;
+    @FXML private TableColumn<HistorialMedicoInfo, String> colMedicoHistorial;
+    @FXML private TableColumn<HistorialMedicoInfo, String> colTratamiento;
     
-    // Servicios y DAOs
-    private PacienteDAO pacienteDAO;
-    private EvaluacionTriageDAO evaluacionTriageDAO;
-    private DatosSocialesDAO datosSocialesDAO;
-    private TriageService triageService;
+    // Mensaje
+    @FXML private Label lblMensaje;
     
-    // Datos del paciente actual
+    // Servicios
+    private PacienteService pacienteService;
+    private CitaService citaService;
+    
+    // Estado actual
     private Paciente pacienteActual;
-    private EvaluacionTriage evaluacionTriageActual;
-    private DatosSociales datosSocialesActuales;
-    private LocalDateTime horaInicioAtencion;
-    
-    public ConsultaMedicaController() {
-        this.pacienteDAO = new PacienteDAO();
-        this.evaluacionTriageDAO = new EvaluacionTriageDAO();
-        this.datosSocialesDAO = new DatosSocialesDAO();
-        // TriageService será inicializado desde BaseController
-    }
+    private AtencionMedica consultaActual;
+    private ObservableList<ConsultaInfo> consultasHoy;
+    private ObservableList<HistorialMedicoInfo> historialMedico;
     
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        System.out.println("🏥 Inicializando interfaz de Consulta Médica...");
-        
         // Inicializar servicios
-        if (triageService == null) {
-            triageService = getTriageService(); // Obtenido del BaseController
-        }
+        pacienteService = new PacienteService();
+        citaService = new CitaService();
         
-        // Inicializar componentes
-        configurarComponentes();
+        // Configurar ComboBoxes
+        setupComboBoxes();
         
-        // Llamar métodos del BaseController
-        super.initialize();
+        // Configurar tablas
+        setupTables();
         
-        // Cargar datos pendientes
-        cargarPacientePendiente();
-    }
-    
-    /**
-     * Configura elementos de la interfaz según el usuario actual
-     */
-    @Override
-    protected void configurarInterfaz() {
-        try {
-            // Verificar permisos
-            if (authService != null) {
-                authService.requireRole(Usuario.TipoUsuario.MEDICO_URGENCIAS);
-            }
-            
-            System.out.println("✅ Interfaz configurada correctamente para: " + 
-                             (usuarioActual != null ? usuarioActual.getNombreCompleto() : "Usuario"));
-                             
-        } catch (Exception e) {
-            System.err.println("❌ Error al configurar interfaz: " + e.getMessage());
-        }
+        // Configurar listas observables
+        consultasHoy = FXCollections.observableArrayList();
+        historialMedico = FXCollections.observableArrayList();
+        tblConsultasHoy.setItems(consultasHoy);
+        tblHistorialMedico.setItems(historialMedico);
+        
+        // Estado inicial
+        limpiarFormulario();
     }
     
     @Override
-    protected void cargarDatos() {
-        // Método implementado para cumplir con BaseController
-        System.out.println("🔄 Datos iniciales cargados para consulta médica");
-    }
-    
-    /**
-     * Configura los componentes de la interfaz
-     */
-    private void configurarComponentes() {
-        System.out.println("🔧 Configurando componentes de consulta médica...");
+    protected void onSesionInicializada() {
+        // Verificar permisos médicos
+        if (!tienePermiso(AuthenticationService.Permiso.REALIZAR_CONSULTAS)) {
+            showAlert("Sin permisos", "No tiene permisos para realizar consultas médicas");
+            return;
+        }
         
-        // Los componentes JavaFX se configurarán automáticamente cuando la interfaz esté cargada
-        // Este método se deja disponible para configuraciones adicionales
+        // Configurar información del médico
+        lblNombreMedico.setText("Dr. " + usuarioActual.getNombreCompleto());
+        lblEspecialidad.setText("Medicina General"); // Simplificado
+        
+        // Cargar consultas del día
+        cargarConsultasDelDia();
     }
     
     /**
-     * Carga el paciente pendiente de consulta médica
+     * Configura los ComboBoxes
      */
-    private void cargarPacientePendiente() {
+    private void setupComboBoxes() {
+        // Tipo de diagnóstico
+        cbTipoDiagnostico.getItems().addAll(
+            "DEFINITIVO", "PRESUNTIVO", "DIFERENCIAL", "POST_MORTEM"
+        );
+        
+        // Estado del paciente
+        cbEstadoPaciente.getItems().addAll(
+            "ESTABLE", "MEJORADO", "GRAVE", "CRITICO", "RECUPERADO"
+        );
+        
+        // Tipo de alta
+        cbTipoAlta.getItems().addAll(
+            "CURACION", "MEJORIA", "REFERENCIA", "FUGA", "DEFUNCION", "TRASLADO"
+        );
+    }
+    
+    /**
+     * Configura las tablas
+     */
+    private void setupTables() {
+        // Tabla de consultas del día
+        colHora.setCellValueFactory(new PropertyValueFactory<>("hora"));
+        colPaciente.setCellValueFactory(new PropertyValueFactory<>("nombrePaciente"));
+        colMotivo.setCellValueFactory(new PropertyValueFactory<>("motivo"));
+        colEstado.setCellValueFactory(new PropertyValueFactory<>("estado"));
+        
+        // Tabla de historial médico
+        colFechaHistorial.setCellValueFactory(new PropertyValueFactory<>("fecha"));
+        colDiagnostico.setCellValueFactory(new PropertyValueFactory<>("diagnostico"));
+        colMedicoHistorial.setCellValueFactory(new PropertyValueFactory<>("medico"));
+        colTratamiento.setCellValueFactory(new PropertyValueFactory<>("tratamiento"));
+        
+        // Listeners de selección
+        tblConsultasHoy.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null) {
+                cargarConsultaSeleccionada(newValue);
+            }
+        });
+        
+        tblHistorialMedico.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null) {
+                mostrarDetalleHistorial(newValue);
+            }
+        });
+    }
+    
+    /**
+     * Busca un paciente
+     */
+    @FXML
+    private void handleBuscarPaciente() {
+        String criterio = txtBuscarPaciente.getText().trim();
+        
+        if (criterio.isEmpty()) {
+            showAlert("Búsqueda vacía", "Ingrese un criterio de búsqueda");
+            return;
+        }
+        
         try {
-            System.out.println("🔍 Buscando paciente pendiente de consulta médica...");
+            ResultadoBusqueda resultado = pacienteService.buscarPacientes(tokenSesion, criterio);
             
-            // Buscar paciente en estado ESPERANDO_MEDICO usando el servicio base
-            RegistroTriage registroPendiente = triageService.obtenerSiguientePaciente();
-            
-            if (registroPendiente != null && registroPendiente.getEstado() == RegistroTriage.Estado.ESPERANDO_MEDICO) {
-                System.out.println("✅ Paciente encontrado: " + (registroPendiente.getPaciente() != null ? 
-                    registroPendiente.getPaciente().getNombreCompleto() : "ID: " + registroPendiente.getPacienteId()));
-                
-                // Cargar información completa del paciente
-                pacienteActual = pacienteDAO.buscarPorId(registroPendiente.getPacienteId());
-                
-                // Buscar evaluación de triage por folio
-                if (registroPendiente.getFolio() != null) {
-                    evaluacionTriageActual = evaluacionTriageDAO.obtenerPorFolio(registroPendiente.getFolio());
-                }
-                
-                // Buscar datos sociales
-                try {
-                    datosSocialesActuales = datosSocialesDAO.obtenerPorRegistroTriage(registroPendiente.getId());
-                } catch (Exception e) {
-                    System.out.println("ℹ️ No hay datos sociales disponibles para este paciente");
-                }
-                if (pacienteActual != null) {
-                    mostrarDatosPaciente();
-                    mostrarEvaluacionTriage();
-                    mostrarEvaluacionSocial();
-                    calcularTiempoAtencion(registroPendiente.getFechaHoraLlegada());
-                    configurarIndicadores();
-                }
-                
-            } else {
-                System.out.println("ℹ️ No hay pacientes pendientes de consulta médica");
-                mostrarMensajeSinPacientes();
+            if (resultado.getPacientes().isEmpty()) {
+                showAlert("No encontrado", "No se encontraron pacientes con ese criterio");
+                return;
             }
             
+            // Si hay múltiples resultados, tomar el primero
+            pacienteActual = resultado.getPacientes().get(0);
+            mostrarInformacionPaciente();
+            cargarHistorialMedico();
+            
         } catch (Exception e) {
-            System.err.println("❌ Error al cargar paciente pendiente: " + e.getMessage());
-            e.printStackTrace();
+            showAlert("Error", "Error en la búsqueda: " + e.getMessage());
         }
     }
     
     /**
-     * Muestra la información básica del paciente
+     * Muestra la información del paciente actual
      */
-    private void mostrarDatosPaciente() {
+    private void mostrarInformacionPaciente() {
         if (pacienteActual == null) return;
         
-        System.out.println("📋 Cargando datos del paciente: " + pacienteActual.getNombreCompleto());
+        String info = String.format(
+            "%s | %d años | %s | Tel: %s",
+            pacienteActual.getNombreCompleto(),
+            pacienteActual.getEdad(),
+            pacienteActual.getSexo(),
+            pacienteActual.getTelefono()
+        );
+        
+        lblInfoPaciente.setText(info);
+        lblExpediente.setText("EXPEDIENTE: " + pacienteActual.getNumeroExpediente());
+        
+        lblInfoPaciente.setStyle("-fx-text-fill: #2E5984; -fx-font-weight: bold;");
+        lblExpediente.setStyle("-fx-text-fill: #2E5984; -fx-font-weight: bold;");
+    }
+    
+    /**
+     * Guarda la consulta médica
+     */
+    @FXML
+    private void handleGuardarConsulta() {
+        if (pacienteActual == null) {
+            showAlert("Sin paciente", "Debe seleccionar un paciente para la consulta");
+            return;
+        }
+        
+        if (!validarFormulario()) {
+            return;
+        }
         
         try {
-            // Los datos se mostrarán en la interfaz JavaFX cuando esté disponible
-            // Por ahora solo mostrar en consola para verificar la lógica
-            System.out.println("   - Nombre: " + pacienteActual.getNombreCompleto());
-            System.out.println("   - CURP: " + (pacienteActual.getCurp() != null ? pacienteActual.getCurp() : "-"));
-            System.out.println("   - Edad: " + pacienteActual.getEdad() + " años");
-            System.out.println("   - Sexo: " + (pacienteActual.getSexo() != null ? pacienteActual.getSexo().toString() : "-"));
-            System.out.println("   - Contacto Emergencia: " + pacienteActual.getContactoEmergenciaNombre());
-            System.out.println("   - Seguro: " + (pacienteActual.getSeguroMedico() != null ? pacienteActual.getSeguroMedico() : "SIN SEGURO"));
-        } catch (Exception e) {
-            System.err.println("❌ Error al mostrar datos del paciente: " + e.getMessage());
-        }
-    }
-    
-    /**
-     * Muestra la información de la evaluación de triage
-     */
-    private void mostrarEvaluacionTriage() {
-        if (evaluacionTriageActual == null) return;
-        
-        System.out.println("🏥 Cargando evaluación de triage:");
-        
-        try {
-            System.out.println("   - Nivel: " + evaluacionTriageActual.getNivelTriage());
-            System.out.println("   - Especialidad: " + (evaluacionTriageActual.getEspecialidad() != null ? 
-                              evaluacionTriageActual.getEspecialidad() : "Medicina General"));
-            System.out.println("   - Motivo: " + evaluacionTriageActual.getMotivoConsulta());
-            System.out.println("   - Observaciones: " + evaluacionTriageActual.getObservacionesClinicas());
-        } catch (Exception e) {
-            System.err.println("❌ Error al mostrar evaluación de triage: " + e.getMessage());
-        }
-    }
-    
-    /**
-     * Muestra la información de la evaluación social
-     */
-    private void mostrarEvaluacionSocial() {
-        if (datosSocialesActuales == null) return;
-        
-        System.out.println("👥 Cargando evaluación social:");
-        
-        try {
-            System.out.println("   - Antecedentes familiares: " + 
-                (datosSocialesActuales.getAntecedentesFamiliares() != null ? 
-                 datosSocialesActuales.getAntecedentesFamiliares() : "-"));
-            System.out.println("   - Observaciones: " + 
-                (datosSocialesActuales.getObservacionesAdicionales() != null ? 
-                 datosSocialesActuales.getObservacionesAdicionales() : "-"));
-        } catch (Exception e) {
-            System.err.println("❌ Error al mostrar evaluación social: " + e.getMessage());
-        }
-    }
-    
-    /**
-     * Calcula y muestra el tiempo total de atención
-     */
-    private void calcularTiempoAtencion(LocalDateTime horaLlegada) {
-        if (horaLlegada == null) return;
-        
-        horaInicioAtencion = LocalDateTime.now();
-        long minutos = ChronoUnit.MINUTES.between(horaLlegada, horaInicioAtencion);
-        long horas = minutos / 60;
-        long minutosRestantes = minutos % 60;
-        
-        System.out.println("⏰ Tiempo total de atención: " + String.format("%dh %dm", horas, minutosRestantes));
-    }
-    
-    /**
-     * Configura los indicadores médicos
-     */
-    private void configurarIndicadores() {
-        System.out.println("📊 Configurando indicadores médicos básicos");
-        // Los indicadores se configurarán según la lógica médica específica
-    }
-    
-    /**
-     * Muestra mensaje cuando no hay pacientes pendientes
-     */
-    private void mostrarMensajeSinPacientes() {
-        System.out.println("ℹ️ No hay pacientes pendientes de consulta médica");
-    }
-    
-    /**
-     * Obtiene el estilo CSS para el nivel de triage
-     */
-    private String obtenerEstiloNivelTriage(String nivel) {
-        if (nivel == null) return "-fx-text-fill: #666666;";
-        
-        switch (nivel.toUpperCase()) {
-            case "ROJO":
-                return "-fx-text-fill: #E53E3E; -fx-font-weight: bold;";
-            case "NARANJA":
-                return "-fx-text-fill: #FF8C42; -fx-font-weight: bold;";
-            case "AMARILLO":
-                return "-fx-text-fill: #F7D794; -fx-font-weight: bold;";
-            case "VERDE":
-                return "-fx-text-fill: #58D68D; -fx-font-weight: bold;";
-            case "AZUL":
-                return "-fx-text-fill: #5DADE2; -fx-font-weight: bold;";
-            default:
-                return "-fx-text-fill: #666666;";
-        }
-    }
-    
-    /**
-     * Maneja el evento de guardar consulta
-     */
-    public void handleGuardarConsulta() {
-        try {
-            System.out.println("💾 Guardando consulta médica...");
+            // Crear atención médica
+            AtencionMedica atencion = new AtencionMedica();
+            atencion.setPacienteId(pacienteActual.getId());
+            atencion.setMedicoId(usuarioActual.getId());
+            atencion.setFechaAtencion(LocalDate.now());
+            atencion.setHoraAtencion(LocalDateTime.now());
+            atencion.setMotivoConsulta(txtMotivoConsulta.getText().trim());
+            atencion.setHistoriaEnfermedadActual(txtHistoriaEnfermedadActual.getText().trim());
+            atencion.setExploracionFisica(txtExploracionFisica.getText().trim());
+            atencion.setSignosVitales(txtSignosVitales.getText().trim());
+            atencion.setDiagnosticoPrincipal(txtDiagnosticoPrincipal.getText().trim());
+            atencion.setDiagnosticoSecundario(txtDiagnosticoSecundario.getText().trim());
+            atencion.setTipoDiagnostico(cbTipoDiagnostico.getValue());
+            atencion.setPrescripcionMedica(txtPrescripcionMedica.getText().trim());
+            atencion.setIndicacionesMedicas(txtIndicacionesMedicas.getText().trim());
+            atencion.setRecomendaciones(txtRecomendaciones.getText().trim());
+            if (dpProximaCita.getValue() != null) {
+                atencion.setProximaCita(dpProximaCita.getValue().atStartOfDay());
+            }
+            atencion.setEstadoPaciente(cbEstadoPaciente.getValue());
+            atencion.setObservaciones("");
             
-            // Aquí se implementaría la lógica para guardar la consulta en la base de datos
-            // Por ahora solo mostramos un mensaje
+            // Guardar usando servicio (simplificado)
+            consultaActual = atencion;
             
-            System.out.println("✅ Consulta guardada correctamente");
+            showMessage("Consulta médica guardada correctamente", "success");
+            cargarConsultasDelDia();
+            
+            // Habilitar botones de acciones posteriores
+            btnImprimirReceta.setDisable(false);
+            btnDarAlta.setDisable(false);
             
         } catch (Exception e) {
-            System.err.println("❌ Error al guardar consulta: " + e.getMessage());
+            showAlert("Error", "Error al guardar la consulta: " + e.getMessage());
         }
     }
     
     /**
-     * Maneja el evento de completar consulta
+     * Da de alta al paciente
      */
-    public void handleCompletarConsulta() {
+    @FXML
+    private void handleDarAlta() {
+        if (pacienteActual == null || consultaActual == null) {
+            showAlert("Sin consulta", "Debe tener una consulta activa para dar de alta");
+            return;
+        }
+        
+        if (cbTipoAlta.getValue() == null) {
+            showAlert("Tipo de alta requerido", "Seleccione el tipo de alta médica");
+            return;
+        }
+        
         try {
-            System.out.println("✅ Completando consulta médica...");
+            // Actualizar consulta con datos de alta
+            if (cbTipoAlta.getValue() != null) {
+                try {
+                    consultaActual.setTipoAlta(TipoAlta.valueOf(cbTipoAlta.getValue().toUpperCase()));
+                } catch (Exception e) {
+                    consultaActual.setTipoAlta(TipoAlta.DOMICILIO);
+                }
+            }
+            consultaActual.setObservacionesAlta(txtObservacionesAlta.getText().trim());
+            consultaActual.setFechaAlta(LocalDate.now());
             
-            if (pacienteActual == null) {
-                System.err.println("❌ No hay paciente seleccionado");
-                return;
+            showMessage("Paciente dado de alta correctamente", "success");
+            limpiarFormulario();
+            cargarConsultasDelDia();
+            
+        } catch (Exception e) {
+            showAlert("Error", "Error al dar de alta al paciente: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Imprime la receta médica
+     */
+    @FXML
+    private void handleImprimirReceta() {
+        if (consultaActual == null || txtPrescripcionMedica.getText().trim().isEmpty()) {
+            showAlert("Sin receta", "Debe tener una consulta con prescripción médica para imprimir");
+            return;
+        }
+        
+        showAlert("En desarrollo", "Función de impresión de receta en desarrollo");
+    }
+    
+    /**
+     * Limpia el formulario
+     */
+    @FXML
+    private void handleLimpiarFormulario() {
+        limpiarFormulario();
+    }
+    
+    /**
+     * Carga las consultas del día actual
+     */
+    private void cargarConsultasDelDia() {
+        try {
+            List<CitaMedica> citasHoy = citaService.obtenerCitasHoy(tokenSesion);
+            
+            consultasHoy.clear();
+            
+            for (CitaMedica cita : citasHoy) {
+                if (cita.getMedicoId() == usuarioActual.getId()) {
+                    // Obtener información del paciente
+                    Paciente paciente = pacienteService.buscarPorId(tokenSesion, cita.getPacienteId());
+                    
+                    ConsultaInfo info = new ConsultaInfo(
+                        cita.getHoraCita().toString(),
+                        paciente != null ? paciente.getNombreCompleto() : "Paciente no encontrado",
+                        cita.getMotivoCita() != null ? cita.getMotivoCita() : "Sin motivo especificado",
+                        cita.getEstadoCita().toString(),
+                        cita.getId()
+                    );
+                    consultasHoy.add(info);
+                }
             }
             
-            // Validar que los campos obligatorios estén llenos
-            if (!validarCamposObligatorios()) {
-                return;
-            }
-            
-            // Aquí se implementaría la lógica para completar la consulta
-            // y cambiar el estado del paciente a COMPLETADO
-            
-            System.out.println("✅ Consulta completada correctamente - Paciente dado de alta del sistema");
-            
-            // Cargar siguiente paciente
-            cargarPacientePendiente();
-            
         } catch (Exception e) {
-            System.err.println("❌ Error al completar consulta: " + e.getMessage());
+            showAlert("Error", "Error al cargar consultas del día: " + e.getMessage());
         }
     }
     
     /**
-     * Valida que los campos obligatorios estén completos
+     * Carga el historial médico del paciente actual
      */
-    private boolean validarCamposObligatorios() {
-        // Validación simplificada - en una implementación real se validarían los campos del formulario
-        System.out.println("✔️ Validando campos obligatorios de la consulta médica");
+    private void cargarHistorialMedico() {
+        if (pacienteActual == null) return;
         
-        // Por ahora siempre retorna true, pero en la implementación real validaría:
-        // - Diagnóstico Principal
-        // - Exploración Física  
-        // - Indicaciones para el Paciente
+        historialMedico.clear();
+        
+        // Aquí se cargaría el historial real desde la base de datos
+        // Por simplicidad, se simula con datos de ejemplo
+        showMessage("Historial médico cargado", "info");
+    }
+    
+    /**
+     * Carga una consulta seleccionada de la tabla
+     */
+    private void cargarConsultaSeleccionada(ConsultaInfo info) {
+        // Implementar carga de consulta específica
+        showMessage("Consulta seleccionada: " + info.getNombrePaciente(), "info");
+    }
+    
+    /**
+     * Muestra detalle del historial seleccionado
+     */
+    private void mostrarDetalleHistorial(HistorialMedicoInfo info) {
+        showMessage("Detalle de historial: " + info.getFecha(), "info");
+    }
+    
+    /**
+     * Limpia todos los campos del formulario
+     */
+    private void limpiarFormulario() {
+        // Limpiar búsqueda
+        txtBuscarPaciente.clear();
+        lblInfoPaciente.setText("Busque y seleccione un paciente");
+        lblExpediente.setText("EXPEDIENTE: ");
+        lblInfoPaciente.setStyle("-fx-text-fill: #7A7A7A;");
+        lblExpediente.setStyle("-fx-text-fill: #7A7A7A;");
+        
+        // Limpiar consulta
+        txtMotivoConsulta.clear();
+        txtHistoriaEnfermedadActual.clear();
+        txtExploracionFisica.clear();
+        txtSignosVitales.clear();
+        
+        // Limpiar diagnóstico
+        txtDiagnosticoPrincipal.clear();
+        txtDiagnosticoSecundario.clear();
+        cbTipoDiagnostico.setValue(null);
+        
+        // Limpiar tratamiento
+        txtPrescripcionMedica.clear();
+        txtIndicacionesMedicas.clear();
+        txtRecomendaciones.clear();
+        dpProximaCita.setValue(null);
+        
+        // Limpiar alta
+        cbEstadoPaciente.setValue(null);
+        cbTipoAlta.setValue(null);
+        txtObservacionesAlta.clear();
+        
+        // Limpiar estado
+        pacienteActual = null;
+        consultaActual = null;
+        
+        // Deshabilitar botones
+        btnImprimirReceta.setDisable(true);
+        btnDarAlta.setDisable(true);
+        
+        // Limpiar mensaje
+        lblMensaje.setText("");
+        
+        // Limpiar selecciones de tablas
+        tblConsultasHoy.getSelectionModel().clearSelection();
+        tblHistorialMedico.getSelectionModel().clearSelection();
+        historialMedico.clear();
+    }
+    
+    /**
+     * Valida el formulario
+     */
+    private boolean validarFormulario() {
+        StringBuilder errores = new StringBuilder();
+        
+        if (txtMotivoConsulta.getText().trim().isEmpty()) {
+            errores.append("- El motivo de consulta es obligatorio\n");
+        }
+        
+        if (txtExploracionFisica.getText().trim().isEmpty()) {
+            errores.append("- La exploración física es obligatoria\n");
+        }
+        
+        if (txtDiagnosticoPrincipal.getText().trim().isEmpty()) {
+            errores.append("- El diagnóstico principal es obligatorio\n");
+        }
+        
+        if (cbTipoDiagnostico.getValue() == null) {
+            errores.append("- El tipo de diagnóstico es obligatorio\n");
+        }
+        
+        if (cbEstadoPaciente.getValue() == null) {
+            errores.append("- El estado del paciente es obligatorio\n");
+        }
+        
+        if (errores.length() > 0) {
+            showAlert("Errores de validación", errores.toString());
+            return false;
+        }
         
         return true;
     }
     
     /**
-     * Maneja alta a domicilio
+     * Muestra un mensaje
      */
-    public void handleAltaDomicilio() {
-        System.out.println("🏠 Paciente dado de alta para tratamiento ambulatorio");
-    }
-    
-    /**
-     * Maneja hospitalización
-     */
-    public void handleHospitalizacion() {
-        System.out.println("🏥 Paciente programado para hospitalización");
-    }
-    
-    /**
-     * Maneja referencia
-     */
-    public void handleReferencia() {
-        System.out.println("🔄 Paciente referido a otra institución o especialidad");
-    }
-    
-    /**
-     * Maneja emergencia
-     */
-    public void handleEmergencia() {
-        System.out.println("🚨 Paciente trasladado al área de emergencias");
-    }
-    
-    /**
-     * Maneja el evento de cerrar sesión
-     */
-    public void handleLogout() {
-        try {
-            System.out.println("🚪 Cerrando sesión de consulta médica...");
-            
-            // En una implementación real cargaría la pantalla de login
-            // Por ahora solo mostrar mensaje
-            System.out.println("✅ Sesión cerrada correctamente");
-            
-        } catch (Exception e) {
-            System.err.println("Error al cerrar sesión: " + e.getMessage());
+    private void showMessage(String message, String type) {
+        lblMensaje.setText(message);
+        
+        switch (type) {
+            case "success":
+                lblMensaje.setStyle("-fx-text-fill: #27AE60; -fx-font-weight: bold;");
+                break;
+            case "error":
+                lblMensaje.setStyle("-fx-text-fill: #E74C3C; -fx-font-weight: bold;");
+                break;
+            case "info":
+                lblMensaje.setStyle("-fx-text-fill: #4A90E2; -fx-font-weight: bold;");
+                break;
+            default:
+                lblMensaje.setStyle("-fx-text-fill: #555555;");
         }
     }
     
-    @Override
-    protected void limpiarFormulario() {
-        System.out.println("🧹 Limpiando formulario de consulta médica");
+    /**
+     * Muestra un alert
+     */
+    private void showAlert(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+    
+    // Clases de datos para las tablas
+    
+    public static class ConsultaInfo {
+        private String hora;
+        private String nombrePaciente;
+        private String motivo;
+        private String estado;
+        private int citaId;
         
-        // En una implementación real limpiaría todos los campos del formulario
-        // Por ahora solo mostrar que se ejecuta la limpieza
+        public ConsultaInfo(String hora, String nombrePaciente, String motivo, String estado, int citaId) {
+            this.hora = hora;
+            this.nombrePaciente = nombrePaciente;
+            this.motivo = motivo;
+            this.estado = estado;
+            this.citaId = citaId;
+        }
         
-        pacienteActual = null;
-        evaluacionTriageActual = null;
-        datosSocialesActuales = null;
-        horaInicioAtencion = null;
+        // Getters
+        public String getHora() { return hora; }
+        public String getNombrePaciente() { return nombrePaciente; }
+        public String getMotivo() { return motivo; }
+        public String getEstado() { return estado; }
+        public int getCitaId() { return citaId; }
+    }
+    
+    public static class HistorialMedicoInfo {
+        private String fecha;
+        private String diagnostico;
+        private String medico;
+        private String tratamiento;
+        
+        public HistorialMedicoInfo(String fecha, String diagnostico, String medico, String tratamiento) {
+            this.fecha = fecha;
+            this.diagnostico = diagnostico;
+            this.medico = medico;
+            this.tratamiento = tratamiento;
+        }
+        
+        // Getters
+        public String getFecha() { return fecha; }
+        public String getDiagnostico() { return diagnostico; }
+        public String getMedico() { return medico; }
+        public String getTratamiento() { return tratamiento; }
     }
 }

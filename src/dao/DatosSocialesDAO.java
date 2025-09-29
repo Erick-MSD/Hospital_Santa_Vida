@@ -1,11 +1,9 @@
 package dao;
 
 import models.DatosSociales;
-import models.RegistroTriage;
-import models.Usuario;
 import utils.DatabaseConnection;
 import java.sql.*;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,7 +11,7 @@ import java.util.List;
  * Data Access Object para la entidad DatosSociales
  * Maneja todas las operaciones CRUD con la tabla datos_sociales
  */
-public class DatosSocialesDAO {
+public class DatosSocialesDAO extends BaseDAO<DatosSociales> {
     
     private final DatabaseConnection dbConnection;
     
@@ -24,6 +22,7 @@ public class DatosSocialesDAO {
     /**
      * Inserta nuevos datos sociales en la base de datos
      */
+    @Override
     public boolean insertar(DatosSociales datos) throws SQLException {
         String sql = """
             INSERT INTO datos_sociales (
@@ -53,64 +52,9 @@ public class DatosSocialesDAO {
     }
     
     /**
-     * Obtiene datos sociales por ID de registro de triage
-     */
-    public DatosSociales obtenerPorRegistroTriage(int registroTriageId) throws SQLException {
-        String sql = """
-            SELECT ds.*, rt.paciente_id, rt.motivo_consulta, rt.clasificacion,
-                   u.nombre as trabajador_nombre, u.apellido_paterno as trabajador_apellido
-            FROM datos_sociales ds
-            LEFT JOIN registros_triage rt ON ds.registro_triage_id = rt.id
-            LEFT JOIN usuarios u ON ds.trabajador_social_id = u.id
-            WHERE ds.registro_triage_id = ?
-            """;
-        
-        try (Connection conn = dbConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
-            stmt.setInt(1, registroTriageId);
-            
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return mapearResultadoADatosSociales(rs);
-                }
-            }
-        }
-        
-        return null;
-    }
-    
-    /**
-     * Obtiene datos sociales por ID
-     */
-    public DatosSociales obtenerPorId(int id) throws SQLException {
-        String sql = """
-            SELECT ds.*, rt.paciente_id, rt.motivo_consulta, rt.clasificacion,
-                   u.nombre as trabajador_nombre, u.apellido_paterno as trabajador_apellido
-            FROM datos_sociales ds
-            LEFT JOIN registros_triage rt ON ds.registro_triage_id = rt.id
-            LEFT JOIN usuarios u ON ds.trabajador_social_id = u.id
-            WHERE ds.id = ?
-            """;
-        
-        try (Connection conn = dbConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
-            stmt.setInt(1, id);
-            
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return mapearResultadoADatosSociales(rs);
-                }
-            }
-        }
-        
-        return null;
-    }
-    
-    /**
      * Actualiza datos sociales existentes
      */
+    @Override
     public boolean actualizar(DatosSociales datos) throws SQLException {
         String sql = """
             UPDATE datos_sociales SET
@@ -140,9 +84,95 @@ public class DatosSocialesDAO {
     /**
      * Elimina datos sociales por ID
      */
+    @Override
     public boolean eliminar(int id) throws SQLException {
         String sql = "DELETE FROM datos_sociales WHERE id = ?";
         return dbConnection.executeUpdate(sql, id) > 0;
+    }
+    
+    /**
+     * Obtiene datos sociales por ID
+     */
+    @Override
+    public DatosSociales buscarPorId(int id) throws SQLException {
+        String sql = """
+            SELECT ds.*, rt.paciente_id, rt.motivo_consulta, rt.nivel_urgencia,
+                   u.nombre_completo as trabajador_nombre
+            FROM datos_sociales ds
+            LEFT JOIN registros_triage rt ON ds.registro_triage_id = rt.id
+            LEFT JOIN usuarios u ON ds.trabajador_social_id = u.id
+            WHERE ds.id = ?
+            """;
+        
+        try (Connection conn = dbConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, id);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapearResultSet(rs);
+                }
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Obtiene todos los datos sociales
+     */
+    @Override
+    public List<DatosSociales> obtenerTodos() throws SQLException {
+        String sql = """
+            SELECT ds.*, rt.paciente_id, rt.motivo_consulta, rt.nivel_urgencia,
+                   u.nombre_completo as trabajador_nombre
+            FROM datos_sociales ds
+            LEFT JOIN registros_triage rt ON ds.registro_triage_id = rt.id
+            LEFT JOIN usuarios u ON ds.trabajador_social_id = u.id
+            ORDER BY ds.fecha_hora_entrevista DESC
+            """;
+        
+        List<DatosSociales> lista = new ArrayList<>();
+        
+        try (Connection conn = dbConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            
+            while (rs.next()) {
+                lista.add(mapearResultSet(rs));
+            }
+        }
+        
+        return lista;
+    }
+    
+    /**
+     * Obtiene datos sociales por ID de registro de triage
+     */
+    public DatosSociales obtenerPorRegistroTriage(int registroTriageId) throws SQLException {
+        String sql = """
+            SELECT ds.*, rt.paciente_id, rt.motivo_consulta, rt.nivel_urgencia,
+                   u.nombre_completo as trabajador_nombre
+            FROM datos_sociales ds
+            LEFT JOIN registros_triage rt ON ds.registro_triage_id = rt.id
+            LEFT JOIN usuarios u ON ds.trabajador_social_id = u.id
+            WHERE ds.registro_triage_id = ?
+            """;
+        
+        try (Connection conn = dbConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, registroTriageId);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapearResultSet(rs);
+                }
+            }
+        }
+        
+        return null;
     }
     
     /**
@@ -150,8 +180,8 @@ public class DatosSocialesDAO {
      */
     public List<DatosSociales> obtenerPorPaciente(int pacienteId) throws SQLException {
         String sql = """
-            SELECT ds.*, rt.paciente_id, rt.motivo_consulta, rt.clasificacion,
-                   u.nombre as trabajador_nombre, u.apellido_paterno as trabajador_apellido
+            SELECT ds.*, rt.paciente_id, rt.motivo_consulta, rt.nivel_urgencia,
+                   u.nombre_completo as trabajador_nombre
             FROM datos_sociales ds
             INNER JOIN registros_triage rt ON ds.registro_triage_id = rt.id
             LEFT JOIN usuarios u ON ds.trabajador_social_id = u.id
@@ -168,7 +198,7 @@ public class DatosSocialesDAO {
             
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    lista.add(mapearResultadoADatosSociales(rs));
+                    lista.add(mapearResultSet(rs));
                 }
             }
         }
@@ -177,19 +207,16 @@ public class DatosSocialesDAO {
     }
     
     /**
-     * Obtiene datos sociales por trabajador social y rango de fechas
+     * Obtiene datos sociales por trabajador social
      */
-    public List<DatosSociales> obtenerPorTrabajadorSocialYFecha(int trabajadorSocialId, 
-                                                               LocalDateTime fechaInicio, 
-                                                               LocalDateTime fechaFin) throws SQLException {
+    public List<DatosSociales> obtenerPorTrabajadorSocial(int trabajadorSocialId) throws SQLException {
         String sql = """
-            SELECT ds.*, rt.paciente_id, rt.motivo_consulta, rt.clasificacion,
-                   u.nombre as trabajador_nombre, u.apellido_paterno as trabajador_apellido
+            SELECT ds.*, rt.paciente_id, rt.motivo_consulta, rt.nivel_urgencia,
+                   u.nombre_completo as trabajador_nombre
             FROM datos_sociales ds
             LEFT JOIN registros_triage rt ON ds.registro_triage_id = rt.id
             LEFT JOIN usuarios u ON ds.trabajador_social_id = u.id
-            WHERE ds.trabajador_social_id = ? 
-            AND ds.fecha_hora_entrevista BETWEEN ? AND ?
+            WHERE ds.trabajador_social_id = ?
             ORDER BY ds.fecha_hora_entrevista DESC
             """;
         
@@ -199,12 +226,10 @@ public class DatosSocialesDAO {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             stmt.setInt(1, trabajadorSocialId);
-            stmt.setTimestamp(2, Timestamp.valueOf(fechaInicio));
-            stmt.setTimestamp(3, Timestamp.valueOf(fechaFin));
             
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    lista.add(mapearResultadoADatosSociales(rs));
+                    lista.add(mapearResultSet(rs));
                 }
             }
         }
@@ -234,9 +259,38 @@ public class DatosSocialesDAO {
     }
     
     /**
+     * Contar evaluaciones por rango de fecha
+     */
+    public int contarEvaluaciones(LocalDate fechaInicio, LocalDate fechaFin) {
+        String sql = """
+            SELECT COUNT(*) 
+            FROM datos_sociales 
+            WHERE DATE(fecha_hora_entrevista) BETWEEN ? AND ?
+            """;
+        
+        try (Connection conn = dbConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setDate(1, Date.valueOf(fechaInicio));
+            stmt.setDate(2, Date.valueOf(fechaFin));
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error al contar evaluaciones sociales", e);
+        }
+        
+        return 0;
+    }
+    
+    /**
      * Mapea un ResultSet a un objeto DatosSociales
      */
-    private DatosSociales mapearResultadoADatosSociales(ResultSet rs) throws SQLException {
+    @Override
+    protected DatosSociales mapearResultSet(ResultSet rs) throws SQLException {
         DatosSociales datos = new DatosSociales();
         
         // Campos básicos
@@ -261,59 +315,36 @@ public class DatosSocialesDAO {
         datos.setSituacionSocioeconomica(rs.getString("situacion_socioeconomica"));
         datos.setObservacionesAdicionales(rs.getString("observaciones_adicionales"));
         
-        // Información del registro de triage (si está disponible)
-        try {
-            int pacienteId = rs.getInt("paciente_id");
-            if (pacienteId > 0) {
-                RegistroTriage registro = new RegistroTriage();
-                registro.setId(datos.getRegistroTriageId());
-                registro.setMotivoConsulta(rs.getString("motivo_consulta"));
-                // Nota: clasificacion se maneja internamente en RegistroTriage
-                datos.setRegistroTriage(registro);
-            }
-        } catch (SQLException e) {
-            // Los campos opcionales pueden no estar presentes, ignorar
-        }
-        
-        // Información del trabajador social (si está disponible)
-        try {
-            String trabajadorNombre = rs.getString("trabajador_nombre");
-            if (trabajadorNombre != null) {
-                Usuario trabajador = new Usuario();
-                trabajador.setId(datos.getTrabajadorSocialId());
-                trabajador.setNombreCompleto(trabajadorNombre + " " + rs.getString("trabajador_apellido"));
-                datos.setTrabajadorSocial(trabajador);
-            }
-        } catch (SQLException e) {
-            // Los campos opcionales pueden no estar presentes, ignorar
-        }
-        
         return datos;
     }
     
     /**
-     * Obtiene estadísticas de evaluaciones sociales por período
+     * Obtiene los últimos datos sociales registrados para un paciente
      */
-    public int contarEvaluacionesPorPeriodo(LocalDateTime fechaInicio, LocalDateTime fechaFin) throws SQLException {
+    public DatosSociales obtenerUltimoPorPaciente(int pacienteId) {
         String sql = """
-            SELECT COUNT(*) 
-            FROM datos_sociales 
-            WHERE fecha_hora_entrevista BETWEEN ? AND ?
+            SELECT ds.*, rt.id as registro_triage_id, rt.paciente_id, rt.medico_triage_id,
+                   u.nombre as usuario_nombre, u.apellido_paterno as usuario_apellido
+            FROM datos_sociales ds
+            INNER JOIN registro_triage rt ON ds.registro_triage_id = rt.id
+            LEFT JOIN usuarios u ON rt.medico_triage_id = u.id
+            WHERE rt.paciente_id = ?
+            ORDER BY ds.fecha_evaluacion DESC
+            LIMIT 1
             """;
         
-        try (Connection conn = dbConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement pstmt = dbConnection.getConnection().prepareStatement(sql)) {
+            pstmt.setInt(1, pacienteId);
             
-            stmt.setTimestamp(1, Timestamp.valueOf(fechaInicio));
-            stmt.setTimestamp(2, Timestamp.valueOf(fechaFin));
-            
-            try (ResultSet rs = stmt.executeQuery()) {
+            try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
-                    return rs.getInt(1);
+                    return mapearResultSet(rs);
                 }
             }
+        } catch (SQLException e) {
+            System.err.println("Error al obtener último dato social del paciente: " + e.getMessage());
         }
         
-        return 0;
+        return null;
     }
 }

@@ -3,21 +3,10 @@ package models;
 import java.time.LocalDateTime;
 
 /**
- * Modelo de datos para usuarios del sistema
- * Representa a todos los empleados del hospital que pueden acceder al sistema
+ * Clase modelo que representa a un usuario del sistema hospitalario
+ * Mapea directamente con la tabla 'usuarios' de la base de datos
  */
 public class Usuario {
-    
-    // Enumeración para tipos de usuario
-    public enum TipoUsuario {
-        ADMINISTRADOR,
-        MEDICO_TRIAGE,
-        ASISTENTE_MEDICA,
-        TRABAJADOR_SOCIAL,
-        MEDICO_URGENCIAS
-    }
-    
-    // Atributos principales
     private int id;
     private String username;
     private String email;
@@ -32,20 +21,22 @@ public class Usuario {
     private LocalDateTime ultimoAcceso;
     private Integer createdBy;
     
-    // Constructores
-    public Usuario() {
-        this.activo = true;
-        this.fechaCreacion = LocalDateTime.now();
-    }
+    // Constructor vacío
+    public Usuario() {}
     
-    public Usuario(String username, String email, String passwordHash, 
-                   TipoUsuario tipoUsuario, String nombreCompleto) {
-        this();
+    // Constructor completo
+    public Usuario(String username, String email, String passwordHash, TipoUsuario tipoUsuario, 
+                   String nombreCompleto, String cedulaProfesional, String especialidad, String telefono) {
         this.username = username;
         this.email = email;
         this.passwordHash = passwordHash;
         this.tipoUsuario = tipoUsuario;
         this.nombreCompleto = nombreCompleto;
+        this.cedulaProfesional = cedulaProfesional;
+        this.especialidad = especialidad;
+        this.telefono = telefono;
+        this.activo = true;
+        this.fechaCreacion = LocalDateTime.now();
     }
     
     // Getters y Setters
@@ -153,48 +144,32 @@ public class Usuario {
         this.createdBy = createdBy;
     }
     
+    // Métodos de compatibilidad para DAOs
+    public String getNombreUsuario() {
+        return this.username;
+    }
+    
+    public void setNombreUsuario(String nombreUsuario) {
+        this.username = nombreUsuario;
+    }
+    
     // Métodos de utilidad
+    public String getNombrePrimerApellido() {
+        String[] partes = nombreCompleto.split(" ");
+        return partes.length >= 2 ? partes[0] + " " + partes[1] : nombreCompleto;
+    }
+    
     public boolean esMedico() {
-        return tipoUsuario == TipoUsuario.MEDICO_TRIAGE || 
-               tipoUsuario == TipoUsuario.MEDICO_URGENCIAS;
+        return tipoUsuario == TipoUsuario.MEDICO_TRIAGE || tipoUsuario == TipoUsuario.MEDICO_URGENCIAS;
     }
     
-    public boolean puedeCrearUsuarios() {
-        return tipoUsuario == TipoUsuario.ADMINISTRADOR;
-    }
-    
-    public boolean puedeRealizarTriage() {
-        return tipoUsuario == TipoUsuario.MEDICO_TRIAGE;
-    }
-    
-    public boolean puedeRegistrarPacientes() {
-        return tipoUsuario == TipoUsuario.ASISTENTE_MEDICA;
-    }
-    
-    public boolean puedeRealizarEntrevistaSocial() {
-        return tipoUsuario == TipoUsuario.TRABAJADOR_SOCIAL;
-    }
-    
-    public boolean puedeAtenderUrgencias() {
-        return tipoUsuario == TipoUsuario.MEDICO_URGENCIAS;
-    }
-    
-    public boolean puedeVerEstadisticas() {
-        return tipoUsuario == TipoUsuario.ADMINISTRADOR || 
-               tipoUsuario == TipoUsuario.MEDICO_URGENCIAS;
+    public boolean puedeAccederPacientes() {
+        return tipoUsuario != TipoUsuario.ADMINISTRADOR;
     }
     
     @Override
     public String toString() {
-        return "Usuario{" +
-                "id=" + id +
-                ", username='" + username + '\'' +
-                ", email='" + email + '\'' +
-                ", tipoUsuario=" + tipoUsuario +
-                ", nombreCompleto='" + nombreCompleto + '\'' +
-                ", especialidad='" + especialidad + '\'' +
-                ", activo=" + activo +
-                '}';
+        return nombreCompleto + " (" + tipoUsuario.getNombre() + ")";
     }
     
     @Override

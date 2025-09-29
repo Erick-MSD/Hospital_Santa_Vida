@@ -1,501 +1,310 @@
 package controllers;
 
+import javafx.application.Platform;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.PasswordField;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
 import javafx.stage.Stage;
-import models.Usuario;
 import services.AuthenticationService;
+import models.Usuario;
+import models.TipoUsuario;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ResourceBundle;
 
 /**
- * Controlador para la pantalla de login
- * Maneja la autenticación de usuarios y redirección según el rol
+ * Controlador para la ventana de login del sistema
+ * Maneja la autenticación de usuarios y redirección a interfaces específicas
  */
-public class LoginController extends BaseController implements Initializable {
+public class LoginController implements Initializable {
     
-    @FXML
-    private TextField txtUsername;
+    @FXML private ImageView imgLogo;
+    @FXML private TextField txtUsername;
+    @FXML private PasswordField txtPassword;
+    @FXML private Button btnLogin;
+    @FXML private Label lblMessage;
     
-    @FXML
-    private PasswordField txtPassword;
-    
-    @FXML
-    private Button btnLogin;
-    
-    @FXML
-    private Label lblMessage;
-    
-    @FXML
-    private ImageView imgLogo;
+    private AuthenticationService authService;
     
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        configurarInterfaz();
-        cargarDatos();
+        this.authService = new AuthenticationService();
+        
+        // Configurar eventos
+        setupEventHandlers();
+        
+        // Configurar estilos dinámicos
+        setupDynamicStyles();
+        
+        // Limpiar mensajes al escribir
+        txtUsername.textProperty().addListener((observable, oldValue, newValue) -> clearMessage());
+        txtPassword.textProperty().addListener((observable, oldValue, newValue) -> clearMessage());
+        
+        // Enter para login
+        txtPassword.setOnAction(event -> handleLogin());
+        
+        // Focus inicial
+        Platform.runLater(() -> txtUsername.requestFocus());
     }
     
-    @Override
-    protected void configurarInterfaz() {
-        logAction("Configurando interfaz de login");
-        
-        // Limpiar mensaje inicial
-        if (lblMessage != null) {
-            lblMessage.setText("");
-        }
-    }
-
-    @Override
-    protected void cargarDatos() {
-        // Verificar si ya hay una sesión activa
-        if (isAuthenticated()) {
-            redirectToMainScreen();
-        }
-    }
-
-    @Override
-    protected void limpiarFormulario() {
-        if (txtUsername != null) txtUsername.clear();
-        if (txtPassword != null) txtPassword.clear();
-        if (lblMessage != null) lblMessage.setText("");
-    }
-
     /**
-     * Maneja el evento de login cuando se presiona el botón
+     * Maneja el evento de login
      */
     @FXML
-    public void handleLogin() {
-        logAction("Intento de login iniciado");
-        
-        if (txtUsername == null || txtPassword == null) {
-            mostrarMensaje("Error: Componentes de interfaz no inicializados", "#D32F2F");
-            return;
-        }
-        
+    private void handleLogin() {
         String username = txtUsername.getText().trim();
         String password = txtPassword.getText();
         
-        // Limpiar mensaje anterior
-        lblMessage.setText("");
-        
-        // Validar campos obligatorios
-        if (!validarCampos(username, password)) {
-            return;
-        }
-        
-        try {
-            // Deshabilitar botón durante autenticación
-            btnLogin.setDisable(true);
-            
-            // Validación simple de usuarios (temporal)
-            boolean loginSuccessful = validarUsuarioTemporal(username, password);
-            
-            if (loginSuccessful) {
-                logAction("Login exitoso para usuario: " + username);
-                mostrarMensaje("Login exitoso. Redirigiendo...", "#2E7D32");
-                
-                System.out.println("✅ Usuario autenticado: " + username);
-                
-                // Redireccionar según el rol del usuario
-                redirigirSegunRol();
-                
-            } else {
-                logAction("Login fallido para usuario: " + username);
-                mostrarMensaje("Usuario o contraseña incorrectos", "#D32F2F");
-            }
-            
-        } catch (Exception e) {
-            logAction("Error durante login: " + e.getMessage());
-            mostrarMensaje("Error de conexión. Intenta nuevamente.", "#D32F2F");
-            e.printStackTrace();
-        } finally {
-            // Rehabilitar botón
-            btnLogin.setDisable(false);
-        }
-    }
-    
-    /**
-     * Valida que los campos obligatorios estén llenos
-     */
-    private boolean validarCampos(String username, String password) {
+        // Validaciones básicas
         if (username.isEmpty()) {
-            mostrarMensaje("Por favor ingresa tu usuario o email", "#D32F2F");
+            showError("Por favor ingrese su usuario o email");
             txtUsername.requestFocus();
-            return false;
+            return;
         }
         
         if (password.isEmpty()) {
-            mostrarMensaje("Por favor ingresa tu contraseña", "#D32F2F");
+            showError("Por favor ingrese su contraseña");
             txtPassword.requestFocus();
-            return false;
-        }
-        
-        return true;
-    }
-    
-    /**
-     * Validación temporal de usuarios (para pruebas)
-     * Incluye mapeo de roles para cada usuario
-     */
-    private boolean validarUsuarioTemporal(String username, String password) {
-        // Usuarios de prueba con sus respectivos roles
-        // Usuarios de la base de datos (únicos usuarios válidos)
-        if (username.equals("admin") && password.equals("password123")) {
-            // Crear usuario administrador
-            Usuario adminUser = new Usuario();
-            adminUser.setNombreCompleto("Administrador General");
-            adminUser.setUsername("admin");
-            adminUser.setTipoUsuario(Usuario.TipoUsuario.ADMINISTRADOR);
-            authService.setUsuarioActual(adminUser);
-            return true;
-        } else if (username.equals("dr.garcia") && password.equals("password123")) {
-            // Crear médico de triage
-            Usuario doctorUser = new Usuario();
-            doctorUser.setNombreCompleto("Dr. García");
-            doctorUser.setUsername("dr.garcia");
-            doctorUser.setTipoUsuario(Usuario.TipoUsuario.MEDICO_TRIAGE);
-            authService.setUsuarioActual(doctorUser);
-            return true;
-        } else if (username.equals("asist.maria") && password.equals("password123")) {
-            // Crear asistente médica - encargada de registro de pacientes
-            Usuario assistantUser = new Usuario();
-            assistantUser.setNombreCompleto("Asistente María");
-            assistantUser.setUsername("asist.maria");
-            assistantUser.setTipoUsuario(Usuario.TipoUsuario.ASISTENTE_MEDICA);
-            authService.setUsuarioActual(assistantUser);
-            return true;
-        } else if (username.equals("social.ana") && password.equals("password123")) {
-            // Crear trabajador social
-            Usuario socialUser = new Usuario();
-            socialUser.setNombreCompleto("Trabajadora Social Ana");
-            socialUser.setUsername("social.ana");
-            socialUser.setTipoUsuario(Usuario.TipoUsuario.TRABAJADOR_SOCIAL);
-            authService.setUsuarioActual(socialUser);
-            return true;
-        } else if (username.equals("dr.martinez") && password.equals("password123")) {
-            // Crear médico de urgencias
-            Usuario urgenciesUser = new Usuario();
-            urgenciesUser.setNombreCompleto("Dr. Martínez");
-            urgenciesUser.setUsername("dr.martinez");
-            urgenciesUser.setTipoUsuario(Usuario.TipoUsuario.MEDICO_URGENCIAS);
-            authService.setUsuarioActual(urgenciesUser);
-            return true;
-        }
-        
-        return false;
-    }
-
-    /**
-     * Método para manejar el cierre de sesión desde otras pantallas
-     * Este método será llamado cuando se presione "Cerrar Sesión" en cualquier pantalla
-     */
-    public void handleLogout() {
-        try {
-            System.out.println("\ud83d\udeaa Cerrando sesi\u00f3n...");
-            
-            // Limpiar datos de sesión
-            if (authService != null) {
-                authService.logout();
-            }
-            
-            // Limpiar formulario de login
-            limpiarFormulario();
-            
-            System.out.println("\u2705 Sesi\u00f3n cerrada correctamente");
-            
-        } catch (Exception e) {
-            System.err.println("\u274c Error al cerrar sesi\u00f3n: " + e.getMessage());
-        }
-    }
-    
-    /**
-     * Método estático para abrir la pantalla de login desde otras ventanas
-     */
-    public static void abrirLogin(Stage currentStage) {
-        try {
-            FXMLLoader loader = new FXMLLoader(LoginController.class.getResource("/ui/login.fxml"));
-            Scene loginScene = new Scene(loader.load());
-            
-            currentStage.setTitle("Login - Hospital Santa Vida");
-            currentStage.setScene(loginScene);
-            currentStage.centerOnScreen();
-            
-            System.out.println("\u2705 Regresado al login correctamente");
-            
-        } catch (Exception e) {
-            System.err.println("\u274c Error al abrir login: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-    
-    /**
-     * Redirige al usuario según su rol después del login
-     */
-    private void redirigirSegunRol() {
-        Usuario usuario = authService.getUsuarioActual();
-        if (usuario == null) {
-            mostrarMensaje("Error: Usuario no autenticado", "#D32F2F");
             return;
         }
         
-        System.out.println("\n🚀 REDIRIGIENDO SEGÚN ROL DE USUARIO");
-        System.out.println("Usuario: " + usuario.getNombreCompleto());
-        System.out.println("Tipo: " + usuario.getTipoUsuario());
-        System.out.println("=========================================");
+        // Deshabilitar interfaz durante autenticación
+        setUIEnabled(false);
+        showInfo("Verificando credenciales...");
         
+        // Crear tarea de autenticación en hilo separado
+        Task<AuthenticationService.ResultadoLogin> loginTask = new Task<AuthenticationService.ResultadoLogin>() {
+            @Override
+            protected AuthenticationService.ResultadoLogin call() throws Exception {
+                return authService.iniciarSesion(username, password);
+            }
+        };
+        
+        // Manejar resultado de la tarea
+        loginTask.setOnSucceeded(event -> {
+            Platform.runLater(() -> {
+                AuthenticationService.ResultadoLogin resultado = loginTask.getValue();
+                
+                if (resultado.isExitoso()) {
+                    showSuccess("¡Bienvenido " + resultado.getUsuario().getNombreCompleto() + "!");
+                    
+                    // Pequeña pausa para mostrar mensaje de éxito
+                    Task<Void> redirectTask = new Task<Void>() {
+                        @Override
+                        protected Void call() throws Exception {
+                            Thread.sleep(1500);
+                            return null;
+                        }
+                    };
+                    
+                    redirectTask.setOnSucceeded(e -> Platform.runLater(() -> {
+                        redirectToMainInterface(resultado.getUsuario(), resultado.getTokenSesion());
+                    }));
+                    
+                    new Thread(redirectTask).start();
+                } else {
+                    showError(resultado.getMensaje());
+                    setUIEnabled(true);
+                    txtPassword.clear();
+                    txtUsername.requestFocus();
+                }
+            });
+        });
+        
+        loginTask.setOnFailed(event -> {
+            Platform.runLater(() -> {
+                showError("Error del sistema. Intente nuevamente.");
+                setUIEnabled(true);
+                txtPassword.clear();
+            });
+        });
+        
+        // Ejecutar tarea
+        new Thread(loginTask).start();
+    }
+    
+    /**
+     * Redirecciona a la interfaz principal según el tipo de usuario
+     */
+    private void redirectToMainInterface(Usuario usuario, String token) {
         try {
+            String fxmlPath;
+            String windowTitle;
+            
+            // Determinar interfaz según tipo de usuario
             switch (usuario.getTipoUsuario()) {
                 case ADMINISTRADOR:
-                    System.out.println("🔧 Iniciando Panel de Administración - Sala de Espera...");
-                    abrirPanelAdministracion();
+                    fxmlPath = "/ui/admin-sala-espera.fxml";
+                    windowTitle = "Hospital Santa Vida - Panel Administrativo";
                     break;
                     
                 case MEDICO_TRIAGE:
-                    System.out.println("🩺 Iniciando Evaluación de Triage...");
-                    // Abrir pantalla de triage
-                    abrirPantallaTriage();
+                    fxmlPath = "/ui/triage.fxml";
+                    windowTitle = "Hospital Santa Vida - Triage Médico";
+                    break;
+                    
+                case ENFERMERO_TRIAGE:
+                    fxmlPath = "/ui/triage.fxml";
+                    windowTitle = "Hospital Santa Vida - Triage Enfermería";
                     break;
                     
                 case ASISTENTE_MEDICA:
-                    System.out.println("👩‍⚕️ Iniciando Registro de Pacientes...");
-                    // Abrir registro de pacientes
-                    abrirRegistroPaciente();
+                    fxmlPath = "/ui/registro-paciente.fxml";
+                    windowTitle = "Hospital Santa Vida - Registro de Pacientes";
+                    break;
+                    
+                case RECEPCIONISTA:
+                    fxmlPath = "/ui/registro-paciente.fxml";
+                    windowTitle = "Hospital Santa Vida - Recepción";
                     break;
                     
                 case TRABAJADOR_SOCIAL:
-                    System.out.println("🤝 Iniciando Entrevista Social...");
-                    // Abrir pantalla de trabajo social
-                    abrirTrabajoSocial();
+                    fxmlPath = "/ui/trabajo-social.fxml";
+                    windowTitle = "Hospital Santa Vida - Trabajo Social";
                     break;
                     
                 case MEDICO_URGENCIAS:
-                    System.out.println("🚨 Iniciando Consulta Médica...");
-                    abrirConsultaMedica();
+                    fxmlPath = "/ui/consulta-medica.fxml";
+                    windowTitle = "Hospital Santa Vida - Consulta de Urgencias";
+                    break;
+                    
+                case MEDICO:
+                    fxmlPath = "/ui/consulta-medica.fxml";
+                    windowTitle = "Hospital Santa Vida - Consulta Médica";
+                    break;
+                    
+                case ENFERMERO:
+                    fxmlPath = "/ui/triage.fxml";
+                    windowTitle = "Hospital Santa Vida - Enfermería";
                     break;
                     
                 default:
-                    mostrarMensaje("Error: Tipo de usuario no reconocido", "#D32F2F");
-                    System.err.println("❌ Tipo de usuario no reconocido: " + usuario.getTipoUsuario());
+                    showError("Tipo de usuario no válido: " + usuario.getTipoUsuario());
+                    setUIEnabled(true);
                     return;
             }
             
-            // Cerrar ventana de login
-            System.out.println("✅ Login completado exitosamente");
+            // Cargar nueva interfaz
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
+            Parent root = loader.load();
             
-        } catch (Exception e) {
-            mostrarMensaje("Error al cargar la pantalla principal", "#D32F2F");
-            System.err.println("❌ Error al cargar pantalla: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-    
-    /**
-     * Abre la consola específica para un tipo de usuario
-     */
-    private void abrirConsola(String tipoUsuario) {
-        System.out.println("⏳ Funcionalidad de " + tipoUsuario + " en desarrollo...");
-        System.out.println("Por ahora se muestra información por consola");
-        System.out.println("Presione Enter para continuar...");
-        
-        try {
-            System.in.read();
-        } catch (Exception e) {
-            // Ignorar errores de lectura
-        }
-    }
-    
-    /**
-     * Abre la pantalla de registro de paciente para asistentes médicas
-     */
-    private void abrirRegistroPaciente() {
-        try {
-            System.out.println("👩‍⚕️ Abriendo interfaz de Registro de Paciente...");
-            
-            // Cargar la interfaz FXML de registro de paciente
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/ui/registro-paciente.fxml"));
-            Scene registroScene = new Scene(loader.load());
-            
-            // Obtener el controlador y configurarlo
-            RegistroPacienteController controller = loader.getController();
-            if (controller != null) {
-                controller.initialize();
+            // Obtener controlador e inicializar sesión
+            Object controller = loader.getController();
+            if (controller instanceof BaseController) {
+                ((BaseController) controller).inicializarSesion(usuario, token);
             }
             
-            // Crear nueva ventana
-            Stage registroStage = new Stage();
-            registroStage.setTitle("Hospital Santa Vida - Registro de Pacientes");
-            registroStage.setScene(registroScene);
-            registroStage.setResizable(true);
-            registroStage.show();
+            // Crear nueva escena
+            Scene scene = new Scene(root);
+            Stage stage = (Stage) btnLogin.getScene().getWindow();
             
-            System.out.println("✅ Interfaz de registro de pacientes abierta correctamente!");
+            stage.setTitle(windowTitle);
+            stage.setScene(scene);
+            stage.centerOnScreen();
             
-            // Cerrar ventana de login
-            Stage currentStage = (Stage) btnLogin.getScene().getWindow();
-            currentStage.close();
-            
-        } catch (Exception e) {
-            System.err.println("❌ Error al abrir interfaz de registro de paciente: " + e.getMessage());
-            e.printStackTrace();
-            mostrarMensaje("Error al cargar interfaz de registro de paciente", "#D32F2F");
-        }
-    }
-    
-    /**
-     * Muestra un mensaje en la interfaz
-     */
-    private void mostrarMensaje(String mensaje, String color) {
-        if (lblMessage != null) {
-            lblMessage.setText(mensaje);
-            lblMessage.setStyle("-fx-text-fill: " + color + ";");
-        }
-        // También mostrar en consola para depuración
-        System.out.println("💬 " + mensaje);
-    }
-    
-    /**
-     * Redireccionar a pantalla principal (implementación básica)
-     */
-    private void redirectToMainScreen() {
-        if (isAuthenticated()) {
-            Usuario usuario = authService.getUsuarioActual();
-            System.out.println("Usuario ya autenticado: " + usuario.getNombreCompleto());
-        }
-    }
-    
-    /**
-     * Abre la pantalla de triage y cierra la ventana de login
-     */
-    private void abrirPantallaTriage() {
-        try {
-            // Cargar el FXML de triage
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/ui/triage.fxml"));
-            Scene triageScene = new Scene(loader.load());
-            
-            // Crear nueva ventana para triage
-            Stage triageStage = new Stage();
-            triageStage.setTitle("Evaluación de Triage - Hospital Santa Vida");
-            triageStage.setScene(triageScene);
-            triageStage.setMaximized(true);
-            
-            // Mostrar nueva ventana
-            triageStage.show();
-            
-            // Cerrar ventana de login actual
-            Stage currentStage = (Stage) btnLogin.getScene().getWindow();
-            currentStage.close();
-            
-            System.out.println("✅ Pantalla de triage abierta correctamente!");
+            // Maximizar para interfaces principales
+            if (usuario.getTipoUsuario() == TipoUsuario.ADMINISTRADOR) {
+                stage.setMaximized(true);
+            }
             
         } catch (IOException e) {
-            System.err.println("❌ Error al abrir pantalla de triage: " + e.getMessage());
-            mostrarMensaje("Error al cargar la aplicación principal", "#D32F2F");
+            showError("Error al cargar la interfaz principal");
+            setUIEnabled(true);
+            System.err.println("Error al cargar FXML: " + e.getMessage());
             e.printStackTrace();
         }
     }
     
     /**
-     * Abre la pantalla de trabajo social y cierra la ventana de login
+     * Configura los manejadores de eventos
      */
-    private void abrirTrabajoSocial() {
-        try {
-            // Cargar el FXML de trabajo social
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/ui/trabajo-social.fxml"));
-            Scene trabajoSocialScene = new Scene(loader.load());
-            
-            // Crear nueva ventana para trabajo social
-            Stage trabajoSocialStage = new Stage();
-            trabajoSocialStage.setTitle("Evaluación Social - Hospital Santa Vida");
-            trabajoSocialStage.setScene(trabajoSocialScene);
-            trabajoSocialStage.setMaximized(true);
-            
-            // Mostrar nueva ventana
-            trabajoSocialStage.show();
-            
-            // Cerrar ventana de login actual
-            Stage currentStage = (Stage) btnLogin.getScene().getWindow();
-            currentStage.close();
-            
-            System.out.println("✅ Pantalla de trabajo social abierta correctamente!");
-            
-        } catch (IOException e) {
-            System.err.println("❌ Error al abrir pantalla de trabajo social: " + e.getMessage());
-            mostrarMensaje("Error al cargar la aplicación de trabajo social", "#D32F2F");
-            e.printStackTrace();
+    private void setupEventHandlers() {
+        // Hover effects para el botón
+        btnLogin.setOnMouseEntered(e -> {
+            btnLogin.setStyle(btnLogin.getStyle() + "; -fx-scale-x: 1.02; -fx-scale-y: 1.02;");
+        });
+        
+        btnLogin.setOnMouseExited(e -> {
+            btnLogin.setStyle(btnLogin.getStyle().replace("; -fx-scale-x: 1.02; -fx-scale-y: 1.02;", ""));
+        });
+    }
+    
+    /**
+     * Configura estilos dinámicos
+     */
+    private void setupDynamicStyles() {
+        // Estilos de focus para campos de texto
+        txtUsername.focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue) {
+                txtUsername.setStyle(txtUsername.getStyle() + "; -fx-border-color: #4A90E2; -fx-border-width: 2;");
+            } else {
+                txtUsername.setStyle(txtUsername.getStyle().replace("; -fx-border-color: #4A90E2; -fx-border-width: 2;", ""));
+            }
+        });
+        
+        txtPassword.focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue) {
+                txtPassword.setStyle(txtPassword.getStyle() + "; -fx-border-color: #4A90E2; -fx-border-width: 2;");
+            } else {
+                txtPassword.setStyle(txtPassword.getStyle().replace("; -fx-border-color: #4A90E2; -fx-border-width: 2;", ""));
+            }
+        });
+    }
+    
+    /**
+     * Habilita/deshabilita la interfaz de usuario
+     */
+    private void setUIEnabled(boolean enabled) {
+        txtUsername.setDisable(!enabled);
+        txtPassword.setDisable(!enabled);
+        btnLogin.setDisable(!enabled);
+        
+        if (!enabled) {
+            btnLogin.setText("Verificando...");
+            btnLogin.setStyle(btnLogin.getStyle().replace("#2E5984, #4A90E2", "#9E9E9E, #BDBDBD"));
+        } else {
+            btnLogin.setText("🔑 Acceder al Sistema");
+            btnLogin.setStyle(btnLogin.getStyle().replace("#9E9E9E, #BDBDBD", "#2E5984, #4A90E2"));
         }
     }
     
     /**
-     * Abre la pantalla de consulta médica para doctores y cierra la ventana de login
+     * Muestra mensaje de error
      */
-    private void abrirConsultaMedica() {
-        try {
-            System.out.println("🩺 Cargando interfaz de consulta médica...");
-            
-            // Cargar el FXML de consulta médica
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/ui/consulta-medica.fxml"));
-            Scene consultaMedicaScene = new Scene(loader.load());
-            
-            // Crear nueva ventana para consulta médica
-            Stage consultaMedicaStage = new Stage();
-            consultaMedicaStage.setTitle("Consulta Médica - Hospital Santa Vida");
-            consultaMedicaStage.setScene(consultaMedicaScene);
-            consultaMedicaStage.setMaximized(true);
-            
-            // Mostrar nueva ventana
-            consultaMedicaStage.show();
-            
-            // Cerrar ventana de login actual
-            Stage currentStage = (Stage) btnLogin.getScene().getWindow();
-            currentStage.close();
-            
-            System.out.println("✅ Interfaz de consulta médica abierta correctamente!");
-            
-        } catch (IOException e) {
-            System.err.println("❌ Error al abrir interfaz de consulta médica: " + e.getMessage());
-            mostrarMensaje("Error al cargar la aplicación de consulta médica", "#D32F2F");
-            e.printStackTrace();
-        }
+    private void showError(String message) {
+        lblMessage.setText(message);
+        lblMessage.setStyle("-fx-text-fill: #E74C3C;");
+        
+        // Animación sutil
+        lblMessage.setOpacity(0);
+        lblMessage.setOpacity(1);
     }
     
     /**
-     * Abre el panel de administración - sala de espera y cierra la ventana de login
+     * Muestra mensaje informativo
      */
-    private void abrirPanelAdministracion() {
-        try {
-            System.out.println("🏥 Cargando Panel de Administración - Sala de Espera...");
-            
-            // Cargar el FXML del panel de administración
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/ui/admin-sala-espera.fxml"));
-            Scene adminScene = new Scene(loader.load());
-            
-            // Crear nueva ventana para el panel de administración
-            Stage adminStage = new Stage();
-            adminStage.setTitle("Panel de Administración - Sala de Espera - Hospital Santa Vida");
-            adminStage.setScene(adminScene);
-            adminStage.setMaximized(true);
-            
-            // Mostrar nueva ventana
-            adminStage.show();
-            
-            // Cerrar ventana de login actual
-            Stage currentStage = (Stage) btnLogin.getScene().getWindow();
-            currentStage.close();
-            
-            System.out.println("✅ Panel de Administración abierto correctamente!");
-            
-        } catch (IOException e) {
-            System.err.println("❌ Error al abrir Panel de Administración: " + e.getMessage());
-            mostrarMensaje("Error al cargar el Panel de Administración", "#D32F2F");
-            e.printStackTrace();
-        }
+    private void showInfo(String message) {
+        lblMessage.setText(message);
+        lblMessage.setStyle("-fx-text-fill: #4A90E2;");
+    }
+    
+    /**
+     * Muestra mensaje de éxito
+     */
+    private void showSuccess(String message) {
+        lblMessage.setText(message);
+        lblMessage.setStyle("-fx-text-fill: #27AE60;");
+    }
+    
+    /**
+     * Limpia el mensaje
+     */
+    private void clearMessage() {
+        lblMessage.setText("");
     }
 }

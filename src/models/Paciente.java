@@ -4,65 +4,59 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
- * Modelo de datos para pacientes del hospital
- * Contiene información personal y de contacto que se mantiene entre visitas
+ * Clase modelo que representa a un paciente del hospital
+ * Mapea directamente con la tabla 'pacientes' de la base de datos
  */
 public class Paciente {
-    
-    // Enumeración para sexo
-    public enum Sexo {
-        MASCULINO,
-        FEMENINO,
-        OTRO
-    }
-    
-    // Atributos principales
     private int id;
+    private String numeroExpediente;
     private String nombre;
     private String apellidoPaterno;
     private String apellidoMaterno;
     private LocalDate fechaNacimiento;
-    private Sexo sexo;
+    private String sexo;
     private String curp;
     private String rfc;
     private String telefonoPrincipal;
     private String telefonoSecundario;
     private String email;
-    
-    // Dirección
     private String direccionCalle;
     private String direccionNumero;
     private String direccionColonia;
     private String direccionCiudad;
     private String direccionEstado;
     private String direccionCp;
-    
-    // Seguro médico
     private String seguroMedico;
     private String numeroPoliza;
-    
-    // Contacto de emergencia
     private String contactoEmergenciaNombre;
     private String contactoEmergenciaTelefono;
     private String contactoEmergenciaRelacion;
-    
-    // Metadatos
     private LocalDateTime fechaRegistro;
     
-    // Constructores
-    public Paciente() {
-        this.fechaRegistro = LocalDateTime.now();
-    }
+    // Campos médicos adicionales
+    private String tipoSangre;
+    private String alergias;
+    private String enfermedadesCronicas;
+    private String medicamentosActuales;
+    private String observacionesMedicas;
+    private EstadoPaciente estadoActual;
+    private String numeroSeguro;
+    private String condicionesPreexistentes;
+    private TipoAlta tipoAlta;
     
-    public Paciente(String nombre, String apellidoPaterno, String apellidoMaterno,
-                   LocalDate fechaNacimiento, Sexo sexo, String telefonoPrincipal) {
-        this();
+    // Constructor vacío
+    public Paciente() {}
+    
+    // Constructor básico
+    public Paciente(String nombre, String apellidoPaterno, String apellidoMaterno, 
+                   LocalDate fechaNacimiento, String sexo, String telefonoPrincipal) {
         this.nombre = nombre;
         this.apellidoPaterno = apellidoPaterno;
         this.apellidoMaterno = apellidoMaterno;
         this.fechaNacimiento = fechaNacimiento;
         this.sexo = sexo;
         this.telefonoPrincipal = telefonoPrincipal;
+        this.fechaRegistro = LocalDateTime.now();
     }
     
     // Getters y Setters
@@ -106,11 +100,11 @@ public class Paciente {
         this.fechaNacimiento = fechaNacimiento;
     }
     
-    public Sexo getSexo() {
+    public String getSexo() {
         return sexo;
     }
     
-    public void setSexo(Sexo sexo) {
+    public void setSexo(String sexo) {
         this.sexo = sexo;
     }
     
@@ -250,63 +244,147 @@ public class Paciente {
         this.fechaRegistro = fechaRegistro;
     }
     
+    // Nuevos getters y setters
+    public String getNumeroExpediente() {
+        return numeroExpediente;
+    }
+    
+    public void setNumeroExpediente(String numeroExpediente) {
+        this.numeroExpediente = numeroExpediente;
+    }
+    
+    public String getTipoSangre() {
+        return tipoSangre;
+    }
+    
+    public void setTipoSangre(String tipoSangre) {
+        this.tipoSangre = tipoSangre;
+    }
+    
+    public String getAlergias() {
+        return alergias;
+    }
+    
+    public void setAlergias(String alergias) {
+        this.alergias = alergias;
+    }
+    
+    public String getEnfermedadesCronicas() {
+        return enfermedadesCronicas;
+    }
+    
+    public void setEnfermedadesCronicas(String enfermedadesCronicas) {
+        this.enfermedadesCronicas = enfermedadesCronicas;
+    }
+    
+    public String getMedicamentosActuales() {
+        return medicamentosActuales;
+    }
+    
+    public void setMedicamentosActuales(String medicamentosActuales) {
+        this.medicamentosActuales = medicamentosActuales;
+    }
+    
+    public String getObservacionesMedicas() {
+        return observacionesMedicas;
+    }
+    
+    public void setObservacionesMedicas(String observacionesMedicas) {
+        this.observacionesMedicas = observacionesMedicas;
+    }
+    
+    public EstadoPaciente getEstadoActual() {
+        return estadoActual;
+    }
+    
+    public void setEstadoActual(EstadoPaciente estadoActual) {
+        this.estadoActual = estadoActual;
+    }
+    
+    // Métodos de conveniencia adicionales
+    public void setNombreCompleto(String nombreCompleto) {
+        // Se puede implementar lógica para separar nombre completo
+        // Por ahora, asignar al nombre principal
+        this.nombre = nombreCompleto;
+    }
+    
+    public void setGenero(String genero) {
+        this.sexo = genero;
+    }
+    
+    public String getGenero() {
+        return this.sexo;
+    }
+    
+    public void setTelefono(String telefono) {
+        this.telefonoPrincipal = telefono;
+    }
+    
+    public String getTelefono() {
+        return this.telefonoPrincipal;
+    }
+    
+    public void setDireccionCompleta(String direccionCompleta) {
+        // Lógica simplificada - asignar a la calle
+        this.direccionCalle = direccionCompleta;
+    }
+    
+    public String getNumeroSeguro() {
+        return numeroSeguro;
+    }
+    
+    public void setNumeroSeguro(String numeroSeguro) {
+        this.numeroSeguro = numeroSeguro;
+    }
+    
+    public String getCondicionesPreexistentes() {
+        return condicionesPreexistentes;
+    }
+    
+    public void setCondicionesPreexistentes(String condicionesPreexistentes) {
+        this.condicionesPreexistentes = condicionesPreexistentes;
+    }
+    
+    public TipoAlta getTipoAlta() {
+        return tipoAlta;
+    }
+    
+    public void setTipoAlta(TipoAlta tipoAlta) {
+        this.tipoAlta = tipoAlta;
+    }
+    
     // Métodos de utilidad
     public String getNombreCompleto() {
-        StringBuilder nombreCompleto = new StringBuilder();
-        nombreCompleto.append(nombre);
-        
-        if (apellidoPaterno != null && !apellidoPaterno.trim().isEmpty()) {
-            nombreCompleto.append(" ").append(apellidoPaterno);
-        }
-        
+        StringBuilder sb = new StringBuilder();
+        sb.append(nombre).append(" ").append(apellidoPaterno);
         if (apellidoMaterno != null && !apellidoMaterno.trim().isEmpty()) {
-            nombreCompleto.append(" ").append(apellidoMaterno);
+            sb.append(" ").append(apellidoMaterno);
         }
-        
-        return nombreCompleto.toString();
+        return sb.toString();
     }
     
     public String getDireccionCompleta() {
-        return String.format("%s %s, %s, %s, %s, CP %s",
-                direccionCalle != null ? direccionCalle : "",
-                direccionNumero != null ? direccionNumero : "",
-                direccionColonia != null ? direccionColonia : "",
-                direccionCiudad != null ? direccionCiudad : "",
-                direccionEstado != null ? direccionEstado : "",
-                direccionCp != null ? direccionCp : "");
+        return String.format("%s %s, Col. %s, %s, %s, CP: %s",
+                direccionCalle, direccionNumero, direccionColonia,
+                direccionCiudad, direccionEstado, direccionCp);
     }
     
     public int getEdad() {
-        if (fechaNacimiento == null) {
-            return 0;
-        }
+        if (fechaNacimiento == null) return 0;
         return LocalDate.now().getYear() - fechaNacimiento.getYear();
+    }
+    
+    public boolean tieneCurp() {
+        return curp != null && !curp.trim().isEmpty();
     }
     
     public boolean tieneSeguroMedico() {
         return seguroMedico != null && !seguroMedico.trim().isEmpty();
     }
     
-    public boolean datosCompletos() {
-        return nombre != null && !nombre.trim().isEmpty() &&
-               apellidoPaterno != null && !apellidoPaterno.trim().isEmpty() &&
-               fechaNacimiento != null &&
-               telefonoPrincipal != null && !telefonoPrincipal.trim().isEmpty() &&
-               contactoEmergenciaNombre != null && !contactoEmergenciaNombre.trim().isEmpty() &&
-               contactoEmergenciaTelefono != null && !contactoEmergenciaTelefono.trim().isEmpty() &&
-               direccionCalle != null && !direccionCalle.trim().isEmpty();
-    }
-    
     @Override
     public String toString() {
-        return "Paciente{" +
-                "id=" + id +
-                ", nombreCompleto='" + getNombreCompleto() + '\'' +
-                ", edad=" + getEdad() +
-                ", sexo=" + sexo +
-                ", telefono='" + telefonoPrincipal + '\'' +
-                ", seguroMedico='" + seguroMedico + '\'' +
-                '}';
+        return getNombreCompleto() + " - " + telefonoPrincipal;
     }
     
     @Override
@@ -320,5 +398,43 @@ public class Paciente {
     @Override
     public int hashCode() {
         return Integer.hashCode(id);
+    }
+    
+    // Métodos adicionales requeridos por los controladores
+    
+    public boolean isActivo() {
+        return estadoActual != null && estadoActual != EstadoPaciente.DADO_DE_ALTA;
+    }
+    
+    public String getCodigoPostal() {
+        return direccionCp;
+    }
+    
+    public void setCodigoPostal(String codigoPostal) {
+        this.direccionCp = codigoPostal;
+    }
+    
+    public String getMedicamentos() {
+        return medicamentosActuales;
+    }
+    
+    public void setMedicamentos(String medicamentos) {
+        this.medicamentosActuales = medicamentos;
+    }
+    
+    public String getEnfermedadesPrevias() {
+        return enfermedadesCronicas;
+    }
+    
+    public void setEnfermedadesPrevias(String enfermedadesPrevias) {
+        this.enfermedadesCronicas = enfermedadesPrevias;
+    }
+    
+    public String getContactoEmergenciaParentesco() {
+        return contactoEmergenciaRelacion;
+    }
+    
+    public void setContactoEmergenciaParentesco(String parentesco) {
+        this.contactoEmergenciaRelacion = parentesco;
     }
 }

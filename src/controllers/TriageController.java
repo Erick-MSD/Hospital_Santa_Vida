@@ -1,30 +1,65 @@
 package controllers;
 
+import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
 import javafx.scene.control.*;
-import javafx.event.ActionEvent;
-import models.EvaluacionTriage;
-import dao.EvaluacionTriageDAO;
+import javafx.scene.control.cell.PropertyValueFactory;
+import models.*;
+import services.*;
+import services.PacienteServiceResults.*;
+import services.TriageServiceResults.*;
+import java.net.URL;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.ResourceBundle;
 
-public class TriageController {
+/**
+ * Controlador para la interfaz de triage
+ * Maneja evaluación de pacientes y clasificación por urgencia
+ */
+public class TriageController extends BaseController implements Initializable {
     
-    // Campos del formulario
+    // Información del doctor
+    @FXML private Label lblDoctorName;
+    @FXML private Label lblDateTime;
+    @FXML private Label lblTotalPacientes;
+    @FXML private Label lblDoctorRole;
+    
+    // Información básica
     @FXML private TextField txtNumeroFolio;
     @FXML private TextField txtFechaIngreso;
     @FXML private TextArea txtMotivoConsulta;
+    
+    // Formulario de evaluación
+    @FXML private TextField txtBuscarPaciente;
+    @FXML private Button btnBuscarPaciente;
+    @FXML private Label lblPacienteInfo;
+    
+    // Signos vitales - nombres corregidos según FXML
     @FXML private TextField txtPresionArterial;
     @FXML private TextField txtFrecuenciaCardiaca;
     @FXML private TextField txtTemperatura;
     @FXML private TextField txtFrecuenciaRespiratoria;
     @FXML private TextField txtSaturacionO2;
     @FXML private TextField txtDolor;
+    @FXML private TextField txtGlasgow;
+    
+    // Observaciones clínicas
     @FXML private TextArea txtObservacionesClinicas;
     
-    // Labels del doctor
-    @FXML private Label lblDoctorName;
-    @FXML private Label lblDoctorRole;
+    // Evaluación clínica
+    @FXML private Slider sliderDolor;
+    @FXML private Slider sliderGlasgow;
+    @FXML private TextArea txtSintomas;
+    @FXML private TextArea txtObservaciones;
+    
+    // Resultado de evaluación
+    @FXML private Label lblNivelUrgencia;
+    @FXML private Label lblJustificacion;
     
     // Botones de triage
     @FXML private Button btnTriageRojo;
@@ -48,369 +83,698 @@ public class TriageController {
     // Botones de acción
     @FXML private Button btnCancelar;
     @FXML private Button btnCompletarEvaluacion;
+    @FXML private Button btnCerrarSesion;
+    @FXML private Button btnEvaluar;
+    @FXML private Button btnGuardar;
+    @FXML private Button btnLimpiar;
+    @FXML private Button btnSiguientePaciente;
     
-    // Variables de estado
-    private String nivelTriageSeleccionado = null;
-    private String especialidadSeleccionada = null;
-    private EvaluacionTriageDAO evaluacionDAO;
+    // Cola de triage
+    @FXML private TableView<PacienteColaInfo> tblColaTriage;
+    @FXML private TableColumn<PacienteColaInfo, String> colNombre;
+    @FXML private TableColumn<PacienteColaInfo, String> colExpediente;
+    @FXML private TableColumn<PacienteColaInfo, String> colUrgencia;
+    @FXML private TableColumn<PacienteColaInfo, String> colTiempo;
     
-    // Método para inicializar
-    @FXML
-    private void initialize() {
-        System.out.println("✅ Controlador de Triage inicializado correctamente");
+    // Servicios
+    private TriageService triageService;
+    private PacienteService pacienteService;
+    
+    // Estado actual
+    private Paciente pacienteActual;
+    private RegistroTriage evaluacionActual;
+    private ObservableList<PacienteColaInfo> colaPacientes;
+    
+    @Override
+    public void initialize(URL location, ResourceBundle resources) {
+        // Inicializar servicios
+        triageService = new TriageService();
+        pacienteService = new PacienteService();
         
-        // Inicializar DAO
-        evaluacionDAO = new EvaluacionTriageDAO();
+        // Configurar tabla - TEMPORALMENTE COMENTADO
+        // setupTable();
         
-        // Configurar información del doctor
-        if (lblDoctorName != null) {
-            lblDoctorName.setText("Dr. Ana García");
-        }
-        if (lblDoctorRole != null) {
-            lblDoctorRole.setText("Médico Triage");
-        }
+        // Configurar lista observable - TEMPORALMENTE COMENTADO  
+        // colaPacientes = FXCollections.observableArrayList();
+        // tblColaTriage.setItems(colaPacientes);
         
-        // Generar folio automático
-        if (txtNumeroFolio != null) {
-            txtNumeroFolio.setText("TRG-" + System.currentTimeMillis() % 100000);
-        }
+        // Configurar sliders
+        setupSliders();
         
-        // Configurar fecha actual
-        if (txtFechaIngreso != null) {
-            LocalDateTime now = LocalDateTime.now();
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-            txtFechaIngreso.setText(now.format(formatter));
-        }
-    }
-    
-    // ===== MÉTODOS PARA BOTONES DE TRIAGE =====
-    
-    @FXML
-    private void handleTriageRojo(ActionEvent event) {
-        seleccionarNivelTriage("ROJO", "ROJO - Crítico", btnTriageRojo);
-    }
-    
-    @FXML
-    private void handleTriageNaranja(ActionEvent event) {
-        seleccionarNivelTriage("NARANJA", "NARANJA - Urgente", btnTriageNaranja);
-    }
-    
-    @FXML
-    private void handleTriageAmarillo(ActionEvent event) {
-        seleccionarNivelTriage("AMARILLO", "AMARILLO - Menos Urgente", btnTriageAmarillo);
-    }
-    
-    @FXML
-    private void handleTriageVerde(ActionEvent event) {
-        seleccionarNivelTriage("VERDE", "VERDE - No Urgente", btnTriageVerde);
-    }
-    
-    @FXML
-    private void handleTriageAzul(ActionEvent event) {
-        seleccionarNivelTriage("AZUL", "AZUL - Consulta Externa", btnTriageAzul);
-    }
-    
-    private void seleccionarNivelTriage(String nivel, String texto, Button botonSeleccionado) {
-        nivelTriageSeleccionado = nivel;
-        lblTriageSeleccionado.setText(texto);
+        // Actualizar fecha/hora
+        actualizarFechaHora();
         
-        // Resetear estilos de todos los botones
-        resetearEstilosTriageButtons();
-        
-        // Aplicar estilo seleccionado
-        botonSeleccionado.setStyle(botonSeleccionado.getStyle() + "; -fx-border-color: #2C3E50; -fx-border-width: 3;");
-        
-        System.out.println("🎯 Nivel de triage seleccionado: " + nivel);
-    }
-    
-    private void resetearEstilosTriageButtons() {
-        Button[] botonesTriaje = {btnTriageRojo, btnTriageNaranja, btnTriageAmarillo, btnTriageVerde, btnTriageAzul};
-        for (Button btn : botonesTriaje) {
-            if (btn != null) {
-                String estilo = btn.getStyle();
-                estilo = estilo.replaceAll("; -fx-border-color: #[0-9A-F]{6}; -fx-border-width: [0-9];", "");
-                btn.setStyle(estilo);
-            }
-        }
-    }
-    
-    // ===== MÉTODOS PARA BOTONES DE ESPECIALIDADES =====
-    
-    @FXML
-    private void handleEspecialidadGeneral(ActionEvent event) {
-        seleccionarEspecialidad("Medicina General", btnEspecialidadGeneral);
-    }
-    
-    @FXML
-    private void handleEspecialidadCardiologia(ActionEvent event) {
-        seleccionarEspecialidad("Cardiología", btnEspecialidadCardiologia);
-    }
-    
-    @FXML
-    private void handleEspecialidadPediatria(ActionEvent event) {
-        seleccionarEspecialidad("Pediatría", btnEspecialidadPediatria);
-    }
-    
-    @FXML
-    private void handleEspecialidadTraumatologia(ActionEvent event) {
-        seleccionarEspecialidad("Traumatología", btnEspecialidadTraumatologia);
-    }
-    
-    @FXML
-    private void handleEspecialidadGinecologia(ActionEvent event) {
-        seleccionarEspecialidad("Ginecología", btnEspecialidadGinecologia);
-    }
-    
-    @FXML
-    private void handleEspecialidadNeurologia(ActionEvent event) {
-        seleccionarEspecialidad("Neurología", btnEspecialidadNeurologia);
-    }
-    
-    @FXML
-    private void handleEspecialidadPsiquiatria(ActionEvent event) {
-        seleccionarEspecialidad("Psiquiatría", btnEspecialidadPsiquiatria);
-    }
-    
-    @FXML
-    private void handleEspecialidadDermatologia(ActionEvent event) {
-        seleccionarEspecialidad("Dermatología", btnEspecialidadDermatologia);
-    }
-    
-    private void seleccionarEspecialidad(String especialidad, Button botonSeleccionado) {
-        especialidadSeleccionada = especialidad;
-        lblEspecialidadSeleccionada.setText("Especialidad: " + especialidad);
-        
-        // Resetear estilos de todos los botones
-        resetearEstilosEspecialidadButtons();
-        
-        // Aplicar estilo seleccionado
-        botonSeleccionado.setStyle(botonSeleccionado.getStyle() + "; -fx-border-color: #2C3E50; -fx-border-width: 2;");
-        
-        System.out.println("🏥 Especialidad seleccionada: " + especialidad);
-    }
-    
-    private void resetearEstilosEspecialidadButtons() {
-        Button[] botonesEspecialidad = {
-            btnEspecialidadGeneral, btnEspecialidadCardiologia, btnEspecialidadPediatria, 
-            btnEspecialidadTraumatologia, btnEspecialidadGinecologia, btnEspecialidadNeurologia, 
-            btnEspecialidadPsiquiatria, btnEspecialidadDermatologia
-        };
-        for (Button btn : botonesEspecialidad) {
-            if (btn != null) {
-                String estilo = btn.getStyle();
-                estilo = estilo.replaceAll("; -fx-border-color: #[0-9A-F]{6}; -fx-border-width: [0-9];", "");
-                btn.setStyle(estilo);
-            }
-        }
-    }
-    
-    // ===== MÉTODOS PARA BOTONES DE ACCIÓN =====
-    
-    @FXML
-    private void handleCancelar(ActionEvent event) {
-        System.out.println("🚫 Evaluación cancelada");
+        // Limpiar formulario inicial
         limpiarFormulario();
     }
     
-    @FXML
-    private void handleCompletarEvaluacion(ActionEvent event) {
-        System.out.println("✅ Iniciando proceso de completar evaluación...");
+    @Override
+    protected void onSesionInicializada() {
+        // Verificar permisos de triage
+        if (!tienePermiso(AuthenticationService.Permiso.REALIZAR_TRIAGE)) {
+            showAlert("Sin permisos", "No tiene permisos para realizar evaluaciones de triage");
+            return;
+        }
         
-        // Validar campos obligatorios
-        if (!validarCamposObligatorios()) {
+        // Configurar información del usuario
+        lblDoctorName.setText(usuarioActual.getNombreCompleto());
+        
+        // Cargar cola de triage - TEMPORALMENTE COMENTADO
+        // cargarColaTriage();
+    }
+    
+    /**
+     * Configura la tabla de cola de triage
+     */
+    private void setupTable() {
+        colNombre.setCellValueFactory(new PropertyValueFactory<>("nombre"));
+        colExpediente.setCellValueFactory(new PropertyValueFactory<>("expediente"));
+        colUrgencia.setCellValueFactory(new PropertyValueFactory<>("urgencia"));
+        colTiempo.setCellValueFactory(new PropertyValueFactory<>("tiempoEspera"));
+        
+        // Personalizar celda de urgencia con colores
+        colUrgencia.setCellFactory(column -> new TableCell<PacienteColaInfo, String>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setStyle("");
+                } else {
+                    setText(item);
+                    switch (item) {
+                        case "CRITICO":
+                            setStyle("-fx-background-color: #ffcdd2; -fx-text-fill: #c62828; -fx-font-weight: bold;");
+                            break;
+                        case "ALTO":
+                            setStyle("-fx-background-color: #ffe0b2; -fx-text-fill: #ef6c00; -fx-font-weight: bold;");
+                            break;
+                        case "MEDIO":
+                            setStyle("-fx-background-color: #fff9c4; -fx-text-fill: #f57f17; -fx-font-weight: bold;");
+                            break;
+                        case "BAJO":
+                            setStyle("-fx-background-color: #c8e6c9; -fx-text-fill: #2e7d32; -fx-font-weight: bold;");
+                            break;
+                        case "PENDIENTE":
+                            setStyle("-fx-background-color: #e1f5fe; -fx-text-fill: #0277bd; -fx-font-weight: bold;");
+                            break;
+                    }
+                }
+            }
+        });
+        
+        // Listener para selección en tabla
+        tblColaTriage.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null) {
+                cargarPacienteDesdeTabla(newValue);
+            }
+        });
+    }
+    
+    /**
+     * Configura los sliders
+     */
+    private void setupSliders() {
+        // Slider de dolor (0-10)
+        sliderDolor.setMin(0);
+        sliderDolor.setMax(10);
+        sliderDolor.setValue(0);
+        sliderDolor.setMajorTickUnit(2);
+        sliderDolor.setMinorTickCount(1);
+        sliderDolor.setShowTickLabels(true);
+        sliderDolor.setShowTickMarks(true);
+        
+        // Slider de Glasgow (3-15)
+        sliderGlasgow.setMin(3);
+        sliderGlasgow.setMax(15);
+        sliderGlasgow.setValue(15);
+        sliderGlasgow.setMajorTickUnit(3);
+        sliderGlasgow.setMinorTickCount(2);
+        sliderGlasgow.setShowTickLabels(true);
+        sliderGlasgow.setShowTickMarks(true);
+    }
+    
+    /**
+     * Carga la cola de triage
+     */
+    private void cargarColaTriage() {
+        try {
+            List<TriageService.PacienteEnEspera> pacientesEnEspera = triageService.obtenerPacientesEnEspera(tokenSesion);
+            
+            colaPacientes.clear();
+            
+            for (TriageService.PacienteEnEspera paciente : pacientesEnEspera) {
+                PacienteColaInfo info = new PacienteColaInfo(
+                    paciente.getNombreCompleto(),
+                    paciente.getNumeroExpediente(),
+                    paciente.getNivelUrgencia() != null ? paciente.getNivelUrgencia().toString() : "PENDIENTE",
+                    calcularTiempoEspera(paciente.getFechaRegistro()),
+                    paciente.getId()
+                );
+                colaPacientes.add(info);
+            }
+            
+            lblTotalPacientes.setText(String.valueOf(colaPacientes.size()));
+            
+        } catch (Exception e) {
+            showAlert("Error", "Error al cargar la cola de triage: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Carga un paciente desde la tabla
+     */
+    private void cargarPacienteDesdeTabla(PacienteColaInfo info) {
+        try {
+            pacienteActual = pacienteService.buscarPorId(tokenSesion, info.getPacienteId());
+            
+            if (pacienteActual != null) {
+                mostrarInformacionPaciente();
+                limpiarEvaluacion();
+            }
+            
+        } catch (Exception e) {
+            showAlert("Error", "Error al cargar información del paciente: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Busca un paciente por expediente o nombre
+     */
+    @FXML
+    private void handleBuscarPaciente() {
+        String criterio = txtBuscarPaciente.getText().trim();
+        
+        if (criterio.isEmpty()) {
+            showAlert("Búsqueda vacía", "Ingrese un número de expediente o nombre para buscar");
             return;
         }
         
         try {
-            // Crear objeto EvaluacionTriage
-            EvaluacionTriage evaluacion = crearEvaluacionDesdeFormulario();
+            ResultadoBusqueda resultado = pacienteService.buscarPacientes(tokenSesion, criterio);
             
-            // Guardar en base de datos
-            boolean guardado = evaluacionDAO.insertarEvaluacion(evaluacion);
+            if (resultado.getPacientes().isEmpty()) {
+                showAlert("No encontrado", "No se encontraron pacientes con ese criterio");
+                return;
+            }
+            
+            // Si hay múltiples resultados, tomar el primero por simplicidad
+            pacienteActual = resultado.getPacientes().get(0);
+            mostrarInformacionPaciente();
+            limpiarEvaluacion();
+            
+        } catch (Exception e) {
+            showAlert("Error", "Error en la búsqueda: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Muestra la información del paciente actual
+     */
+    private void mostrarInformacionPaciente() {
+        if (pacienteActual == null) return;
+        
+        String info = String.format(
+            "EXPEDIENTE: %s | NOMBRE: %s | EDAD: %d años | SEXO: %s",
+            pacienteActual.getNumeroExpediente(),
+            pacienteActual.getNombreCompleto(),
+            pacienteActual.getEdad(),
+            pacienteActual.getSexo()
+        );
+        
+        lblPacienteInfo.setText(info);
+        lblPacienteInfo.setStyle("-fx-text-fill: #2E5984; -fx-font-weight: bold;");
+    }
+    
+    /**
+     * Evalúa la urgencia del paciente
+     */
+    @FXML
+    private void handleEvaluar() {
+        if (pacienteActual == null) {
+            showAlert("Sin paciente", "Debe seleccionar un paciente para evaluar");
+            return;
+        }
+        
+        try {
+            // Crear datos de evaluación
+            DatosEvaluacionTriage datos = new DatosEvaluacionTriage();
+            datos.setPacienteId(pacienteActual.getId());
+            // Presion arterial manejada como un solo campo con formato "120/80"
+            String presionText = txtPresionArterial.getText().trim();
+            if (presionText.contains("/")) {
+                String[] presion = presionText.split("/");
+                datos.setPresionSistolica(Integer.valueOf(presion[0].trim()));
+                datos.setPresionDiastolica(Integer.valueOf(presion[1].trim()));
+            }
+            // Presion diastolica ya manejada arriba
+            datos.setFrecuenciaCardiaca(Integer.valueOf(txtFrecuenciaCardiaca.getText().trim()));
+            datos.setTemperatura(Double.valueOf(txtTemperatura.getText().trim()));
+            datos.setSaturacionOxigeno(Integer.valueOf(txtSaturacionO2.getText().trim()));
+            datos.setFrecuenciaRespiratoria(Integer.valueOf(txtFrecuenciaRespiratoria.getText().trim()));
+            datos.setNivelDolor((int) sliderDolor.getValue());
+            datos.setEscalaGlasgow((int) sliderGlasgow.getValue());
+            datos.setSintomasPrincipales(txtSintomas.getText().trim());
+            datos.setObservaciones(txtObservaciones.getText().trim());
+            
+            // Evaluar urgencia
+            ResultadoEvaluacion resultado = triageService.evaluarUrgencia(tokenSesion, datos);
+            
+            if (resultado.isExitoso()) {
+                evaluacionActual = resultado.getRegistroTriage();
+                mostrarResultadoEvaluacion(resultado);
+                btnGuardar.setDisable(false);
+            } else {
+                showAlert("Error en evaluación", resultado.getMensaje());
+            }
+            
+        } catch (NumberFormatException e) {
+            showAlert("Datos inválidos", "Verifique que todos los campos numéricos tengan valores válidos");
+        } catch (Exception e) {
+            showAlert("Error", "Error durante la evaluación: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Muestra el resultado de la evaluación
+     */
+    private void mostrarResultadoEvaluacion(TriageServiceResults.ResultadoEvaluacion resultado) {
+        NivelUrgencia urgencia = resultado.getRegistroTriage().getNivelUrgencia();
+        
+        lblNivelUrgencia.setText(urgencia.toString());
+        lblJustificacion.setText(resultado.getJustificacion());
+        
+        // Configurar color según urgencia
+        String colorStyle;
+        switch (urgencia) {
+            case CRITICO:
+                colorStyle = "-fx-text-fill: #c62828; -fx-font-weight: bold; -fx-font-size: 18px;";
+                break;
+            case ALTO:
+                colorStyle = "-fx-text-fill: #ef6c00; -fx-font-weight: bold; -fx-font-size: 18px;";
+                break;
+            case MEDIO:
+                colorStyle = "-fx-text-fill: #f57f17; -fx-font-weight: bold; -fx-font-size: 18px;";
+                break;
+            case BAJO:
+                colorStyle = "-fx-text-fill: #2e7d32; -fx-font-weight: bold; -fx-font-size: 18px;";
+                break;
+            default:
+                colorStyle = "-fx-text-fill: #0277bd; -fx-font-weight: bold; -fx-font-size: 18px;";
+        }
+        
+        lblNivelUrgencia.setStyle(colorStyle);
+        lblJustificacion.setStyle("-fx-text-fill: #555555; -fx-font-style: italic;");
+    }
+    
+    /**
+     * Guarda la evaluación de triage
+     */
+    @FXML
+    private void handleGuardar() {
+        if (evaluacionActual == null) {
+            showAlert("Sin evaluación", "Debe evaluar al paciente antes de guardar");
+            return;
+        }
+        
+        try {
+            boolean guardado = triageService.guardarEvaluacion(tokenSesion, evaluacionActual);
             
             if (guardado) {
-                showAlert("Éxito", "✅ Evaluación de triage completada y guardada correctamente\n\n" +
-                         "📋 Folio: " + evaluacion.getNumeroFolio() + "\n" +
-                         "🎯 Nivel: " + evaluacion.getNivelTriage() + "\n" +
-                         "🏥 Especialidad: " + evaluacion.getEspecialidad(), Alert.AlertType.INFORMATION);
-                
+                showAlert("Guardado exitoso", "La evaluación de triage ha sido guardada correctamente");
+                cargarColaTriage(); // Actualizar cola
                 limpiarFormulario();
+                btnSiguientePaciente.setDisable(false);
             } else {
-                showAlert("Error", "❌ No se pudo guardar la evaluación en la base de datos", Alert.AlertType.ERROR);
+                showAlert("Error al guardar", "No se pudo guardar la evaluación");
             }
             
         } catch (Exception e) {
-            System.err.println("❌ Error al completar evaluación: " + e.getMessage());
-            e.printStackTrace();
-            showAlert("Error", "❌ Error inesperado: " + e.getMessage(), Alert.AlertType.ERROR);
+            showAlert("Error", "Error al guardar la evaluación: " + e.getMessage());
         }
     }
     
-    private boolean validarCamposObligatorios() {
-        StringBuilder errores = new StringBuilder();
-        
-        if (txtMotivoConsulta.getText().trim().isEmpty()) {
-            errores.append("• El motivo de consulta es obligatorio\n");
-        }
-        
-        if (nivelTriageSeleccionado == null) {
-            errores.append("• Debe seleccionar un nivel de triage\n");
-        }
-        
-        if (especialidadSeleccionada == null) {
-            errores.append("• Debe seleccionar una especialidad médica\n");
-        }
-        
-        if (errores.length() > 0) {
-            showAlert("Campos Obligatorios", "❌ Por favor complete los siguientes campos:\n\n" + errores.toString(), Alert.AlertType.WARNING);
-            return false;
-        }
-        
-        return true;
+    /**
+     * Limpia el formulario completo
+     */
+    @FXML
+    private void handleLimpiar() {
+        limpiarFormulario();
     }
     
-    private EvaluacionTriage crearEvaluacionDesdeFormulario() {
-        EvaluacionTriage evaluacion = new EvaluacionTriage();
-        
-        evaluacion.setNumeroFolio(txtNumeroFolio.getText().trim());
-        
-        // Parsear fecha
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-        evaluacion.setFechaIngreso(LocalDateTime.parse(txtFechaIngreso.getText().trim(), formatter));
-        
-        evaluacion.setMotivoConsulta(txtMotivoConsulta.getText().trim());
-        evaluacion.setPresionArterial(txtPresionArterial.getText().trim().isEmpty() ? null : txtPresionArterial.getText().trim());
-        
-        // Parsear números con validación
-        evaluacion.setFrecuenciaCardiaca(parseIntegerField(txtFrecuenciaCardiaca.getText()));
-        evaluacion.setTemperatura(parseDoubleField(txtTemperatura.getText()));
-        evaluacion.setFrecuenciaRespiratoria(parseIntegerField(txtFrecuenciaRespiratoria.getText()));
-        evaluacion.setSaturacionO2(parseIntegerField(txtSaturacionO2.getText()));
-        evaluacion.setNivelDolor(parseIntegerField(txtDolor.getText()));
-        
-        evaluacion.setObservacionesClinicas(txtObservacionesClinicas.getText().trim());
-        evaluacion.setNivelTriage(nivelTriageSeleccionado);
-        evaluacion.setEspecialidad(especialidadSeleccionada);
-        evaluacion.setDoctorId(1); // ID del doctor (debería venir del login)
-        
-        return evaluacion;
-    }
-    
-    private Integer parseIntegerField(String value) {
-        if (value == null || value.trim().isEmpty()) {
-            return null;
-        }
-        try {
-            return Integer.parseInt(value.trim());
-        } catch (NumberFormatException e) {
-            return null;
+    /**
+     * Pasa al siguiente paciente en la cola
+     */
+    @FXML
+    private void handleSiguientePaciente() {
+        if (!colaPacientes.isEmpty()) {
+            // Seleccionar el primer paciente pendiente
+            for (PacienteColaInfo paciente : colaPacientes) {
+                if ("PENDIENTE".equals(paciente.getUrgencia())) {
+                    tblColaTriage.getSelectionModel().select(paciente);
+                    cargarPacienteDesdeTabla(paciente);
+                    break;
+                }
+            }
         }
     }
     
-    private Double parseDoubleField(String value) {
-        if (value == null || value.trim().isEmpty()) {
-            return null;
-        }
-        try {
-            return Double.parseDouble(value.trim());
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
-    
+    /**
+     * Limpia el formulario de evaluación
+     */
     private void limpiarFormulario() {
-        // Limpiar campos de texto
-        txtMotivoConsulta.clear();
+        // Limpiar campos de paciente
+        txtBuscarPaciente.clear();
+        lblPacienteInfo.setText("Seleccione un paciente para evaluar");
+        lblPacienteInfo.setStyle("-fx-text-fill: #7A7A7A;");
+        
+        limpiarEvaluacion();
+        
+        pacienteActual = null;
+        evaluacionActual = null;
+    }
+    
+    /**
+     * Limpia solo los campos de evaluación
+     */
+    private void limpiarEvaluacion() {
+        // Limpiar signos vitales
         txtPresionArterial.clear();
         txtFrecuenciaCardiaca.clear();
         txtTemperatura.clear();
-        txtFrecuenciaRespiratoria.clear();
         txtSaturacionO2.clear();
-        txtDolor.clear();
-        txtObservacionesClinicas.clear();
+        txtFrecuenciaRespiratoria.clear();
         
-        // Resetear selecciones
-        nivelTriageSeleccionado = null;
-        especialidadSeleccionada = null;
-        lblTriageSeleccionado.setText("Selecciona un nivel");
-        lblEspecialidadSeleccionada.setText("Selecciona una especialidad");
+        // Resetear sliders
+        sliderDolor.setValue(0);
+        sliderGlasgow.setValue(15);
         
-        // Resetear estilos de botones
-        resetearEstilosTriageButtons();
-        resetearEstilosEspecialidadButtons();
+        // Limpiar texto
+        txtSintomas.clear();
+        txtObservaciones.clear();
         
-        // Generar nuevo folio
-        txtNumeroFolio.setText("TRG-" + System.currentTimeMillis() % 100000);
+        // Limpiar resultado
+        lblNivelUrgencia.setText("PENDIENTE");
+        lblNivelUrgencia.setStyle("-fx-text-fill: #0277bd; -fx-font-weight: bold; -fx-font-size: 18px;");
+        lblJustificacion.setText("");
         
-        // Actualizar fecha
-        LocalDateTime now = LocalDateTime.now();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-        txtFechaIngreso.setText(now.format(formatter));
-        
-        System.out.println("🧹 Formulario limpiado y listo para nueva evaluación");
+        // Deshabilitar botón guardar
+        btnGuardar.setDisable(true);
+        btnSiguientePaciente.setDisable(true);
     }
     
     /**
-     * Inicializar la pantalla de triage con un paciente ya registrado
-     * Este método se llama desde RegistroPacienteController
+     * Actualiza la fecha y hora actual
      */
-    public void inicializarConPaciente(models.Paciente paciente, models.RegistroTriage registro) {
-        System.out.println("✅ Triage inicializado para paciente: " + paciente.getNombreCompleto());
-        System.out.println("📋 Folio: " + registro.getFolio());
+    private void actualizarFechaHora() {
+        String fechaHora = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+        lblDateTime.setText(fechaHora);
+    }
+    
+    /**
+     * Calcula el tiempo de espera
+     */
+    private String calcularTiempoEspera(LocalDateTime fechaInicio) {
+        if (fechaInicio == null) return "N/A";
         
-        // Llenar datos del paciente en la interfaz si los campos están disponibles
-        if (txtNumeroFolio != null) {
-            txtNumeroFolio.setText(registro.getFolio());
+        LocalDateTime ahora = LocalDateTime.now();
+        long minutos = java.time.Duration.between(fechaInicio, ahora).toMinutes();
+        
+        if (minutos < 60) {
+            return minutos + " min";
+        } else {
+            long horas = minutos / 60;
+            long minutosRestantes = minutos % 60;
+            return horas + "h " + minutosRestantes + "m";
         }
-        
-        // Mostrar información del paciente
-        System.out.println("\n👤 PACIENTE ASIGNADO AL TRIAGE:");
-        System.out.println("   Nombre: " + paciente.getNombreCompleto());
-        System.out.println("   Edad: " + paciente.getEdad() + " años");
-        System.out.println("   CURP: " + paciente.getCurp());
-        System.out.println("   Teléfono: " + paciente.getTelefonoPrincipal());
-        System.out.println("   Folio: " + registro.getFolio());
-        System.out.println("   Estado: " + registro.getEstado());
-        System.out.println("================================\n");
-        
-        // Guardar referencias para uso posterior
-        // Estas variables necesitarían ser agregadas como campos privados
-        // private models.Paciente pacienteActual;
-        // private models.RegistroTriage registroActual;
+    }
+    
+    /**
+     * Muestra un alert
+     */
+    private void showAlert(String title, String message) {
+        Platform.runLater(() -> {
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle(title);
+            alert.setHeaderText(null);
+            alert.setContentText(message);
+            alert.showAndWait();
+        });
+    }
+    
+    /**
+     * Manejadores para los botones de clasificación de triage
+     */
+    @FXML
+    private void handleTriageRojo() {
+        clasificarPaciente(NivelUrgencia.ROJO, "Crítico - Atención Inmediata");
     }
     
     @FXML
-    public void handleLogout() {
+    private void handleTriageNaranja() {
+        clasificarPaciente(NivelUrgencia.NARANJA, "Urgente - 15 minutos");
+    }
+    
+    @FXML
+    private void handleTriageAmarillo() {
+        clasificarPaciente(NivelUrgencia.AMARILLO, "Menos Urgente - 30 minutos");
+    }
+    
+    @FXML
+    private void handleTriageVerde() {
+        clasificarPaciente(NivelUrgencia.VERDE, "No Urgente - 60 minutos");
+    }
+    
+    @FXML
+    private void handleTriageAzul() {
+        clasificarPaciente(NivelUrgencia.AZUL, "Sin Urgencia - Programar cita");
+    }
+    
+    /**
+     * Método auxiliar para clasificar paciente con el nivel de urgencia seleccionado
+     */
+    private void clasificarPaciente(NivelUrgencia nivel, String descripcion) {
         try {
-            // Cargar la pantalla de login
-            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/ui/login.fxml"));
-            javafx.scene.Scene loginScene = new javafx.scene.Scene(loader.load());
+            if (pacienteActual == null) {
+                showAlert("Error", "Debe seleccionar un paciente primero");
+                return;
+            }
             
-            javafx.stage.Stage currentStage = (javafx.stage.Stage) btnCancelar.getScene().getWindow();
-            currentStage.setScene(loginScene);
-            currentStage.setTitle("Iniciar Sesión - Hospital Santa Vida");
-            currentStage.centerOnScreen();
+            // Crear o actualizar el registro de triage
+            if (evaluacionActual == null) {
+                evaluacionActual = new RegistroTriage();
+                evaluacionActual.setPacienteId(pacienteActual.getId());
+                evaluacionActual.setMedicoTriageId(getUsuarioActual().getId());
+            }
+            
+            // Establecer nivel de urgencia
+            evaluacionActual.setNivelUrgencia(nivel);
+            
+            // Obtener signos vitales desde la interfaz
+            try {
+                // Presión arterial (puede estar en formato "120/80" o campos separados)
+                if (!txtPresionArterial.getText().trim().isEmpty()) {
+                    String presionText = txtPresionArterial.getText().trim();
+                    if (presionText.contains("/")) {
+                        String[] presion = presionText.split("/");
+                        if (presion.length == 2) {
+                            evaluacionActual.setPresionSistolica(Integer.parseInt(presion[0].trim()));
+                            evaluacionActual.setPresionDiastolica(Integer.parseInt(presion[1].trim()));
+                        }
+                    } else {
+                        // Solo sistólica
+                        evaluacionActual.setPresionSistolica(Integer.parseInt(presionText));
+                    }
+                }
+                
+                if (!txtFrecuenciaCardiaca.getText().trim().isEmpty()) {
+                    evaluacionActual.setFrecuenciaCardiaca(Integer.parseInt(txtFrecuenciaCardiaca.getText().trim()));
+                }
+                
+                if (!txtTemperatura.getText().trim().isEmpty()) {
+                    evaluacionActual.setTemperatura(Double.parseDouble(txtTemperatura.getText().trim()));
+                }
+                
+                if (!txtFrecuenciaRespiratoria.getText().trim().isEmpty()) {
+                    evaluacionActual.setFrecuenciaRespiratoria(Integer.parseInt(txtFrecuenciaRespiratoria.getText().trim()));
+                }
+                
+                if (!txtSaturacionO2.getText().trim().isEmpty()) {
+                    evaluacionActual.setSaturacionOxigeno(Integer.parseInt(txtSaturacionO2.getText().trim()));
+                }
+                
+                if (!txtGlasgow.getText().trim().isEmpty()) {
+                    evaluacionActual.setGlasgow(Integer.parseInt(txtGlasgow.getText().trim()));
+                }
+                
+            } catch (NumberFormatException e) {
+                showAlert("Error", "Por favor verifique que los valores numéricos sean correctos");
+                return;
+            }
+            
+            // Establecer observaciones
+            evaluacionActual.setObservacionesTriage(txtObservacionesClinicas.getText());
+            evaluacionActual.setMotivoConsulta(txtMotivoConsulta.getText());
+            
+            // Mostrar confirmación
+            Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
+            confirmAlert.setTitle("Confirmar Clasificación");
+            confirmAlert.setHeaderText("Clasificación de Triage: " + nivel.name());
+            confirmAlert.setContentText("Paciente: " + pacienteActual.getNombreCompleto() + "\n" +
+                                      "Nivel: " + descripcion + "\n\n" +
+                                      "¿Confirma la clasificación?");
+            
+            confirmAlert.showAndWait().ifPresent(response -> {
+                if (response == ButtonType.OK) {
+                    guardarEvaluacionTriage();
+                }
+            });
             
         } catch (Exception e) {
-            showAlert("Error", "Error al cerrar sesión: " + e.getMessage(), Alert.AlertType.ERROR);
+            showAlert("Error", "Error al clasificar paciente: " + e.getMessage());
+            e.printStackTrace();
         }
     }
     
     /**
-     * Muestra una alerta al usuario
+     * Guarda la evaluación de triage en la base de datos
      */
-    private void showAlert(String title, String message, Alert.AlertType type) {
-        Alert alert = new Alert(type);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
+    private void guardarEvaluacionTriage() {
+        try {
+            boolean resultado = triageService.guardarEvaluacion(getTokenSesion(), evaluacionActual);
+            
+            if (resultado) {
+                showAlert("Éxito", "Evaluación de triage guardada correctamente");
+                limpiarFormulario();
+                cargarColaTriage();
+            } else {
+                showAlert("Error", "Error al guardar la evaluación de triage");
+            }
+            
+        } catch (Exception e) {
+            showAlert("Error", "Error al guardar evaluación: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
     
     /**
-     * Muestra una alerta de información
+     * Manejadores para los botones de especialidades médicas
      */
-    private void showAlert(String title, String message) {
-        showAlert(title, message, Alert.AlertType.INFORMATION);
+    @FXML
+    private void handleEspecialidadGeneral() {
+        seleccionarEspecialidad("Medicina General");
+    }
+    
+    @FXML
+    private void handleEspecialidadCardiologia() {
+        seleccionarEspecialidad("Cardiología");
+    }
+    
+    @FXML
+    private void handleEspecialidadPediatria() {
+        seleccionarEspecialidad("Pediatría");
+    }
+    
+    @FXML
+    private void handleEspecialidadTraumatologia() {
+        seleccionarEspecialidad("Traumatología");
+    }
+    
+    @FXML
+    private void handleEspecialidadGinecologia() {
+        seleccionarEspecialidad("Ginecología");
+    }
+    
+    @FXML
+    private void handleEspecialidadNeurologia() {
+        seleccionarEspecialidad("Neurología");
+    }
+    
+    @FXML
+    private void handleEspecialidadPsiquiatria() {
+        seleccionarEspecialidad("Psiquiatría");
+    }
+    
+    @FXML
+    private void handleEspecialidadDermatologia() {
+        seleccionarEspecialidad("Dermatología");
+    }
+    
+    /**
+     * Método auxiliar para seleccionar especialidad
+     */
+    private void seleccionarEspecialidad(String especialidad) {
+        if (evaluacionActual != null) {
+            evaluacionActual.setEspecialidadAsignada(especialidad);
+            lblEspecialidadSeleccionada.setText("Especialidad seleccionada: " + especialidad);
+        } else {
+            showAlert("Error", "Debe evaluar al paciente primero");
+        }
+    }
+    
+    /**
+     * Otros manejadores de eventos
+     */
+    @FXML
+    private void handleCancelar() {
+        limpiarFormulario();
+    }
+    
+    @FXML
+    private void handleCompletarEvaluacion() {
+        if (evaluacionActual == null) {
+            showAlert("Error", "Debe evaluar al paciente primero");
+            return;
+        }
+        
+        if (evaluacionActual.getNivelUrgencia() == null) {
+            showAlert("Error", "Debe seleccionar un nivel de triage");
+            return;
+        }
+        
+        guardarEvaluacionTriage();
+    }
+    
+    @FXML
+    private void handleLogout() {
+        Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmAlert.setTitle("Confirmar Cierre de Sesión");
+        confirmAlert.setHeaderText("¿Está seguro de que desea cerrar la sesión?");
+        confirmAlert.setContentText("Se perderán los datos no guardados.");
+        
+        confirmAlert.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                cerrarSesion();
+                // Aquí deberías navegar de vuelta al login
+                // Por ahora solo cerramos la ventana
+                Platform.exit();
+            }
+        });
+    }
+    
+
+    
+    // Clase de datos para la tabla de cola
+    public static class PacienteColaInfo {
+        private String nombre;
+        private String expediente;
+        private String urgencia;
+        private String tiempoEspera;
+        private int pacienteId;
+        
+        public PacienteColaInfo(String nombre, String expediente, String urgencia, String tiempoEspera, int pacienteId) {
+            this.nombre = nombre;
+            this.expediente = expediente;
+            this.urgencia = urgencia;
+            this.tiempoEspera = tiempoEspera;
+            this.pacienteId = pacienteId;
+        }
+        
+        // Getters
+        public String getNombre() { return nombre; }
+        public String getExpediente() { return expediente; }
+        public String getUrgencia() { return urgencia; }
+        public String getTiempoEspera() { return tiempoEspera; }
+        public int getPacienteId() { return pacienteId; }
     }
 }

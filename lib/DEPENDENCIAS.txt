@@ -1,0 +1,73 @@
+# DEPENDENCIAS REQUERIDAS
+
+Para el correcto funcionamiento del sistema Hospital Santa Vida, debe descargar y colocar los siguientes archivos JAR en este directorio:
+
+## 📦 Dependencias Necesarias
+
+### 1. MySQL Connector/J
+- **Archivo**: `mysql-connector-java-8.0.33.jar` (o versión superior)
+- **Descarga**: https://dev.mysql.com/downloads/connector/j/
+- **Propósito**: Conectividad con base de datos MySQL
+
+### 2. JavaFX Controls (si no está integrado en su JDK)
+- **Archivo**: `javafx-controls-11.0.1.jar`
+- **Descarga**: https://openjfx.io
+- **Propósito**: Controles de interfaz gráfica
+
+### 3. JavaFX FXML (si no está integrado en su JDK)  
+- **Archivo**: `javafx-fxml-11.0.1.jar`
+- **Descarga**: https://openjfx.io
+- **Propósito**: Cargador de archivos FXML
+
+## 🔧 Instrucciones de Instalación
+
+1. **Descargar MySQL Connector/J**:
+   - Vaya a https://dev.mysql.com/downloads/connector/j/
+   - Seleccione "Platform Independent"
+   - Descargue el archivo ZIP
+   - Extraiga `mysql-connector-java-8.0.33.jar`
+   - Coloque el archivo en este directorio `lib/`
+
+2. **JavaFX (solo si es necesario)**:
+   - Si obtiene errores de "package javafx does not exist"
+   - Descargue JavaFX SDK desde https://openjfx.io
+   - Copie los JARs necesarios de `javafx-sdk-11/lib/`
+   - O configure JAVAFX_PATH en compile.bat
+
+## 📁 Estructura Final Esperada
+
+```
+lib/
+├── mysql-connector-java-8.0.33.jar
+├── javafx-controls-11.0.1.jar (opcional)
+├── javafx-fxml-11.0.1.jar (opcional)
+└── DEPENDENCIAS.txt (este archivo)
+```
+
+## ⚠️ Notas Importantes
+
+- **MYSQL CONNECTOR ES OBLIGATORIO** - El sistema no funcionará sin él
+- JavaFX puede estar integrado en su JDK (Java 8 incluye JavaFX)
+- Para Java 11+, JavaFX se debe instalar por separado
+- Verifique la compatibilidad de versiones con su Java
+
+## 🔍 Verificación
+
+Después de colocar las dependencias:
+
+1. Ejecute `compile.bat`
+2. Si no hay errores de "ClassNotFoundException", las dependencias están correctas
+3. Si hay errores, verifique que los archivos JAR estén en `lib/`
+
+## 📞 Ayuda
+
+Si tiene problemas con las dependencias:
+
+1. Verifique que los archivos JAR estén exactamente en `lib/`
+2. Confirme que mysql-connector-java esté presente
+3. Para JavaFX, considere usar la instalación local configurando JAVAFX_PATH
+4. Consulte README.md para más detalles de configuración
+
+---
+
+**Una vez configuradas las dependencias, el sistema estará listo para compilar y ejecutar.**

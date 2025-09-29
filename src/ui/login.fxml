@@ -32,7 +32,7 @@
             </Label>
             
             <!-- Subtítulo -->
-            <Label text="Sistema de Clasificación de Pacientes" textAlignment="CENTER" textFill="#7A7A7A" wrapText="true">
+            <Label text="Sistema de Triage Hospitalario" textAlignment="CENTER" textFill="#7A7A7A" wrapText="true">
                <font>
                   <Font size="16.0" />
                </font>
