@@ -139,6 +139,8 @@ src/
 
 -----
 
+-----
+
 ## 📊 Diseño UML
 
 A continuación, se presentan los diagramas UML que modelan la estructura y el comportamiento del sistema.
@@ -258,6 +260,47 @@ classDiagram
     RegistroTriage --> Paciente
     RegistroTriage --> Usuario
 
+
+### Diagrama de Casos de Uso - Sistema Implementado
+
+mermaid
+graph TB
+    subgraph "Sistema de Triage Hospitalario - Hospital Santa Vida"
+        UC1[Iniciar Sesión]
+        UC2[Registrar Paciente]
+        UC3[Evaluar Síntomas]
+        UC4[Asignar Nivel Triage]
+        UC5[Gestionar Cola Prioridad]
+        UC6[Atender Siguiente Paciente]
+        UC7[Registrar Atención]
+        UC8[Generar Reportes]
+        UC9[Gestionar Usuarios]
+        UC10[Consultar Historial]
+    end
+    
+    Administrador --> UC1
+    MedicoTriage --> UC1
+    AsistenteMedica --> UC1
+    TrabajadorSocial --> UC1
+    MedicoUrgencias --> UC1
+    
+    AsistenteMedica --> UC2
+    MedicoTriage --> UC3
+    MedicoTriage --> UC4
+    MedicoTriage --> UC5
+    MedicoTriage --> UC6
+    MedicoUrgencias --> UC6
+    MedicoUrgencias --> UC7
+    Administrador --> UC8
+    Administrador --> UC9
+    MedicoUrgencias --> UC10
+    
+    UC3 -.-> UC4
+    UC4 -.-> UC5
+    UC6 -.-> UC7
+
+
+-----
 
 ### Diagrama de Casos de Uso - Sistema Implementado
 
