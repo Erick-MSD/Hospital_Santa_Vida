@@ -141,15 +141,162 @@ src/
 
 ## 📊 Diseño UML
 
-A continuación, se presentan los diagramas que modelan la estructura y el comportamiento del sistema.
+A continuación, se presentan los diagramas UML que modelan la estructura y el comportamiento del sistema.
 
-#### Diagrama de Clases
+### Diagrama de Clases
 
-*(Aquí iría la imagen del diagrama de clases)*
+mermaid
+classDiagram
+    direction TB
+    
+    class BaseController {
+        #authService: AuthenticationService
+        #triageService: TriageService
+        +configurarInterfaz(): void
+        +cargarDatos(): void
+        +limpiarFormulario(): void
+        +showError(mensaje: String): void
+        +showInfo(mensaje: String): void
+        +navigateTo(vista: String): void
+    }
+    
+    class LoginController {
+        -txtUsername: String
+        -txtPassword: String
+        +handleLogin(): void
+        +handleForgotPassword(): void
+        +setCredentials(user: String, pass: String): void
+    }
+    
+    class TriageController {
+        -pacienteDAO: PacienteDAO
+        -triageQueue: TriageQueue
+        +handleRegistrarPaciente(): void
+        +handleBuscarPaciente(): void
+        +handleAtenderSiguiente(): void
+    }
+    
+    class AdminController {
+        +handleGestionUsuarios(): void
+        +handleReportes(): void
+        +handleRespaldoBD(): void
+    }
+    
+    class TriageService {
+        -colasTriage: TriageQueue
+        -historiales: Map~Integer,HistorialPaciente~
+        +registrarLlegadaPaciente(): RegistroTriage
+        +completarTriage(): boolean
+        +atenderPaciente(): RegistroTriage
+    }
+    
+    class AuthenticationService {
+        -usuarioDAO: UsuarioDAO
+        -usuarioActual: Usuario
+        +login(username: String, password: String): boolean
+        +logout(): void
+        +getUsuarioActual(): Usuario
+    }
+    
+    class TriageQueue {
+        -nivelRojo: Stack~RegistroTriage~
+        -nivelNaranja: Queue~RegistroTriage~
+        -nivelAmarillo: Queue~RegistroTriage~
+        -nivelVerde: Queue~RegistroTriage~
+        -nivelAzul: Queue~RegistroTriage~
+        -registrosPorFolio: HashMap~String,RegistroTriage~
+        +agregarPaciente(registro: RegistroTriage): void
+        +obtenerSiguientePaciente(): RegistroTriage
+        +buscarPorFolio(folio: String): RegistroTriage
+    }
+    
+    class Usuario {
+        <<enumeration>>
+        ADMINISTRADOR
+        MEDICO_TRIAGE
+        ASISTENTE_MEDICA
+        TRABAJADOR_SOCIAL
+        MEDICO_URGENCIAS
+        -id: int
+        -username: String
+        -nombreCompleto: String
+        -tipoUsuario: TipoUsuario
+    }
+    
+    class Paciente {
+        -id: int
+        -nombre: String
+        -apellidoPaterno: String
+        -apellidoMaterno: String
+        -curp: String
+        -fechaNacimiento: LocalDate
+        -sexo: Sexo
+        +getNombreCompleto(): String
+        +getEdad(): int
+    }
+    
+    class RegistroTriage {
+        <<enumeration>>
+        NivelUrgencia: ROJO, NARANJA, AMARILLO, VERDE, AZUL
+        -id: int
+        -folio: String
+        -pacienteId: int
+        -medicoTriageId: int
+        -nivelUrgencia: NivelUrgencia
+        -fechaHoraLlegada: LocalDateTime
+        -sintomasPrincipales: String
+    }
+    
+    BaseController <|-- LoginController
+    BaseController <|-- TriageController
+    BaseController <|-- AdminController
+    TriageController --> TriageQueue
+    TriageController --> PacienteDAO
+    TriageService --> TriageQueue
+    AuthenticationService --> UsuarioDAO
+    TriageQueue --> RegistroTriage
+    RegistroTriage --> Paciente
+    RegistroTriage --> Usuario
 
-#### Diagrama de Casos de Uso
 
-*(Aquí iría la imagen del diagrama de casos de uso)*
+### Diagrama de Casos de Uso - Sistema Implementado
+
+mermaid
+graph TB
+    subgraph "Sistema de Triage Hospitalario - Hospital Santa Vida"
+        UC1[Iniciar Sesión]
+        UC2[Registrar Paciente]
+        UC3[Evaluar Síntomas]
+        UC4[Asignar Nivel Triage]
+        UC5[Gestionar Cola Prioridad]
+        UC6[Atender Siguiente Paciente]
+        UC7[Registrar Atención]
+        UC8[Generar Reportes]
+        UC9[Gestionar Usuarios]
+        UC10[Consultar Historial]
+    end
+    
+    Administrador --> UC1
+    MedicoTriage --> UC1
+    AsistenteMedica --> UC1
+    TrabajadorSocial --> UC1
+    MedicoUrgencias --> UC1
+    
+    AsistenteMedica --> UC2
+    MedicoTriage --> UC3
+    MedicoTriage --> UC4
+    MedicoTriage --> UC5
+    MedicoTriage --> UC6
+    MedicoUrgencias --> UC6
+    MedicoUrgencias --> UC7
+    Administrador --> UC8
+    Administrador --> UC9
+    MedicoUrgencias --> UC10
+    
+    UC3 -.-> UC4
+    UC4 -.-> UC5
+    UC6 -.-> UC7
+
 
 -----
 
@@ -232,20 +379,88 @@ mysql -u hospital_user -p hospital_santa_vida < hospital_santa_vida.sql
 
 -----
 
-## 📚 Glosario y Referencias
+## 📚 Glosario de Términos
 
-*(Esta sección se mantiene como la original, con el Glosario, Bibliografía, etc.)*
+### Términos Médicos
+
+  * *Triage*: Sistema de clasificación de pacientes según la urgencia de su condición médica, originado en medicina militar.
+  * *Signos Vitales*: Medidas básicas de las funciones corporales esenciales (presión arterial, pulso, temperatura, respiración).
+  * *Urgencias*: Área hospitalaria especializada en la atención inmediata de emergencias médicas y trauma.
+  * *Protocolo Manchester*: Sistema internacional de triage que clasifica pacientes en 5 niveles de prioridad.
+
+### Términos de Estructuras de Datos
+
+  * *Cola de Prioridad*: Estructura de datos abstracta donde cada elemento tiene una prioridad asociada y se procesan en orden de importancia.
+  * *Heap Binario*: Árbol binario completo que mantiene la propiedad de heap (padre mayor/menor que hijos).
+  * *Complejidad Temporal*: Medida de la cantidad de tiempo que toma ejecutar un algoritmo en función del tamaño de entrada.
+  * *HashMap*: Estructura de datos que implementa una tabla de dispersión para mapear claves a valores con acceso O(1).
+
+### Términos de Ingeniería de Software
+
+  * *DAO (Data Access Object)*: Patrón de diseño que proporciona una interfaz abstracta para acceder a datos.
+  * *MVC (Model-View-Controller)*: Patrón arquitectónico que separa la aplicación en tres componentes interconectados.
+  * *JDBC*: API de Java que define cómo un cliente puede acceder a una base de datos relacional.
+  * *UML*: Lenguaje de modelado unificado para especificar, visualizar y documentar sistemas de software.
+
+### Abreviaturas Técnicas
+
+  * *BD*: Base de Datos
+  * *CRUD*: Create, Read, Update, Delete
+  * *ED*: Estructuras de Datos
+  * *POO*: Programación Orientada a Objetos
+  * *API*: Application Programming Interface
+  * *SQL*: Structured Query Language
 
 -----
 
-## 👨‍💻 Desarrolladores
+## 👨‍💻 Desarrolladores  
 
-  * **Erick Mauricio Santiago Díaz** - `Líder del Proyecto / Desarrollador Principal` - [GitHub](https://www.google.com/search?q=https://github.com/Erick-MSD)
-  * **Santiago Sebastian Rojo Marquez** - `Desarrollador / Especialista en BD` - [GitHub](https://www.google.com/search?q=https://github.com/Sanlann)
-  * **Daniel Isai Sanchez Guadarrama** - `Arquitecto del Sistema / Desarrollador` - [GitHub](https://www.google.com/search?q=https://github.com/DanielIsaiSG)
-  * **Josue David Murillo Gomez** - `Documentación / Desarrollador` - [GitHub](https://www.google.com/search?q=https://github.com/Josuemgd15)
+<table>
+  <tr>
+    <td width="160" align="center">
+      <img src="assets/img/Foto_Erick.jpg" alt="Foto Erick" width="120" height="120" style="border-radius:50%;">
+    </td>
+    <td>
+      <b>Erick Mauricio Santiago Díaz</b><br>
+      - GitHub: <a href="https://github.com/Erick-MSD">@Erick-MSD</a><br>
+      - Rol: Líder del Proyecto / Desarrollador Principal
+    </td>
+  </tr>
+  <tr>
+    <td width="160" align="center">
+      <img src="assets/img/Foto_Rojo.jpg" alt="Foto Rojo" width="120" height="120" style="border-radius:50%;">
+    </td>
+    <td>
+      <b>Santiago Sebastian Rojo Marquez</b><br>
+      - GitHub: <a href="https://github.com/Sanlaan">Sanlann</a><br>
+      - Rol: Desarrollador / Especialista en Base de Datos
+    </td>
+  </tr>
+  <tr>
+    <td width="160" align="center">
+      <img src="assets/img/Foto_Dani.jpg" alt="Foto Dani" width="120" height="120" style="border-radius:50%;">
+    </td>
+    <td>
+      <b>Daniel Isai Sanchez Guadarrama</b><br>
+      - GitHub: <a href="https://github.com/DanielIsaiSG">DanielIsaiSG</a><br>
+      - Rol: Arquitecto del Sistema / Desarrollador
+    </td>
+  </tr>
+  <tr>
+    <td width="160" align="center">
+      <img src="assets/img/Foto_Josue.jpg" alt="Foto Josue" width="120" height="120" style="border-radius:50%;">
+    </td>
+    <td>
+      <b>Josue David Murillo Gomez</b><br>
+      - GitHub: <a href="https://github.com/Josuemgd15">Josuemgd15</a><br>
+      - Rol: Encargado de la Documentación / Desarrollador
+    </td>
+  </tr>
+</table>
 
+<p align="center"> <img src="assets/img/Evidencia.jpg" alt="Foto Evidencia" width="300" height="300" style="border-radius:50%;"> </p>
 -----
+
 
 ## 🎯 Objetivos de Aprendizaje Alcanzados
 
