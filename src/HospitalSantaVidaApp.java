@@ -67,7 +67,7 @@ public class HospitalSantaVidaApp extends Application {
             primaryStage.centerOnScreen();
             
             // Configurar el evento de cierre de aplicación
-            primaryStage.setOnCloseRequest(_ -> {
+            primaryStage.setOnCloseRequest(event -> {
                 try {
                     // Cerrar conexiones de base de datos
                     DatabaseConnection.closeAllConnections();
@@ -232,8 +232,15 @@ public class HospitalSantaVidaApp extends Application {
      */
     private void verificarRecursos() {
         try {
-            // Verificar archivos FXML - TEMPORALMENTE COMENTADO MIENTRAS SE CREAN LAS PANTALLAS
-            String[] archivosRequeridos = {"/ui/login.fxml","/ui/admin-sala-espera.fxml"};
+            // Verificar archivos FXML necesarios
+            String[] archivosRequeridos = {
+                "/ui/login.fxml",
+                "/ui/admin-sala-espera.fxml",
+                "/ui/triage.fxml",
+                "/ui/registro-paciente.fxml",
+                "/ui/consulta-medica.fxml",
+                "/ui/trabajo-social.fxml"
+            };
             for (String archivo : archivosRequeridos) {
                 var url = getClass().getResource(archivo);
                 if (url == null) {
