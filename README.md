@@ -485,10 +485,8 @@ mysql -u hospital_user -p hospital_santa_vida < hospital_santa_vida.sql
 
 ### 📅 Pendiente (Testing y Documentación Final)
 
-  * [ ] **Pruebas unitarias** y de integración
-  * [ ] **Manual de usuario** con capturas de pantalla
-  * [ ] **Presentación académica** para evaluación final
-
+  * [ ] **Ninguno todos fueron solucionadosl** solo queda presentarlo
+  
 ### Próximos Pasos Técnicos
 
   * **Fase 1: Frontend JavaFX** (Actual)
