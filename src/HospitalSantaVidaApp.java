@@ -67,7 +67,7 @@ public class HospitalSantaVidaApp extends Application {
             primaryStage.centerOnScreen();
             
             // Configurar el evento de cierre de aplicación
-            primaryStage.setOnCloseRequest(_ -> {
+            primaryStage.setOnCloseRequest(event -> {
                 try {
                     // Cerrar conexiones de base de datos
                     DatabaseConnection.closeAllConnections();
