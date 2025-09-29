@@ -147,7 +147,7 @@ A continuación, se presentan los diagramas UML que modelan la estructura y el c
 
 ### Diagrama de Clases
 
-mermaid
+```mermaid
 classDiagram
     direction TB
     
@@ -161,7 +161,7 @@ classDiagram
         +showInfo(mensaje: String): void
         +navigateTo(vista: String): void
     }
-    
+
     class LoginController {
         -txtUsername: String
         -txtPassword: String
@@ -169,7 +169,7 @@ classDiagram
         +handleForgotPassword(): void
         +setCredentials(user: String, pass: String): void
     }
-    
+
     class TriageController {
         -pacienteDAO: PacienteDAO
         -triageQueue: TriageQueue
@@ -177,13 +177,13 @@ classDiagram
         +handleBuscarPaciente(): void
         +handleAtenderSiguiente(): void
     }
-    
+
     class AdminController {
         +handleGestionUsuarios(): void
         +handleReportes(): void
         +handleRespaldoBD(): void
     }
-    
+
     class TriageService {
         -colasTriage: TriageQueue
         -historiales: Map~Integer,HistorialPaciente~
@@ -191,7 +191,7 @@ classDiagram
         +completarTriage(): boolean
         +atenderPaciente(): RegistroTriage
     }
-    
+
     class AuthenticationService {
         -usuarioDAO: UsuarioDAO
         -usuarioActual: Usuario
@@ -199,7 +199,7 @@ classDiagram
         +logout(): void
         +getUsuarioActual(): Usuario
     }
-    
+
     class TriageQueue {
         -nivelRojo: Stack~RegistroTriage~
         -nivelNaranja: Queue~RegistroTriage~
@@ -211,7 +211,7 @@ classDiagram
         +obtenerSiguientePaciente(): RegistroTriage
         +buscarPorFolio(folio: String): RegistroTriage
     }
-    
+
     class Usuario {
         <<enumeration>>
         ADMINISTRADOR
@@ -224,7 +224,7 @@ classDiagram
         -nombreCompleto: String
         -tipoUsuario: TipoUsuario
     }
-    
+
     class Paciente {
         -id: int
         -nombre: String
@@ -236,7 +236,7 @@ classDiagram
         +getNombreCompleto(): String
         +getEdad(): int
     }
-    
+
     class RegistroTriage {
         <<enumeration>>
         NivelUrgencia: ROJO, NARANJA, AMARILLO, VERDE, AZUL
@@ -248,7 +248,7 @@ classDiagram
         -fechaHoraLlegada: LocalDateTime
         -sintomasPrincipales: String
     }
-    
+
     BaseController <|-- LoginController
     BaseController <|-- TriageController
     BaseController <|-- AdminController
@@ -259,11 +259,11 @@ classDiagram
     TriageQueue --> RegistroTriage
     RegistroTriage --> Paciente
     RegistroTriage --> Usuario
-
+```
 
 ### Diagrama de Casos de Uso - Sistema Implementado
 
-mermaid
+```mermaid
 graph TB
     subgraph "Sistema de Triage Hospitalario - Hospital Santa Vida"
         UC1[Iniciar Sesión]
@@ -298,48 +298,7 @@ graph TB
     UC3 -.-> UC4
     UC4 -.-> UC5
     UC6 -.-> UC7
-
-
------
-
-### Diagrama de Casos de Uso - Sistema Implementado
-
-mermaid
-graph TB
-    subgraph "Sistema de Triage Hospitalario - Hospital Santa Vida"
-        UC1[Iniciar Sesión]
-        UC2[Registrar Paciente]
-        UC3[Evaluar Síntomas]
-        UC4[Asignar Nivel Triage]
-        UC5[Gestionar Cola Prioridad]
-        UC6[Atender Siguiente Paciente]
-        UC7[Registrar Atención]
-        UC8[Generar Reportes]
-        UC9[Gestionar Usuarios]
-        UC10[Consultar Historial]
-    end
-    
-    Administrador --> UC1
-    MedicoTriage --> UC1
-    AsistenteMedica --> UC1
-    TrabajadorSocial --> UC1
-    MedicoUrgencias --> UC1
-    
-    AsistenteMedica --> UC2
-    MedicoTriage --> UC3
-    MedicoTriage --> UC4
-    MedicoTriage --> UC5
-    MedicoTriage --> UC6
-    MedicoUrgencias --> UC6
-    MedicoUrgencias --> UC7
-    Administrador --> UC8
-    Administrador --> UC9
-    MedicoUrgencias --> UC10
-    
-    UC3 -.-> UC4
-    UC4 -.-> UC5
-    UC6 -.-> UC7
-
+```
 
 -----
 
