@@ -92,35 +92,77 @@ public class TrabajoSocialController extends BaseController implements Initializ
      */
     private void cargarPacientePendiente() {
         try {
-            // Simulación de obtener paciente - se debe implementar método en TriageService
-            // registroTriageActual = triageService.obtenerSiguientePacienteParaTrabajoSocial();
+            // Obtener pacientes esperando trabajo social desde la base de datos
+            dao.RegistroTriageDAO triageDAO = new dao.RegistroTriageDAO();
+            java.util.List<RegistroTriage> pacientesEspera = triageDAO.obtenerEsperandoTrabajoSocial();
             
-            // Por ahora, simulamos que no hay pacientes pendientes
-            registroTriageActual = null;
+            System.out.println("DEBUG: Pacientes encontrados esperando trabajo social: " + pacientesEspera.size());
             
-            if (registroTriageActual != null) {
-                actualizarInformacionPaciente();
+            if (!pacientesEspera.isEmpty()) {
+                // Tomar el primer paciente de la lista (ordenado por prioridad)
+                registroTriageActual = pacientesEspera.get(0);
+                
+                // Mostrar información básica
+                lblNombrePaciente.setText(registroTriageActual.getPacienteNombre() != null ? 
+                    registroTriageActual.getPacienteNombre() : "Paciente sin nombre");
+                    
+                lblClasificacion.setText("Triage: " + (registroTriageActual.getNivelUrgencia() != null ? 
+                    registroTriageActual.getNivelUrgencia().toString() : "Sin clasificar"));
+                    
+                lblMotivo.setText("Motivo: " + (registroTriageActual.getMotivoConsulta() != null ? 
+                    registroTriageActual.getMotivoConsulta() : "Sin motivo"));
+                    
+                System.out.println("Paciente cargado para trabajo social: " + registroTriageActual.getPacienteNombre());
             } else {
-                mostrarSinPacientes();
+                // No hay pacientes esperando trabajo social
+                registroTriageActual = null;
+                lblNombrePaciente.setText("No hay pacientes esperando evaluación social");
+                lblClasificacion.setText("-");
+                lblMotivo.setText("-");
+                System.out.println("No hay pacientes esperando evaluación de trabajo social");
             }
             
         } catch (Exception e) {
-            mostrarError("Error al cargar paciente", "No se pudo cargar la información del paciente: " + e.getMessage());
+            System.err.println("Error al cargar paciente pendiente: " + e.getMessage());
             e.printStackTrace();
+            registroTriageActual = null;
+            lblNombrePaciente.setText("Error al cargar pacientes");
+            lblClasificacion.setText("-");
+            lblMotivo.setText("-");
         }
+    }
+    
+    /**
+     * Muestra la información del paciente actual
+     */
+    private void mostrarInformacionPaciente() {
+        if (registroTriageActual != null) {
+            lblNombrePaciente.setText(registroTriageActual.getPacienteNombre());
+            lblClasificacion.setText("Triage: " + registroTriageActual.getNivelUrgencia().toString());
+            lblMotivo.setText("Motivo: " + registroTriageActual.getMotivoConsulta());
+        }
+    }
+    
+    /**
+     * Muestra mensaje cuando no hay pacientes
+     */
+    /**
+     * Muestra mensaje cuando no hay pacientes
+     */
+    private void mostrarSinPacientes() {
+        lblNombrePaciente.setText("No hay pacientes esperando evaluación social");
+        lblClasificacion.setText("-");
+        lblMotivo.setText("-");
     }
     
     /**
      * Actualiza la información del paciente en la interfaz
      */
     private void actualizarInformacionPaciente() {
-        if (registroTriageActual != null && registroTriageActual.getPaciente() != null) {
-            Paciente paciente = registroTriageActual.getPaciente();
-            
-            lblNombrePaciente.setText(paciente.getNombre() + " " + paciente.getApellidoPaterno());
-            lblClasificacion.setText(registroTriageActual.getNivelUrgencia() != null ? 
-                                   registroTriageActual.getNivelUrgencia().name() : "Sin clasificar");
-            lblMotivo.setText(registroTriageActual.getMotivoConsulta());
+        if (registroTriageActual != null) {
+            lblNombrePaciente.setText(registroTriageActual.getPacienteNombre());
+            lblClasificacion.setText("Triage: " + registroTriageActual.getNivelUrgencia().toString());
+            lblMotivo.setText("Motivo: " + registroTriageActual.getMotivoConsulta());
             
             // Cargar datos sociales existentes si los hay
             cargarDatosSocialesExistentes();
@@ -154,24 +196,6 @@ public class TrabajoSocialController extends BaseController implements Initializ
         } catch (Exception e) {
             System.out.println("No se encontraron datos sociales previos para este paciente");
         }
-    }
-    
-    /**
-     * Muestra mensaje cuando no hay pacientes pendientes
-     */
-    private void mostrarSinPacientes() {
-        lblNombrePaciente.setText("Sin pacientes pendientes");
-        lblClasificacion.setText("N/A");
-        lblMotivo.setText("N/A");
-        
-        // Deshabilitar botón de guardar
-        btnGuardarEvaluacion.setDisable(true);
-        
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Sin pacientes");
-        alert.setHeaderText("No hay pacientes pendientes");
-        alert.setContentText("Actualmente no hay pacientes esperando evaluación social.");
-        alert.showAndWait();
     }
     
     /**

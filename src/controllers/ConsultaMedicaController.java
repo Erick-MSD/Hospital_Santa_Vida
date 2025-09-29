@@ -18,6 +18,7 @@ import services.PacienteServiceResults.*;
 import java.io.IOException;
 import java.net.URL;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.ResourceBundle;
@@ -86,7 +87,7 @@ public class ConsultaMedicaController extends BaseController implements Initiali
     
     // Servicios
     private PacienteService pacienteService;
-    private CitaService citaService;
+    // private CitaService citaService; // DESHABILITADO - Funcionalidad de citas removida
     
     // Estado actual
     private Paciente pacienteActual;
@@ -98,7 +99,7 @@ public class ConsultaMedicaController extends BaseController implements Initiali
     public void initialize(URL location, ResourceBundle resources) {
         // Inicializar servicios
         pacienteService = new PacienteService();
-        citaService = new CitaService();
+        // citaService = new CitaService(); // DESHABILITADO
         
         // Configurar ComboBoxes
         setupComboBoxes();
@@ -347,7 +348,9 @@ public class ConsultaMedicaController extends BaseController implements Initiali
      */
     private void cargarConsultasDelDia() {
         try {
-            List<CitaMedica> citasHoy = citaService.obtenerCitasHoy(tokenSesion);
+            // List<CitaMedica> citasHoy = citaService.obtenerCitasHoy(tokenSesion); // DESHABILITADO
+            // Simulamos datos vacíos por ahora
+            List<CitaMedica> citasHoy = new ArrayList<>();
             
             consultasHoy.clear();
             

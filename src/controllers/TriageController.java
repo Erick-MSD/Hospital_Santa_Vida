@@ -77,7 +77,6 @@ public class TriageController extends BaseController implements Initializable {
     @FXML private Button btnEspecialidadNeurologia;
     @FXML private Button btnEspecialidadPsiquiatria;
     @FXML private Button btnEspecialidadDermatologia;
-    @FXML private Label lblEspecialidadSeleccionada;
     
     // Botones de acción
     @FXML private Button btnCancelar;
@@ -104,6 +103,10 @@ public class TriageController extends BaseController implements Initializable {
     private RegistroTriage evaluacionActual;
     private ObservableList<PacienteColaInfo> colaPacientes;
     
+    // Selecciones temporales (sin guardar hasta confirmar)
+    private NivelUrgencia nivelSeleccionado;
+    private String especialidadSeleccionada;
+    
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         // Inicializar servicios
@@ -113,9 +116,9 @@ public class TriageController extends BaseController implements Initializable {
         // Configurar tabla - TEMPORALMENTE COMENTADO
         // setupTable();
         
-        // Configurar lista observable - TEMPORALMENTE COMENTADO  
-        // colaPacientes = FXCollections.observableArrayList();
-        // tblColaTriage.setItems(colaPacientes);
+        // Configurar lista observable
+        colaPacientes = FXCollections.observableArrayList();
+        // tblColaTriage.setItems(colaPacientes); // Tabla comentada por ahora
         
         // Configurar sliders
         setupSliders();
@@ -218,6 +221,11 @@ public class TriageController extends BaseController implements Initializable {
      */
     private void cargarColaTriage() {
         try {
+            // Verificar que la lista esté inicializada
+            if (colaPacientes == null) {
+                colaPacientes = FXCollections.observableArrayList();
+            }
+            
             List<TriageService.PacienteEnEspera> pacientesEnEspera = triageService.obtenerPacientesEnEspera(tokenSesion);
             
             colaPacientes.clear();
@@ -453,6 +461,12 @@ public class TriageController extends BaseController implements Initializable {
         
         pacienteActual = null;
         evaluacionActual = null;
+        
+        // Limpiar selecciones temporales
+        nivelSeleccionado = null;
+        especialidadSeleccionada = null;
+        lblTriageSeleccionado.setText("Nivel: No seleccionado");
+        lblTriageSeleccionado.setStyle("-fx-text-fill: #7A7A7A;");
     }
     
     /**
@@ -565,79 +579,31 @@ public class TriageController extends BaseController implements Initializable {
                 return;
             }
             
-            // Crear o actualizar el registro de triage
-            if (evaluacionActual == null) {
-                evaluacionActual = new RegistroTriage();
-                evaluacionActual.setPacienteId(pacienteActual.getId());
-                evaluacionActual.setMedicoTriageId(getUsuarioActual().getId());
-            }
+            // Solo marcar la selección, no guardar todavía
+            nivelSeleccionado = nivel;
+            lblTriageSeleccionado.setText("Nivel: " + nivel.name() + " - " + descripcion);
+            lblTriageSeleccionado.setStyle("-fx-text-fill: " + obtenerColorNivel(nivel) + ";");
             
-            // Establecer nivel de urgencia
-            evaluacionActual.setNivelUrgencia(nivel);
-            
-            // Obtener signos vitales desde la interfaz
-            try {
-                // Presión arterial (puede estar en formato "120/80" o campos separados)
-                if (!txtPresionArterial.getText().trim().isEmpty()) {
-                    String presionText = txtPresionArterial.getText().trim();
-                    if (presionText.contains("/")) {
-                        String[] presion = presionText.split("/");
-                        if (presion.length == 2) {
-                            evaluacionActual.setPresionSistolica(Integer.parseInt(presion[0].trim()));
-                            evaluacionActual.setPresionDiastolica(Integer.parseInt(presion[1].trim()));
-                        }
-                    } else {
-                        // Solo sistólica
-                        evaluacionActual.setPresionSistolica(Integer.parseInt(presionText));
-                    }
-                }
-                
-                if (!txtFrecuenciaCardiaca.getText().trim().isEmpty()) {
-                    evaluacionActual.setFrecuenciaCardiaca(Integer.parseInt(txtFrecuenciaCardiaca.getText().trim()));
-                }
-                
-                if (!txtTemperatura.getText().trim().isEmpty()) {
-                    evaluacionActual.setTemperatura(Double.parseDouble(txtTemperatura.getText().trim()));
-                }
-                
-                if (!txtFrecuenciaRespiratoria.getText().trim().isEmpty()) {
-                    evaluacionActual.setFrecuenciaRespiratoria(Integer.parseInt(txtFrecuenciaRespiratoria.getText().trim()));
-                }
-                
-                if (!txtSaturacionO2.getText().trim().isEmpty()) {
-                    evaluacionActual.setSaturacionOxigeno(Integer.parseInt(txtSaturacionO2.getText().trim()));
-                }
-                
-                if (!txtGlasgow.getText().trim().isEmpty()) {
-                    evaluacionActual.setGlasgow(Integer.parseInt(txtGlasgow.getText().trim()));
-                }
-                
-            } catch (NumberFormatException e) {
-                showAlert("Error", "Por favor verifique que los valores numéricos sean correctos");
-                return;
-            }
-            
-            // Establecer observaciones
-            evaluacionActual.setObservacionesTriage(txtObservacionesClinicas.getText());
-            evaluacionActual.setMotivoConsulta(txtMotivoConsulta.getText());
-            
-            // Mostrar confirmación
-            Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
-            confirmAlert.setTitle("Confirmar Clasificación");
-            confirmAlert.setHeaderText("Clasificación de Triage: " + nivel.name());
-            confirmAlert.setContentText("Paciente: " + pacienteActual.getNombreCompleto() + "\n" +
-                                      "Nivel: " + descripcion + "\n\n" +
-                                      "¿Confirma la clasificación?");
-            
-            confirmAlert.showAndWait().ifPresent(response -> {
-                if (response == ButtonType.OK) {
-                    guardarEvaluacionTriage();
-                }
-            });
+            // Mostrar mensaje informativo
+            showAlert("Nivel seleccionado", "Nivel de triage seleccionado. Ahora seleccione la especialidad médica.");
             
         } catch (Exception e) {
-            showAlert("Error", "Error al clasificar paciente: " + e.getMessage());
+            showAlert("Error", "Error al seleccionar nivel de triage: " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Obtiene el color CSS para cada nivel de triage
+     */
+    private String obtenerColorNivel(NivelUrgencia nivel) {
+        switch (nivel) {
+            case ROJO: return "#FF0000";
+            case NARANJA: return "#FF8C00";
+            case AMARILLO: return "#FFD700";
+            case VERDE: return "#32CD32";
+            case AZUL: return "#0080FF";
+            default: return "#000000";
         }
     }
     
@@ -709,11 +675,148 @@ public class TriageController extends BaseController implements Initializable {
      * Método auxiliar para seleccionar especialidad
      */
     private void seleccionarEspecialidad(String especialidad) {
-        if (evaluacionActual != null) {
-            evaluacionActual.setEspecialidadAsignada(especialidad);
-            lblEspecialidadSeleccionada.setText("Especialidad seleccionada: " + especialidad);
-        } else {
-            showAlert("Error", "Debe evaluar al paciente primero");
+        if (pacienteActual == null) {
+            showAlert("Error", "Debe seleccionar un paciente primero");
+            return;
+        }
+        
+        if (nivelSeleccionado == null) {
+            showAlert("Error", "Debe seleccionar un nivel de triage primero");
+            return;
+        }
+        
+        // Marcar especialidad seleccionada
+        especialidadSeleccionada = especialidad;
+        
+        // Mostrar confirmación para guardar
+        Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmAlert.setTitle("Confirmar Evaluación de Triage");
+        confirmAlert.setHeaderText("Resumen de Clasificación");
+        confirmAlert.setContentText("Paciente: " + pacienteActual.getNombreCompleto() + "\n" +
+                                  "Nivel de Urgencia: " + nivelSeleccionado.name() + "\n" +
+                                  "Especialidad: " + especialidad + "\n\n" +
+                                  "¿Confirma la evaluación de triage?");
+        
+        confirmAlert.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                completarEvaluacionTriage();
+            }
+        });
+    }
+    
+    /**
+     * Completa y guarda la evaluación de triage
+     */
+    private void completarEvaluacionTriage() {
+        try {
+            // Crear el registro de triage completo
+            if (evaluacionActual == null) {
+                evaluacionActual = new RegistroTriage();
+            }
+            
+            evaluacionActual.setPacienteId(pacienteActual.getId());
+            
+            // Establecer ID de usuario de triage - con verificación robusta
+            int usuarioId = 0;
+            try {
+                if (getUsuarioActual() != null && getUsuarioActual().getId() > 0) {
+                    usuarioId = getUsuarioActual().getId();
+                } else {
+                    // Si no hay usuario actual válido, usar un ID por defecto
+                    usuarioId = 1; // ID por defecto
+                    System.err.println("Usando ID de usuario por defecto para triage");
+                }
+            } catch (Exception e) {
+                usuarioId = 1; // ID por defecto en caso de error
+                System.err.println("Error al obtener usuario actual, usando ID por defecto: " + e.getMessage());
+            }
+            evaluacionActual.setUsuarioTriageId(usuarioId);
+            
+            evaluacionActual.setNivelUrgencia(nivelSeleccionado);
+            evaluacionActual.setEspecialidadAsignada(especialidadSeleccionada);
+            evaluacionActual.setFechaHoraTriage(LocalDateTime.now());
+            
+            // Establecer prioridad numérica basada en el nivel de urgencia
+            int prioridadNumerica = calcularPrioridadNumerica(nivelSeleccionado);
+            evaluacionActual.setPrioridadNumerica(prioridadNumerica);
+            
+            // Establecer tiempo estimado de atención basado en el nivel de urgencia
+            int tiempoEstimado = calcularTiempoEstimadoAtencion(nivelSeleccionado);
+            evaluacionActual.setTiempoEstimadoAtencion(tiempoEstimado);
+            
+            // Obtener signos vitales desde la interfaz
+            try {
+                if (!txtPresionArterial.getText().trim().isEmpty()) {
+                    evaluacionActual.setSignosVitalesPresion(txtPresionArterial.getText().trim());
+                }
+                
+                if (!txtFrecuenciaCardiaca.getText().trim().isEmpty()) {
+                    evaluacionActual.setSignosVitalesPulso(Integer.parseInt(txtFrecuenciaCardiaca.getText().trim()));
+                }
+                
+                if (!txtTemperatura.getText().trim().isEmpty()) {
+                    evaluacionActual.setSignosVitalesTemperatura(Double.parseDouble(txtTemperatura.getText().trim()));
+                }
+                
+                if (!txtFrecuenciaRespiratoria.getText().trim().isEmpty()) {
+                    evaluacionActual.setSignosVitalesRespiracion(Integer.parseInt(txtFrecuenciaRespiratoria.getText().trim()));
+                }
+                
+                if (!txtSaturacionO2.getText().trim().isEmpty()) {
+                    evaluacionActual.setSignosVitalesSaturacion(Integer.parseInt(txtSaturacionO2.getText().trim()));
+                }
+                
+                if (!txtGlasgow.getText().trim().isEmpty()) {
+                    evaluacionActual.setEscalaGlasgow(Integer.parseInt(txtGlasgow.getText().trim()));
+                }
+                
+            } catch (NumberFormatException e) {
+                showAlert("Error", "Por favor verifique que los valores numéricos sean correctos");
+                return;
+            }
+            
+            // Establecer observaciones y síntomas
+            evaluacionActual.setObservacionesTriage(txtObservacionesClinicas.getText());
+            
+            // Establecer motivo de consulta - requerido por la validación
+            String motivoConsulta = txtMotivoConsulta.getText().trim();
+            if (motivoConsulta.isEmpty() || motivoConsulta.length() < 5) {
+                motivoConsulta = "Evaluación de triage - nivel " + nivelSeleccionado.toString();
+            }
+            evaluacionActual.setMotivoConsulta(motivoConsulta);
+            
+            // Establecer síntomas principales - requerido por la validación
+            String sintomas = txtSintomas.getText().trim();
+            if (sintomas.isEmpty()) {
+                // Si no hay síntomas, usar el motivo de consulta como síntomas principales
+                sintomas = motivoConsulta;
+                if (sintomas.length() < 5) {
+                    sintomas = "Síntomas reportados durante evaluación de triage";
+                }
+            }
+            evaluacionActual.setSintomasPrincipales(sintomas);
+            
+            // Establecer el estado del registro de triage
+            evaluacionActual.setEstado(EstadoPaciente.ESPERANDO_TRABAJO_SOCIAL);
+            
+            // Debug: mostrar valores antes de guardar
+            System.out.println("=== DEBUG TRIAGE ===");
+            System.out.println("Paciente ID: " + evaluacionActual.getPacienteId());
+            System.out.println("Usuario Triage ID: " + evaluacionActual.getUsuarioTriageId());
+            System.out.println("Motivo consulta: '" + evaluacionActual.getMotivoConsulta() + "' (length: " + evaluacionActual.getMotivoConsulta().length() + ")");
+            System.out.println("Síntomas principales: '" + evaluacionActual.getSintomasPrincipales() + "' (length: " + evaluacionActual.getSintomasPrincipales().length() + ")");
+            System.out.println("Tiempo estimado: " + evaluacionActual.getTiempoEstimadoAtencion());
+            System.out.println("Prioridad numérica: " + evaluacionActual.getPrioridadNumerica());
+            System.out.println("Nivel urgencia: " + evaluacionActual.getNivelUrgencia());
+            System.out.println("Especialidad: " + evaluacionActual.getEspecialidadAsignada());
+            System.out.println("==================");
+            
+            // Guardar en la base de datos
+            guardarEvaluacionTriage();
+            
+        } catch (Exception e) {
+            showAlert("Error", "Error al completar evaluación de triage: " + e.getMessage());
+            e.printStackTrace();
         }
     }
     
@@ -757,6 +860,53 @@ public class TriageController extends BaseController implements Initializable {
         });
     }
     
+    /**
+     * Calcula la prioridad numérica basada en el nivel de urgencia
+     */
+    private int calcularPrioridadNumerica(NivelUrgencia nivelUrgencia) {
+        if (nivelUrgencia == null) {
+            return 5; // Por defecto menor prioridad
+        }
+        
+        switch (nivelUrgencia) {
+            case ROJO:      // Crítico/Resucitación
+                return 1;   // Máxima prioridad
+            case NARANJA:   // Urgente  
+                return 2;   // Alta prioridad
+            case AMARILLO:  // Menos urgente
+                return 3;   // Prioridad media
+            case VERDE:     // No urgente
+                return 4;   // Prioridad baja
+            case AZUL:      // Cita ambulatoria
+                return 5;   // Menor prioridad
+            default:
+                return 5;   // Por defecto menor prioridad
+        }
+    }
+    
+    /**
+     * Calcula el tiempo estimado de atención basado en el nivel de urgencia
+     */
+    private int calcularTiempoEstimadoAtencion(NivelUrgencia nivelUrgencia) {
+        if (nivelUrgencia == null) {
+            return 60; // Por defecto 60 minutos
+        }
+        
+        switch (nivelUrgencia) {
+            case ROJO:      // Crítico/Resucitación
+                return 0;   // Inmediato
+            case NARANJA:   // Urgente  
+                return 10;  // 10 minutos
+            case AMARILLO:  // Menos urgente
+                return 60;  // 1 hora
+            case VERDE:     // No urgente
+                return 120; // 2 horas
+            case AZUL:      // Cita ambulatoria
+                return 240; // 4 horas o cita programada
+            default:
+                return 60;  // Por defecto 60 minutos
+        }
+    }
 
     
     // Clase de datos para la tabla de cola

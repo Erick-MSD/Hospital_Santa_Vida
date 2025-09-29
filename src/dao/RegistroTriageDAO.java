@@ -2,6 +2,7 @@ package dao;
 
 import models.RegistroTriage;
 import models.NivelUrgencia;
+import models.EstadoPaciente;
 import utils.ValidationUtils;
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -20,18 +21,18 @@ public class RegistroTriageDAO extends BaseDAO<RegistroTriage> {
     // Consultas SQL predefinidas
     private static final String SQL_INSERTAR = 
         "INSERT INTO " + TABLA + " (paciente_id, medico_triage_id, fecha_hora_triage, " +
-        "motivo_consulta, sintomas_principales, signos_vitales_presion, " +
-        "signos_vitales_pulso, signos_vitales_temperatura, signos_vitales_respiracion, " +
-        "signos_vitales_saturacion, nivel_dolor, escala_glasgow, observaciones_triage, " +
-        "nivel_urgencia, tiempo_estimado_atencion, prioridad_orden) " +
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        "motivo_consulta, sintomas_principales, presion_sistolica, presion_diastolica, " +
+        "frecuencia_cardiaca, temperatura, frecuencia_respiratoria, " +
+        "saturacion_oxigeno, glasgow, observaciones_triage, " +
+        "nivel_urgencia, especialidad_asignada, prioridad_orden, estado) " +
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     
     private static final String SQL_ACTUALIZAR = 
         "UPDATE " + TABLA + " SET paciente_id = ?, medico_triage_id = ?, fecha_hora_triage = ?, " +
-        "motivo_consulta = ?, sintomas_principales = ?, signos_vitales_presion = ?, " +
-        "signos_vitales_pulso = ?, signos_vitales_temperatura = ?, signos_vitales_respiracion = ?, " +
-        "signos_vitales_saturacion = ?, nivel_dolor = ?, escala_glasgow = ?, " +
-        "observaciones_triage = ?, nivel_urgencia = ?, tiempo_estimado_atencion = ?, " +
+        "motivo_consulta = ?, sintomas_principales = ?, presion_sistolica = ?, presion_diastolica = ?, " +
+        "frecuencia_cardiaca = ?, temperatura = ?, frecuencia_respiratoria = ?, " +
+        "saturacion_oxigeno = ?, glasgow = ?, " +
+        "observaciones_triage = ?, nivel_urgencia = ?, especialidad_asignada = ?, " +
         "prioridad_orden = ? WHERE id = ?";
     
     private static final String SQL_ELIMINAR = 
@@ -113,6 +114,15 @@ public class RegistroTriageDAO extends BaseDAO<RegistroTriage> {
         "AND rt.estado IN ('ESPERANDO_MEDICO', 'EN_ATENCION') " +
         "ORDER BY rt.prioridad_orden, rt.fecha_hora_triage";
     
+    private static final String SQL_OBTENER_ESPERANDO_TRABAJO_SOCIAL = 
+        "SELECT rt.*, CONCAT(p.nombre, ' ', p.apellido_paterno, ' ', IFNULL(p.apellido_materno, '')) as paciente_nombre, p.id as numero_expediente, " +
+        "u.nombre_completo as usuario_nombre " +
+        "FROM " + TABLA + " rt " +
+        "JOIN pacientes p ON rt.paciente_id = p.id " +
+        "JOIN usuarios u ON rt.medico_triage_id = u.id " +
+        "WHERE rt.estado = 'ESPERANDO_TRABAJO_SOCIAL' " +
+        "ORDER BY rt.prioridad_orden, rt.fecha_hora_triage";
+    
     /**
      * Inserta un nuevo registro de triage en la base de datos
      * @param registro Registro de triage a insertar
@@ -123,23 +133,30 @@ public class RegistroTriageDAO extends BaseDAO<RegistroTriage> {
     public boolean insertar(RegistroTriage registro) throws SQLException {
         validarRegistro(registro);
         
+        // Debug: mostrar estado antes del insert
+        System.out.println("=== DEBUG DAO INSERT ===");
+        System.out.println("Estado que se va a insertar: " + (registro.getEstado() != null ? registro.getEstado().name() : "NULL"));
+        System.out.println("Paciente ID: " + registro.getPacienteId());
+        System.out.println("========================");
+        
         int idGenerado = ejecutarInsercionConClave(SQL_INSERTAR,
             registro.getPacienteId(),
             registro.getUsuarioTriageId(),
             convertirATimestamp(registro.getFechaTriage()),
             registro.getMotivoConsulta(),
             registro.getSintomasPrincipales(),
-            registro.getSignosVitalesPresion(),
-            registro.getSignosVitalesPulso(),
-            registro.getSignosVitalesTemperatura(),
-            registro.getSignosVitalesRespiracion(),
-            registro.getSignosVitalesSaturacion(),
-            registro.getNivelDolor(),
-            registro.getEscalaGlasgow(),
+            extraerPresionSistolica(registro.getSignosVitalesPresion()), // presion_sistolica
+            extraerPresionDiastolica(registro.getSignosVitalesPresion()), // presion_diastolica  
+            registro.getSignosVitalesPulso(), // frecuencia_cardiaca
+            registro.getSignosVitalesTemperatura(), // temperatura
+            registro.getSignosVitalesRespiracion(), // frecuencia_respiratoria
+            registro.getSignosVitalesSaturacion(), // saturacion_oxigeno
+            registro.getEscalaGlasgow(), // glasgow
             registro.getObservacionesTriage(),
             registro.getNivelUrgencia().name(),
-            registro.getTiempoEstimadoAtencion(),
-            registro.getPrioridadNumerica()
+            registro.getEspecialidadAsignada(), // especialidad_asignada
+            registro.getPrioridadNumerica(), // prioridad_orden
+            registro.getEstado() != null ? registro.getEstado().name() : "ESPERANDO_ASISTENTE" // estado
         );
         
         if (idGenerado > 0) {
@@ -268,6 +285,27 @@ public class RegistroTriageDAO extends BaseDAO<RegistroTriage> {
         }
         
         return ejecutarConsulta(SQL_BUSCAR_POR_NIVEL_URGENCIA, nivelUrgencia.name());
+    }
+    
+    /**
+     * Obtiene pacientes que están esperando evaluación de trabajo social
+     * @return Lista de registros en estado ESPERANDO_TRABAJO_SOCIAL
+     * @throws SQLException si hay error en la operación
+     */
+    public List<RegistroTriage> obtenerEsperandoTrabajoSocial() throws SQLException {
+        System.out.println("=== DEBUG CONSULTA TRABAJO SOCIAL ===");
+        System.out.println("SQL: " + SQL_OBTENER_ESPERANDO_TRABAJO_SOCIAL);
+        System.out.println("=====================================");
+        
+        List<RegistroTriage> resultado = ejecutarConsulta(SQL_OBTENER_ESPERANDO_TRABAJO_SOCIAL);
+        
+        System.out.println("Registros encontrados: " + resultado.size());
+        for (RegistroTriage reg : resultado) {
+            System.out.println("- Paciente: " + reg.getPacienteNombre() + ", Estado: " + 
+                (reg.getEstado() != null ? reg.getEstado().name() : "NULL"));
+        }
+        
+        return resultado;
     }
     
     /**
@@ -442,13 +480,20 @@ public class RegistroTriageDAO extends BaseDAO<RegistroTriage> {
         
         registro.setMotivoConsulta(rs.getString("motivo_consulta"));
         registro.setSintomasPrincipales(rs.getString("sintomas_principales"));
-        registro.setSignosVitalesPresion(rs.getString("signos_vitales_presion"));
-        registro.setSignosVitalesPulso(rs.getInt("signos_vitales_pulso"));
-        registro.setSignosVitalesTemperatura(rs.getDouble("signos_vitales_temperatura"));
-        registro.setSignosVitalesRespiracion(rs.getInt("signos_vitales_respiracion"));
-        registro.setSignosVitalesSaturacion(rs.getInt("signos_vitales_saturacion"));
-        registro.setNivelDolor(rs.getInt("nivel_dolor"));
-        registro.setEscalaGlasgow(rs.getInt("escala_glasgow"));
+        
+        // Mapear signos vitales con nombres correctos de columnas
+        // Construir presión arterial desde sistólica y diastólica
+        Integer sistolica = rs.getInt("presion_sistolica");
+        Integer diastolica = rs.getInt("presion_diastolica");
+        if (sistolica > 0 && diastolica > 0) {
+            registro.setSignosVitalesPresion(sistolica + "/" + diastolica);
+        }
+        
+        registro.setSignosVitalesPulso(rs.getInt("frecuencia_cardiaca"));
+        registro.setSignosVitalesTemperatura(rs.getDouble("temperatura"));
+        registro.setSignosVitalesRespiracion(rs.getInt("frecuencia_respiratoria"));
+        registro.setSignosVitalesSaturacion(rs.getInt("saturacion_oxigeno"));
+        registro.setEscalaGlasgow(rs.getInt("glasgow"));
         registro.setObservacionesTriage(rs.getString("observaciones_triage"));
         
         String nivelUrgencia = rs.getString("nivel_urgencia");
@@ -456,8 +501,14 @@ public class RegistroTriageDAO extends BaseDAO<RegistroTriage> {
             registro.setNivelUrgencia(NivelUrgencia.valueOf(nivelUrgencia));
         }
         
-        registro.setTiempoEstimadoAtencion(rs.getInt("tiempo_estimado_atencion"));
+        registro.setEspecialidadAsignada(rs.getString("especialidad_asignada"));
         registro.setPrioridadNumerica(rs.getInt("prioridad_orden"));
+        
+        // Mapear estado del registro
+        String estado = rs.getString("estado");
+        if (estado != null) {
+            registro.setEstado(EstadoPaciente.valueOf(estado));
+        }
         
         // Campos adicionales de los JOINs (si están disponibles)
         try {
@@ -751,6 +802,52 @@ public class RegistroTriageDAO extends BaseDAO<RegistroTriage> {
             return resultado;
         } catch (SQLException e) {
             throw new RuntimeException("Error al obtener distribución por día", e);
+        }
+    }
+
+    /**
+     * Extrae la presión sistólica de una cadena de presión arterial
+     * @param presionArterial cadena en formato "120/80" o solo "120"
+     * @return presión sistólica como entero, o null si no se puede extraer
+     */
+    private Integer extraerPresionSistolica(String presionArterial) {
+        if (presionArterial == null || presionArterial.trim().isEmpty()) {
+            return null;
+        }
+        
+        try {
+            String presion = presionArterial.trim();
+            if (presion.contains("/")) {
+                return Integer.valueOf(presion.split("/")[0].trim());
+            } else {
+                return Integer.valueOf(presion);
+            }
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+    
+    /**
+     * Extrae la presión diastólica de una cadena de presión arterial
+     * @param presionArterial cadena en formato "120/80"
+     * @return presión diastólica como entero, o null si no se puede extraer
+     */
+    private Integer extraerPresionDiastolica(String presionArterial) {
+        if (presionArterial == null || presionArterial.trim().isEmpty()) {
+            return null;
+        }
+        
+        try {
+            String presion = presionArterial.trim();
+            if (presion.contains("/")) {
+                String[] partes = presion.split("/");
+                if (partes.length >= 2) {
+                    return Integer.valueOf(partes[1].trim());
+                }
+            }
+            return null;
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 

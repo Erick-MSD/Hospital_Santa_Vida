@@ -1,6 +1,6 @@
 package services;
 
-import dao.CitaMedicaDAO;
+// import dao.CitaMedicaDAO; // DESHABILITADO - Funcionalidad de citas removida
 import dao.UsuarioDAO;
 import dao.PacienteDAO;
 import dao.RegistroTriageDAO;
@@ -25,7 +25,7 @@ import java.util.HashMap;
  */
 public class ReportesService {
     
-    private final CitaMedicaDAO citaMedicaDAO;
+    // private final CitaMedicaDAO citaMedicaDAO; // DESHABILITADO
     private final UsuarioDAO usuarioDAO;
     private final PacienteDAO pacienteDAO;
     private final RegistroTriageDAO triageDAO;
@@ -37,7 +37,7 @@ public class ReportesService {
      * Constructor del servicio de reportes
      */
     public ReportesService() {
-        this.citaMedicaDAO = new CitaMedicaDAO();
+        // this.citaMedicaDAO = new CitaMedicaDAO(); // DESHABILITADO
         this.usuarioDAO = new UsuarioDAO();
         this.pacienteDAO = new PacienteDAO();
         this.triageDAO = new RegistroTriageDAO();

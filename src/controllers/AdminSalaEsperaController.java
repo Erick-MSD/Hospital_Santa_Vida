@@ -66,8 +66,8 @@ public class AdminSalaEsperaController extends BaseController implements Initial
     // Servicios
     private TriageService triageService;
     private PacienteService pacienteService;
-    private CitaService citaService;
-    private ReportesService reportesService;
+    // private CitaService citaService; // DESHABILITADO - Funcionalidad de citas removida
+    // private ReportesService reportesService; // DESHABILITADO
     
     // Timer para actualizaciones automáticas
     private Timer updateTimer;
@@ -78,12 +78,6 @@ public class AdminSalaEsperaController extends BaseController implements Initial
     
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // Inicializar servicios
-        triageService = new TriageService();
-        pacienteService = new PacienteService();
-        citaService = new CitaService();
-        reportesService = new ReportesService();
-        
         // Configurar tablas
         setupTables();
         
@@ -97,6 +91,12 @@ public class AdminSalaEsperaController extends BaseController implements Initial
     
     @Override
     protected void onSesionInicializada() {
+        // Inicializar servicios usando el AuthenticationService compartido
+        triageService = new TriageService();
+        pacienteService = new PacienteService();
+        // citaService = new CitaService(); // DESHABILITADO
+        // reportesService = new ReportesService(); // DESHABILITADO
+        
         // Verificar permisos de administrador
         if (!tienePermiso(AuthenticationService.Permiso.VER_DASHBOARD_ADMIN)) {
             showAlert("Sin permisos", "No tiene permisos para acceder al panel administrativo");
@@ -171,7 +171,7 @@ public class AdminSalaEsperaController extends BaseController implements Initial
             protected Void call() throws Exception {
                 Platform.runLater(() -> cargarEstadisticas());
                 Platform.runLater(() -> cargarPacientesTriage());
-                Platform.runLater(() -> cargarCitasHoy());
+                // Platform.runLater(() -> cargarCitasHoy()); // DESHABILITADO - Funcionalidad de citas removida
                 return null;
             }
         };
@@ -184,27 +184,40 @@ public class AdminSalaEsperaController extends BaseController implements Initial
      */
     private void cargarEstadisticas() {
         try {
+            String token = getTokenSesion();
+            if (token == null) {
+                System.err.println("Token de sesión no disponible");
+                return;
+            }
+            
             // Obtener estadísticas de triage
-            TriageService.EstadisticasTriage estadisticasTriage = triageService.obtenerEstadisticas(tokenSesion);
+            TriageService.EstadisticasTriage estadisticasTriage = triageService.obtenerEstadisticas(token);
             
             if (estadisticasTriage != null) {
                 lblTotalPacientes.setText(String.valueOf(estadisticasTriage.getTotalPacientesHoy()));
                 lblPacientesTriageHoy.setText(String.valueOf(estadisticasTriage.getPacientesEvaluadosHoy()));
                 lblPacientesEspera.setText(String.valueOf(estadisticasTriage.getPacientesEnEspera()));
+            } else {
+                // Mostrar valores por defecto si no hay datos
+                lblTotalPacientes.setText("0");
+                lblPacientesTriageHoy.setText("0");
+                lblPacientesEspera.setText("0");
             }
             
             // Obtener estadísticas de citas
-            CitaService.EstadisticasCitas estadisticasCitas = citaService.obtenerEstadisticas(tokenSesion);
+            // CitaService.EstadisticasCitas estadisticasCitas = citaService.obtenerEstadisticas(token); // DESHABILITADO
             
-            if (estadisticasCitas != null) {
-                int citasHoyCount = estadisticasCitas.getConteosPorEstado().stream()
-                    .mapToInt(conteo -> conteo.getConteo())
-                    .sum();
-                lblConsultasHoy.setText(String.valueOf(citasHoyCount));
-            }
+            // Datos simulados para citas por ahora
+            lblConsultasHoy.setText("0"); // Se puede conectar más tarde
             
         } catch (Exception e) {
             System.err.println("Error al cargar estadísticas: " + e.getMessage());
+            e.printStackTrace();
+            // Mostrar valores por defecto en caso de error
+            lblTotalPacientes.setText("0");
+            lblPacientesTriageHoy.setText("0");
+            lblPacientesEspera.setText("0");
+            lblConsultasHoy.setText("0");
         }
     }
     
@@ -213,52 +226,85 @@ public class AdminSalaEsperaController extends BaseController implements Initial
      */
     private void cargarPacientesTriage() {
         try {
-            List<TriageService.PacienteEnEspera> pacientesEnEspera = triageService.obtenerPacientesEnEspera(tokenSesion);
+            String token = getTokenSesion();
+            if (token == null) {
+                System.err.println("Token de sesión no disponible");
+                return;
+            }
+            
+            // Verificar que la tabla y la lista estén inicializadas
+            if (tblPacientesTriage == null) {
+                System.err.println("Tabla de pacientes triage no inicializada");
+                return;
+            }
+            
+            if (pacientesTriage == null) {
+                System.err.println("Inicializando lista de pacientes triage...");
+                pacientesTriage = FXCollections.observableArrayList();
+                tblPacientesTriage.setItems(pacientesTriage);
+            }
+            
+            List<TriageService.PacienteEnEspera> pacientesEnEspera = triageService.obtenerPacientesEnEspera(token);
             
             pacientesTriage.clear();
             
-            for (TriageService.PacienteEnEspera paciente : pacientesEnEspera) {
-                PacienteTriageInfo info = new PacienteTriageInfo(
-                    paciente.getNombreCompleto(),
-                    paciente.getNivelUrgencia().toString(),
-                    calcularTiempoEspera(paciente.getFechaRegistro()),
-                    "EN ESPERA"
-                );
-                pacientesTriage.add(info);
+            if (pacientesEnEspera != null) {
+                for (TriageService.PacienteEnEspera paciente : pacientesEnEspera) {
+                    PacienteTriageInfo info = new PacienteTriageInfo(
+                        paciente.getNombreCompleto(),
+                        paciente.getNivelUrgencia().toString(),
+                        calcularTiempoEspera(paciente.getFechaRegistro()),
+                        "EN ESPERA"
+                    );
+                    pacientesTriage.add(info);
+                }
             }
             
         } catch (Exception e) {
             System.err.println("Error al cargar pacientes de triage: " + e.getMessage());
+            e.printStackTrace();
         }
     }
     
     /**
      * Carga las citas programadas para hoy
+     * DESHABILITADO - Funcionalidad de citas removida
      */
+    /*
     private void cargarCitasHoy() {
         try {
-            List<CitaMedica> citas = citaService.obtenerCitasHoy(tokenSesion);
+            String token = getTokenSesion();
+            if (token == null) {
+                System.err.println("Token de sesión no disponible");
+                return;
+            }
+            
+            List<CitaMedica> citas = citaService.obtenerCitasHoy(token);
             
             citasHoy.clear();
             
-            for (CitaMedica cita : citas) {
-                // Obtener información del paciente y médico
-                Paciente paciente = pacienteService.buscarPorId(tokenSesion, cita.getPacienteId());
-                
-                CitaInfo info = new CitaInfo(
-                    paciente != null ? paciente.getNombreCompleto() : "Paciente no encontrado",
-                    "Dr. " + obtenerNombreMedico(cita.getMedicoId()),
-                    cita.getHoraCita().format(DateTimeFormatter.ofPattern("HH:mm")),
-                    cita.getEspecialidad() != null ? cita.getEspecialidad().toString() : "No especificada",
-                    cita.getEstadoCita().toString()
-                );
-                citasHoy.add(info);
+            if (citas != null) {
+                for (CitaMedica cita : citas) {
+                    // Obtener información del paciente y médico
+                    Paciente paciente = pacienteService.buscarPorId(token, cita.getPacienteId());
+                    
+                    CitaInfo info = new CitaInfo(
+                        paciente != null ? paciente.getNombreCompleto() : "Paciente no encontrado",
+                        "Dr. " + obtenerNombreMedico(cita.getMedicoId()),
+                        cita.getHoraCita().format(DateTimeFormatter.ofPattern("HH:mm")),
+                        cita.getEspecialidad() != null ? cita.getEspecialidad().toString() : "No especificada",
+                        cita.getEstadoCita().toString()
+                    );
+                    citasHoy.add(info);
+                }
             }
             
         } catch (Exception e) {
             System.err.println("Error al cargar citas de hoy: " + e.getMessage());
+            e.printStackTrace();
         }
     }
+    */
     
     /**
      * Calcula el tiempo de espera desde una fecha

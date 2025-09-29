@@ -765,11 +765,45 @@ public class TriageService {
                 return false;
             }
             
-            // Simular guardado exitoso por ahora
-            return true;
+            // Verificar que la evaluación tenga los datos necesarios
+            if (evaluacion == null || evaluacion.getPacienteId() <= 0) {
+                System.err.println("Evaluación inválida o paciente no especificado");
+                return false;
+            }
+            
+            // Establecer fecha/hora de triage si no está establecida
+            if (evaluacion.getFechaHoraTriage() == null) {
+                evaluacion.setFechaHoraTriage(LocalDateTime.now());
+            }
+            
+            // Guardar en la base de datos usando el DAO
+            boolean guardado = registroTriageDAO.insertar(evaluacion);
+            
+            if (guardado) {
+                System.out.println("Evaluación de triage guardada exitosamente para paciente ID: " + evaluacion.getPacienteId());
+                
+                // Actualizar el estado del paciente en la base de datos
+                try {
+                    Paciente paciente = pacienteDAO.buscarPorId(evaluacion.getPacienteId());
+                    if (paciente != null) {
+                        // Después del triage, el paciente pasa a esperando trabajo social
+                        paciente.setEstadoActual(EstadoPaciente.ESPERANDO_TRABAJO_SOCIAL);
+                        pacienteDAO.actualizar(paciente);
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error al actualizar estado del paciente: " + e.getMessage());
+                    // No fallar el guardado por esto
+                }
+                
+                return true;
+            } else {
+                System.err.println("No se pudo guardar la evaluación en la base de datos");
+                return false;
+            }
             
         } catch (Exception e) {
             System.err.println("Error al guardar evaluación: " + e.getMessage());
+            e.printStackTrace();
             return false;
         }
     }
