@@ -34,11 +34,10 @@ public class HospitalSantaVidaApp extends Application {
     @Override
     public void start(Stage primaryStage) {
         try {
-            // Verificar conexión a la base de datos
-            if (!verificarConexionBaseDatos()) {
-                mostrarErrorConexion();
-                Platform.exit();
-                return;
+            // Verificar conexión a la base de datos (modo tolerante)
+            boolean conexionOk = verificarConexionBaseDatos();
+            if (!conexionOk) {
+                System.err.println("[APP] Continuando en modo limitado (sin BD) solo para pruebas de UI.");
             }
             
             // Cargar la ventana de login
@@ -85,6 +84,9 @@ public class HospitalSantaVidaApp extends Application {
             
             // Mostrar la ventana
             primaryStage.show();
+            if (!conexionOk) {
+                mostrarErrorConexion();
+            }
             
             // Mensaje de inicio en consola
             System.out.println("=================================================");
@@ -231,19 +233,13 @@ public class HospitalSantaVidaApp extends Application {
     private void verificarRecursos() {
         try {
             // Verificar archivos FXML - TEMPORALMENTE COMENTADO MIENTRAS SE CREAN LAS PANTALLAS
-            String[] archivosRequeridos = {
-                "/ui/login.fxml",
-                "/ui/admin-sala-espera.fxml" 
-                // "/ui/triage.fxml",
-                // "/ui/registro-paciente.fxml",
-                // "/ui/trabajo-social.fxml",
-                // "/ui/consulta-medica.fxml"
-            };
-            
+            String[] archivosRequeridos = {"/ui/login.fxml","/ui/admin-sala-espera.fxml"};
             for (String archivo : archivosRequeridos) {
-                if (getClass().getResource(archivo) == null) {
-                    System.err.println("⚠️ Archivo FXML faltante: " + archivo + " (será creado próximamente)");
-                    // throw new RuntimeException("Archivo FXML no encontrado: " + archivo);
+                var url = getClass().getResource(archivo);
+                if (url == null) {
+                    System.err.println("[RECURSOS] FXML NO ENCONTRADO: " + archivo + " (revisa classpath o copia a out/ui)");
+                } else {
+                    System.out.println("[RECURSOS] OK " + archivo + " -> " + url);
                 }
             }
             

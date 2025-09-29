@@ -122,8 +122,10 @@ public class DatabaseConnection {
      */
     public boolean conectar() {
         try {
-            // Cargar driver de MySQL
+            System.out.println("[DB] Classpath actual: " + System.getProperty("java.class.path"));
+            System.out.println("[DB] Intentando cargar driver MySQL 'com.mysql.cj.jdbc.Driver'");
             Class.forName("com.mysql.cj.jdbc.Driver");
+            System.out.println("[DB] Driver cargado OK");
             
             // Establecer conexión
             Properties connProps = new Properties();
@@ -137,12 +139,13 @@ public class DatabaseConnection {
             return true;
             
         } catch (ClassNotFoundException e) {
-            System.err.println("Driver MySQL no encontrado: " + e.getMessage());
+            System.err.println("[DB] NO se encontró el driver en el classpath");
+            System.err.println(e);
             this.connected = false;
             return false;
             
         } catch (SQLException e) {
-            System.err.println("Error al conectar con la base de datos: " + e.getMessage());
+            System.err.println("[DB] SQLException al conectar: " + e.getMessage());
             this.connected = false;
             return false;
         }

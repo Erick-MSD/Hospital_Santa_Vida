@@ -1,0 +1,91 @@
+/**
+ * Estilos generales para el panel administrativo y demás vistas
+ */
+
+.root {
+    -fx-font-family: 'Segoe UI', 'Roboto', 'Arial';
+}
+
+/* Barra superior */
+.h-top-bar {
+    -fx-background-color: linear-gradient(to right,#1e3a8a,#2563eb,#0284c7);
+    -fx-padding: 10 25;
+    -fx-alignment: CENTER_LEFT;
+}
+
+.h-top-bar .titulo-app {
+    -fx-text-fill: white;
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-letter-spacing: 0.5px;
+}
+
+.btn-primario {
+    -fx-background-color: linear-gradient(to right,#2563eb,#1d4ed8);
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 8;
+    -fx-padding: 8 18;
+}
+.btn-primario:hover { -fx-background-color: linear-gradient(to right,#1d4ed8,#1e40af); }
+
+.btn-peligro {
+    -fx-background-color: linear-gradient(to right,#dc2626,#b91c1c);
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 8;
+    -fx-padding: 8 18;
+}
+.btn-peligro:hover { -fx-background-color: linear-gradient(to right,#b91c1c,#991b1b); }
+
+/* Tarjetas */
+.card-metric {
+    -fx-background-color: white;
+    -fx-padding: 18;
+    -fx-background-radius: 14;
+    -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.08),12,0,0,3);
+    -fx-alignment: CENTER;
+    -fx-spacing: 6;
+    -fx-cursor: hand;
+}
+.card-metric:hover { -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.12),18,0,0,5); }
+
+.card-metric .titulo { -fx-font-size: 12px; -fx-text-fill:#64748b; -fx-font-weight: bold; }
+.card-metric .valor  { -fx-font-size: 40px; -fx-font-weight: bold; }
+.card-metric .nota   { -fx-font-size: 11px; -fx-text-fill:#94a3b8; }
+
+.valor.total     { -fx-text-fill:#1e3a8a; }
+.valor.espera    { -fx-text-fill:#b45309; }
+.valor.consultas { -fx-text-fill:#047857; }
+.valor.triage    { -fx-text-fill:#0e7490; }
+
+/* Tabla */
+.table-view {
+    -fx-background-color: transparent;
+    -fx-border-color: #e2e8f0;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+}
+.table-view .column-header-background { -fx-background-color: linear-gradient(to bottom,#f1f5f9,#e2e8f0); }
+.table-view .column-header .label { -fx-text-fill:#1e293b; -fx-font-weight: bold; }
+.table-row-cell:odd { -fx-background-color: #ffffff; }
+.table-row-cell:even { -fx-background-color: #f8fafc; }
+.table-row-cell:selected { -fx-background-color:#2563eb; -fx-text-fill:white; }
+
+/* Badge niveles (se aplicarán dinámicamente si se agregan estilos en celdas) */
+.badge {
+    -fx-background-radius: 12;
+    -fx-padding: 2 10;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+.badge.rojo    { -fx-background-color:#dc2626; }
+.badge.naranja { -fx-background-color:#ea580c; }
+.badge.amarillo{ -fx-background-color:#ca8a04; }
+.badge.verde   { -fx-background-color:#059669; }
+.badge.azul    { -fx-background-color:#2563eb; }
+
+/* Footer */
+.footer { -fx-background-color:#ffffff; -fx-border-color:#e2e8f0; -fx-border-width:1 0 0 0; }
+.footer .label { -fx-text-fill:#64748b; }

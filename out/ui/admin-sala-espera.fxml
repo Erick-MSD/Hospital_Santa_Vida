@@ -1,804 +1,109 @@
-<?xml version="1.0" encoding="UTF-8"?><?xml version="1.0" encoding="UTF-8"?>
-
-
-
-<?import javafx.geometry.Insets?><?import javafx.geometry.Insets?>
-
-<?import javafx.scene.control.Button?><?import javafx.scene.control.Button?>
-
-<?import javafx.scene.control.Label?><?import javafx.scene.control.Label?>
-
-<?import javafx.scene.control.TableColumn?><?import javafx.scene.control.TableColumn?>
-
-<?import javafx.scene.control.TableView?><?import javafx.scene.control.TableView?>
-
-<?import javafx.scene.image.Image?><?import javafx.scene.image.Image?>
-
-<?import javafx.scene.image.ImageView?><?import javafx.scene.image.ImageView?>
-
-<?import javafx.scene.layout.AnchorPane?><?import javafx.scene.layout.AnchorPane?>
-
-<?import javafx.scene.layout.HBox?><?import javafx.scene.layout.HBox?>
-
-<?import javafx.scene.layout.Region?><?import javafx.scene.layout.Region?>
-
-<?import javafx.scene.layout.VBox?><?import javafx.scene.layout.VBox?>
-
-<?import javafx.scene.text.Font?><?import javafx.scene.text.Font?>
-
-
-
-<AnchorPane prefHeight="800.0" prefWidth="1200.0" style="-fx-background-color: #F8F9FA;" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.AdminSalaEsperaController"><?import javafx.scene.control.Button?><?import javafx.scene.layout.*?>
-
-   <children>
-
-      <!-- Header --><?import javafx.scene.control.Label?><?import javafx.scene.text.*?>
-
-      <HBox alignment="CENTER_LEFT" prefHeight="80.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" style="-fx-background-color: #FFFFFF; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 8, 0, 0, 2);">
-
-         <children><?import javafx.scene.control.TableColumn?><?import javafx.scene.image.*?>
-
-            <!-- Logo y Hospital Name -->
-
-            <HBox alignment="CENTER_LEFT" spacing="20.0" HBox.hgrow="ALWAYS"><?import javafx.scene.control.TableView?>
-
-               <children>
-
-                  <ImageView fitHeight="50.0" fitWidth="50.0" preserveRatio="true"><?import javafx.scene.image.Image?><BorderPane xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.AdminSalaEsperaController">
-
-                     <image>
-
-                        <Image url="/assets/img/Hospital_santa_vida.png" /><?import javafx.scene.image.ImageView?>   <top>
-
-                     </image>
-
-                     <HBox.margin><?import javafx.scene.layout.AnchorPane?>      <!-- Header limpio similar a Figma -->
-
-                        <Insets left="40.0" />
-
-                     </HBox.margin><?import javafx.scene.layout.HBox?>      <VBox style="-fx-background-color: white; -fx-padding: 20; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 5, 0, 0, 2); -fx-border-color: #E5E5E5; -fx-border-width: 0 0 1 0;">
-
-                  </ImageView>
-
-                  <?import javafx.scene.layout.Region?>         <HBox alignment="CENTER_LEFT" spacing="20.0">
-
-                  <VBox spacing="2.0">
-
-                     <children><?import javafx.scene.layout.VBox?>            <!-- Logo y título principal -->
-
-                        <Label text="HOSPITAL SANTA VIDA" textFill="#2E5984">
-
-                           <font><?import javafx.scene.text.Font?>            <HBox alignment="CENTER_LEFT" spacing="15.0">
-
-                              <Font name="System Bold" size="20.0" />
-
-                           </font>               <ImageView fitHeight="40.0" fitWidth="40.0" pickOnBounds="true" preserveRatio="true">
-
-                        </Label>
-
-                        <Label text="Sistema de Urgencias Digital" textFill="#7A7A7A"><AnchorPane prefHeight="800.0" prefWidth="1200.0" style="-fx-background-color: #F8F9FA;" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.AdminSalaEsperaController">                  <image>
-
-                           <font>
-
-                              <Font size="12.0" />   <children>                     <Image url="@../assets/img/Hospital_santa_vida.png" />
-
-                           </font>
-
-                        </Label>      <!-- Header -->                  </image>
-
-                     </children>
-
-                  </VBox>      <HBox alignment="CENTER_LEFT" prefHeight="80.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" style="-fx-background-color: #FFFFFF; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 8, 0, 0, 2);">               </ImageView>
-
-               </children>
-
-            </HBox>         <children>               <VBox spacing="2.0">
-
-            
-
-            <!-- Botones Header -->            <!-- Logo y Hospital Name -->                  <Label style="-fx-text-fill: #2E5984; -fx-font-size: 20px; -fx-font-weight: bold;" text="HOSPITAL SANTA VIDA" />
-
-            <HBox spacing="15.0" alignment="CENTER_RIGHT">
-
-               <children>            <HBox alignment="CENTER_LEFT" spacing="20.0" HBox.hgrow="ALWAYS">                  <Label style="-fx-text-fill: #666666; -fx-font-size: 12px;" text="Sistema de Urgencias Digital - Estado de Pacientes en Tiempo Real" />
-
-                  <Button text="EN LÍNEA" style="-fx-background-color: #27AE60; -fx-text-fill: white; -fx-background-radius: 20; -fx-padding: 8 16;" disable="true">
-
-                     <font>               <children>               </VBox>
-
-                        <Font name="System Bold" size="11.0" />
-
-                     </font>                  <ImageView fitHeight="50.0" fitWidth="50.0" preserveRatio="true">            </HBox>
-
-                  </Button>
-
-                  <Button text="⚡ ACCESO RÁPIDO" style="-fx-background-color: #3498DB; -fx-text-fill: white; -fx-background-radius: 20; -fx-padding: 8 16;">                     <image>            
-
-                     <font>
-
-                        <Font name="System Bold" size="11.0" />                        <Image url="/assets/img/Hospital_santa_vida.png" />            <Region HBox.hgrow="ALWAYS" />
-
-                     </font>
-
-                  </Button>                     </image>            
-
-                  <Button fx:id="btnCerrarSesion" onAction="#handleLogout" text="🚪 CERRAR SESIÓN" style="-fx-background-color: #E74C3C; -fx-text-fill: white; -fx-background-radius: 20; -fx-padding: 8 16;">
-
-                     <font>                     <HBox.margin>            <!-- Estado y controles del lado derecho -->
-
-                        <Font name="System Bold" size="11.0" />
-
-                     </font>                        <Insets left="40.0" />            <HBox alignment="CENTER_RIGHT" spacing="15.0">
-
-                  </Button>
-
-               </children>                     </HBox.margin>               <Label style="-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-padding: 5 12; -fx-background-radius: 15; -fx-font-size: 11px; -fx-font-weight: bold;" text="🟢 EN LÍNEA" />
-
-               <HBox.margin>
-
-                  <Insets right="40.0" />                  </ImageView>               <!-- Menú de navegación restaurado -->
-
-               </HBox.margin>
-
-            </HBox>                                 <MenuBar style="-fx-background-color: #2196F3; -fx-background-radius: 6;">
-
-         </children>
-
-      </HBox>                  <VBox spacing="2.0">                  <Menu style="-fx-text-fill: white; -fx-font-size: 12px; -fx-font-weight: bold;" text="🏥 ACCESO RÁPIDO">
-
-
-
-      <!-- Main Content -->                     <children>                     <MenuItem fx:id="menuTriage" onAction="#abrirTriage" text="🩺 Evaluación Triage" />
-
-      <VBox spacing="30.0" AnchorPane.leftAnchor="40.0" AnchorPane.rightAnchor="40.0" AnchorPane.topAnchor="100.0" AnchorPane.bottomAnchor="40.0">
-
-         <children>                        <Label text="HOSPITAL SANTA VIDA" textFill="#2E5984">                     <MenuItem fx:id="menuRegistro" onAction="#abrirRegistroPaciente" text="📋 Registro de Pacientes" />
-
-            <!-- Title -->
-
-            <HBox alignment="CENTER_LEFT" spacing="15.0">                           <font>                     <MenuItem fx:id="menuTrabajoSocial" onAction="#abrirTrabajoSocial" text="🤝 Trabajo Social" />
-
-               <children>
-
-                  <Label text="📊" style="-fx-font-size: 24px;"/>                              <Font name="System Bold" size="20.0" />                     <MenuItem fx:id="menuConsultaMedica" onAction="#abrirConsultaMedica" text="👨‍⚕️ Consulta Médica" />
-
-                  <Label text="Sala de Espera - Estado de Pacientes" textFill="#2E5984">
-
-                     <font>                           </font>                     <SeparatorMenuItem />
-
-                        <Font name="System Bold" size="24.0" />
-
-                     </font>                        </Label>                     <MenuItem fx:id="menuReportes" onAction="#abrirReportes" text="📊 Reportes" />
-
-                  </Label>
-
-               </children>                        <Label text="Sistema de Urgencias Digital - Estado de Pacientes en Tiempo Real" textFill="#7A7A7A">                     <MenuItem fx:id="menuConfiguracion" onAction="#abrirConfiguracion" text="⚙️ Configuración" />
-
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+<?import javafx.scene.*?>
+
+<!-- Panel Administrativo - Sala de Espera -->
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="controllers.AdminSalaEsperaController"
+            stylesheets="@estilos-dashboard.css">
+    <!-- Top: Menú y barra superior -->
+    <top>
+        <VBox spacing="0">
+            <MenuBar>
+                <Menu text="Navegación">
+                    <MenuItem fx:id="menuTriage" text="Triage" onAction="#abrirTriage" />
+                    <MenuItem fx:id="menuRegistro" text="Registro Pacientes" onAction="#abrirRegistroPaciente" />
+                    <MenuItem fx:id="menuTrabajoSocial" text="Trabajo Social" onAction="#abrirTrabajoSocial" />
+                    <MenuItem fx:id="menuConsultaMedica" text="Consulta Médica" onAction="#abrirConsultaMedica" />
+                    <SeparatorMenuItem />
+                    <MenuItem fx:id="menuReportes" text="Reportes" onAction="#abrirReportes" />
+                    <MenuItem fx:id="menuConfiguracion" text="Configuración" onAction="#abrirConfiguracion" />
+                </Menu>
+            </MenuBar>
+            <HBox spacing="15" styleClass="h-top-bar">
+                <ImageView fitHeight="42" preserveRatio="true" smooth="true" pickOnBounds="true">
+                    <image>
+                        <Image url="@../assets/img/Hospital_santa_vida.png" />
+                    </image>
+                </ImageView>
+                <Label text="HOSPITAL SANTA VIDA - Panel Administrativo" styleClass="titulo-app" />
+                <Pane HBox.hgrow="ALWAYS" />
+                <Button fx:id="btnActualizar" text="Actualizar" onAction="#handleActualizar" styleClass="btn-primario" />
+                <Button fx:id="btnCerrarSesion" text="Cerrar Sesión" onAction="#handleLogout" styleClass="btn-peligro" />
+            </HBox>
+        </VBox>
+    </top>
+
+    <!-- Center: Contenido principal -->
+    <center>
+        <VBox spacing="25" style="-fx-padding:20; -fx-background-color: linear-gradient(to bottom,#f5f7fa,#eef1f5);">
+            <!-- Tarjetas estadísticas -->
+            <HBox spacing="20">
+                <VBox prefWidth="200" alignment="CENTER" spacing="5" style="-fx-background-color:white; -fx-padding:15; -fx-background-radius:12; -fx-effect:dropshadow(gaussian, rgba(0,0,0,0.08),10,0,0,2);">
+                    <Label text="TOTAL PACIENTES" style="-fx-font-size:12; -fx-text-fill:#555; -fx-font-weight:bold;" />
+                    <Label fx:id="lblTotalPacientes" text="0" style="-fx-font-size:38; -fx-font-weight:bold; -fx-text-fill:#1e3a8a;" />
+                    <Label text="en el sistema hoy" style="-fx-text-fill:#777; -fx-font-size:11;" />
+                </VBox>
+                <VBox prefWidth="200" alignment="CENTER" spacing="5" style="-fx-background-color:white; -fx-padding:15; -fx-background-radius:12; -fx-effect:dropshadow(gaussian, rgba(0,0,0,0.08),10,0,0,2);">
+                    <Label text="ESPERANDO TRIAGE" style="-fx-font-size:12; -fx-text-fill:#555; -fx-font-weight:bold;" />
+                    <Label fx:id="lblPacientesEspera" text="0" style="-fx-font-size:38; -fx-font-weight:bold; -fx-text-fill:#b45309;" />
+                    <Label text="pendientes de evaluación" style="-fx-text-fill:#777; -fx-font-size:11;" />
+                </VBox>
+                <VBox prefWidth="200" alignment="CENTER" spacing="5" style="-fx-background-color:white; -fx-padding:15; -fx-background-radius:12; -fx-effect:dropshadow(gaussian, rgba(0,0,0,0.08),10,0,0,2);">
+                    <Label text="CONSULTAS HOY" style="-fx-font-size:12; -fx-text-fill:#555; -fx-font-weight:bold;" />
+                    <Label fx:id="lblConsultasHoy" text="0" style="-fx-font-size:38; -fx-font-weight:bold; -fx-text-fill:#047857;" />
+                    <Label text="atenciones finalizadas" style="-fx-text-fill:#777; -fx-font-size:11;" />
+                </VBox>
+                <VBox prefWidth="200" alignment="CENTER" spacing="5" style="-fx-background-color:white; -fx-padding:15; -fx-background-radius:12; -fx-effect:dropshadow(gaussian, rgba(0,0,0,0.08),10,0,0,2);">
+                    <Label text="TRIAGE HOY" style="-fx-font-size:12; -fx-text-fill:#555; -fx-font-weight:bold;" />
+                    <Label fx:id="lblPacientesTriageHoy" text="0" style="-fx-font-size:38; -fx-font-weight:bold; -fx-text-fill:#0e7490;" />
+                    <Label text="evaluaciones realizadas" style="-fx-text-fill:#777; -fx-font-size:11;" />
+                </VBox>
             </HBox>
 
-                           <font>                  </Menu>
-
-            <!-- Statistics Cards -->
-
-            <HBox spacing="20.0" alignment="CENTER">                              <Font size="12.0" />               </MenuBar>
-
-               <children>
-
-                  <!-- Total Pacientes -->                           </font>               <Button fx:id="btnCerrarSesion" onAction="#handleLogout" style="-fx-background-color: #F44336; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 16; -fx-background-radius: 6; -fx-font-size: 12px; -fx-cursor: hand;" text="CERRAR SESIÓN" />
-
-                  <VBox alignment="CENTER" spacing="10.0" style="-fx-background-color: #FFFFFF; -fx-background-radius: 15; -fx-padding: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 10, 0, 0, 3);" prefWidth="280.0">
-
-                     <children>                        </Label>            </HBox>
-
-                        <Label fx:id="lblTotalPacientes" text="0" textFill="#2E5984">
-
-                           <font>                     </children>         </HBox>
-
-                              <Font name="System Bold" size="48.0" />
-
-                           </font>                  </VBox>      </VBox>
-
-                        </Label>
-
-                        <Label text="👥 TOTAL PACIENTES" textFill="#2E5984">               </children>   </top>
-
-                           <font>
-
-                              <Font name="System Bold" size="12.0" />            </HBox>   <center>
-
-                           </font>
-
-                        </Label>                  <VBox spacing="20.0" style="-fx-padding: 30; -fx-background-color: #F8F9FA;">
-
-                        <Label text="en el sistema hoy" textFill="#7A7A7A">
-
-                           <font>            <!-- Botones Header -->         <!-- Título principal estilo Figma -->
-
-                              <Font size="10.0" />
-
-                           </font>            <HBox spacing="15.0" alignment="CENTER_RIGHT">         <HBox alignment="CENTER_LEFT" spacing="15.0" style="-fx-padding: 10 0 20 0;">
-
-                        </Label>
-
-                     </children>               <children>            <Label style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #2E5984;" text="📺 Sala de Espera - Estado de Pacientes" />
-
-                  </VBox>
-
-                  <Button text="EN LÍNEA" style="-fx-background-color: #27AE60; -fx-text-fill: white; -fx-background-radius: 20; -fx-padding: 8 16;" disable="true">         </HBox>
-
-                  <!-- Esperando Triage -->
-
-                  <VBox alignment="CENTER" spacing="10.0" style="-fx-background-color: #FFFFFF; -fx-background-radius: 15; -fx-padding: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 10, 0, 0, 3);" prefWidth="280.0">                     <font>
-
-                     <children>
-
-                        <Label fx:id="lblPacientesEspera" text="0" textFill="#FF8C42">                        <Font name="System Bold" size="11.0" />         <!-- Estadísticas estilo Figma -->
-
-                           <font>
-
-                              <Font name="System Bold" size="48.0" />                     </font>         <HBox spacing="20.0" style="-fx-padding: 0 0 30 0;">
-
-                           </font>
-
-                        </Label>                  </Button>            <VBox alignment="CENTER" style="-fx-background-color: white; -fx-padding: 30 40; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 6, 0, 0, 2); -fx-border-color: #F0F0F0; -fx-border-width: 1; -fx-border-radius: 12;" HBox.hgrow="ALWAYS">
-
-                        <Label text="⏳ ESPERANDO TRIAGE" textFill="#FF8C42">
-
-                           <font>                  <Button text="⚡ ACCESO RÁPIDO" style="-fx-background-color: #3498DB; -fx-text-fill: white; -fx-background-radius: 20; -fx-padding: 8 16;">               <Label fx:id="lblTotalPacientes" style="-fx-font-size: 48px; -fx-font-weight: bold; -fx-text-fill: #4A90E2;" text="5" />
-
-                              <Font name="System Bold" size="12.0" />
-
-                           </font>                     <font>               <HBox alignment="CENTER" spacing="8.0">
-
-                        </Label>
-
-                        <Label text="pendientes de evaluación" textFill="#7A7A7A">                        <Font name="System Bold" size="11.0" />                  <Label style="-fx-text-fill: #4A90E2; -fx-font-size: 12px;" text="👥" />
-
-                           <font>
-
-                              <Font size="10.0" />                     </font>                  <Label style="-fx-font-size: 14px; -fx-text-fill: #666666; -fx-font-weight: bold;" text="TOTAL PACIENTES" />
-
-                           </font>
-
-                        </Label>                  </Button>               </HBox>
-
-                     </children>
-
-                  </VBox>                  <Button fx:id="btnCerrarSesion" onAction="#handleLogout" text="🚪 CERRAR SESIÓN" style="-fx-background-color: #E74C3C; -fx-text-fill: white; -fx-background-radius: 20; -fx-padding: 8 16;">               <Label style="-fx-font-size: 12px; -fx-text-fill: #999999;" text="en el sistema hoy" />
-
-
-
-                  <!-- Esperando Médico -->                     <font>            </VBox>
-
-                  <VBox alignment="CENTER" spacing="10.0" style="-fx-background-color: #FFFFFF; -fx-background-radius: 15; -fx-padding: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 10, 0, 0, 3);" prefWidth="280.0">
-
-                     <children>                        <Font name="System Bold" size="11.0" />            <VBox alignment="CENTER" style="-fx-background-color: white; -fx-padding: 30 40; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 6, 0, 0, 2); -fx-border-color: #F0F0F0; -fx-border-width: 1; -fx-border-radius: 12;" HBox.hgrow="ALWAYS">
-
-                        <Label fx:id="lblConsultasHoy" text="0" textFill="#4ECDC4">
-
-                           <font>                     </font>               <Label fx:id="lblEsperandoTriage" style="-fx-font-size: 48px; -fx-font-weight: bold; -fx-text-fill: #FF9500;" text="1" />
-
-                              <Font name="System Bold" size="48.0" />
-
-                           </font>                  </Button>               <HBox alignment="CENTER" spacing="8.0">
-
-                        </Label>
-
-                        <Label text="👨‍⚕️ ESPERANDO MÉDICO" textFill="#4ECDC4">               </children>                  <Label style="-fx-text-fill: #FF9500; -fx-font-size: 12px;" text="⏳" />
-
-                           <font>
-
-                              <Font name="System Bold" size="12.0" />               <HBox.margin>                  <Label style="-fx-font-size: 14px; -fx-text-fill: #666666; -fx-font-weight: bold;" text="ESPERANDO TRIAGE" />
-
-                           </font>
-
-                        </Label>                  <Insets right="40.0" />               </HBox>
-
-                        <Label text="listos para consulta" textFill="#7A7A7A">
-
-                           <font>               </HBox.margin>               <Label style="-fx-font-size: 12px; -fx-text-fill: #999999;" text="pendientes de evaluación" />
-
-                              <Font size="10.0" />
-
-                           </font>            </HBox>            </VBox>
-
-                        </Label>
-
-                     </children>         </children>            <VBox alignment="CENTER" style="-fx-background-color: white; -fx-padding: 30 40; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 6, 0, 0, 2); -fx-border-color: #F0F0F0; -fx-border-width: 1; -fx-border-radius: 12;" HBox.hgrow="ALWAYS">
-
-                  </VBox>
-
-      </HBox>               <Label fx:id="lblEsperandoMedico" style="-fx-font-size: 48px; -fx-font-weight: bold; -fx-text-fill: #FF6B35;" text="1" />
-
-                  <!-- Completados Hoy -->
-
-                  <VBox alignment="CENTER" spacing="10.0" style="-fx-background-color: #FFFFFF; -fx-background-radius: 15; -fx-padding: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 10, 0, 0, 3);" prefWidth="280.0">               <HBox alignment="CENTER" spacing="8.0">
-
-                     <children>
-
-                        <Label fx:id="lblPacientesTriageHoy" text="0" textFill="#58D68D">      <!-- Main Content -->                  <Label style="-fx-text-fill: #FF6B35; -fx-font-size: 12px;" text="🩺" />
-
-                           <font>
-
-                              <Font name="System Bold" size="48.0" />      <VBox spacing="30.0" AnchorPane.leftAnchor="40.0" AnchorPane.rightAnchor="40.0" AnchorPane.topAnchor="100.0" AnchorPane.bottomAnchor="40.0">                  <Label style="-fx-font-size: 14px; -fx-text-fill: #666666; -fx-font-weight: bold;" text="ESPERANDO MÉDICO" />
-
-                           </font>
-
-                        </Label>         <children>               </HBox>
-
-                        <Label text="✅ COMPLETADOS HOY" textFill="#58D68D">
-
-                           <font>            <!-- Title -->               <Label style="-fx-font-size: 12px; -fx-text-fill: #999999;" text="listos para consulta" />
-
-                              <Font name="System Bold" size="12.0" />
-
-                           </font>            <HBox alignment="CENTER_LEFT" spacing="15.0">            </VBox>
-
-                        </Label>
-
-                        <Label text="atenciones finalizadas" textFill="#7A7A7A">               <children>            <VBox alignment="CENTER" style="-fx-background-color: white; -fx-padding: 30 40; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 6, 0, 0, 2); -fx-border-color: #F0F0F0; -fx-border-width: 1; -fx-border-radius: 12;" HBox.hgrow="ALWAYS">
-
-                           <font>
-
-                              <Font size="10.0" />                  <Label text="📊" style="-fx-font-size: 24px;"/>               <Label fx:id="lblCompletados" style="-fx-font-size: 48px; -fx-font-weight: bold; -fx-text-fill: #4CAF50;" text="8" />
-
-                           </font>
-
-                        </Label>                  <Label text="Sala de Espera - Estado de Pacientes" textFill="#2E5984">               <HBox alignment="CENTER" spacing="8.0">
-
-                     </children>
-
-                  </VBox>                     <font>                  <Label style="-fx-text-fill: #4CAF50; -fx-font-size: 12px;" text="✅" />
-
-               </children>
-
-            </HBox>                        <Font name="System Bold" size="24.0" />                  <Label style="-fx-font-size: 14px; -fx-text-fill: #666666; -fx-font-weight: bold;" text="COMPLETADOS HOY" />
-
-
-
-            <!-- Tabla de Pacientes -->                     </font>               </HBox>
-
-            <VBox spacing="15.0" style="-fx-background-color: #FFFFFF; -fx-background-radius: 15; -fx-padding: 25; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 10, 0, 0, 3);" VBox.vgrow="ALWAYS">
-
-               <children>                  </Label>               <Label style="-fx-font-size: 12px; -fx-text-fill: #999999;" text="atenciones finalizadas" />
-
-                  <HBox alignment="CENTER_LEFT" spacing="10.0">
-
-                     <children>               </children>            </VBox>
-
-                        <Label text="📋 ESTADO ACTUAL DE PACIENTES EN EL SISTEMA" textFill="#2E5984">
-
-                           <font>            </HBox>         </HBox>
-
-                              <Font name="System Bold" size="16.0" />
-
-                           </font>
-
-                        </Label>
-
-                        <Region HBox.hgrow="ALWAYS" />            <!-- Statistics Cards -->         <!-- Tabla principal mejorada -->
-
-                        <Button fx:id="btnActualizar" onAction="#actualizarDatos" text="🔄 ACTUALIZAR" style="-fx-background-color: #27AE60; -fx-text-fill: white; -fx-background-radius: 8; -fx-padding: 8 12;">
-
-                           <font>            <HBox spacing="20.0" alignment="CENTER">         <VBox VBox.vgrow="ALWAYS" style="-fx-background-color: white; -fx-background-radius: 15; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 10, 0, 0, 5); -fx-padding: 20;">
-
-                              <Font name="System Bold" size="10.0" />
-
-                           </font>               <children>            <HBox alignment="CENTER_LEFT" spacing="15.0" style="-fx-padding: 0 0 15 0;">
-
-                        </Button>
-
-                     </children>                  <!-- Total Pacientes -->               <Label style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #1976D2;" text="📋 ESTADO ACTUAL DE PACIENTES EN EL SISTEMA" />
-
-                  </HBox>
-
-                  <VBox alignment="CENTER" spacing="10.0" style="-fx-background-color: #FFFFFF; -fx-background-radius: 15; -fx-padding: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 10, 0, 0, 3);" prefWidth="280.0">               <Region HBox.hgrow="ALWAYS" />
-
-                  <TableView fx:id="tblPacientesTriage" VBox.vgrow="ALWAYS" style="-fx-background-color: transparent;">
-
-                     <columns>                     <children>               <Label fx:id="lblActualizandose" style="-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-padding: 8 15; -fx-background-radius: 15; -fx-font-size: 12px; -fx-font-weight: bold;" text="� ACTUALIZANDO..." visible="false" />
-
-                        <TableColumn fx:id="colNombrePaciente" prefWidth="150.0" text="PACIENTE" />
-
-                        <TableColumn prefWidth="80.0" text="EDAD" />                        <Label fx:id="lblTotalPacientes" text="5" textFill="#2E5984">               <Button fx:id="btnActualizar" onAction="#handleActualizar" style="-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 12 20; -fx-background-radius: 20; -fx-font-size: 14px; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 5, 0, 0, 2);" text="🔄 ACTUALIZAR AHORA" />
-
-                        <TableColumn prefWidth="100.0" text="LLEGADA" />
-
-                        <TableColumn fx:id="colUrgencia" prefWidth="80.0" text="NIVEL" />                           <font>            </HBox>
-
-                        <TableColumn fx:id="colEstado" prefWidth="120.0" text="ESTADO" />
-
-                        <TableColumn fx:id="colTiempoEspera" prefWidth="80.0" text="TIEMPO" />                              <Font name="System Bold" size="48.0" />            
-
-                        <TableColumn prefWidth="120.0" text="ESPECIALIDAD" />
-
-                     </columns>                           </font>            <TableView fx:id="tablaPacientes" VBox.vgrow="ALWAYS" style="-fx-background-color: transparent; -fx-border-color: #E0E0E0; -fx-border-width: 2; -fx-border-radius: 10; -fx-background-radius: 10;">
-
-                  </TableView>
-
-               </children>                        </Label>               <columns>
-
-            </VBox>
-
-         </children>                        <Label text="👥 TOTAL PACIENTES" textFill="#2E5984">                  <TableColumn fx:id="colFolio" prefWidth="80.0" text="FOLIO" />
-
-      </VBox>
-
-   </children>                           <font>                  <TableColumn fx:id="colNombre" prefWidth="180.0" text="PACIENTE" />
-
-</AnchorPane>
-                              <Font name="System Bold" size="12.0" />                  <TableColumn fx:id="colEdad" prefWidth="60.0" text="EDAD" />
-
-                           </font>                  <TableColumn fx:id="colLlegada" prefWidth="100.0" text="LLEGADA" />
-
-                        </Label>                  <TableColumn fx:id="colNivelTriage" prefWidth="100.0" text="NIVEL" />
-
-                        <Label text="en el sistema hoy" textFill="#7A7A7A">                  <TableColumn fx:id="colEstado" prefWidth="140.0" text="ESTADO ACTUAL" />
-
-                           <font>                  <TableColumn fx:id="colTiempoEspera" prefWidth="100.0" text="TIEMPO" />
-
-                              <Font size="10.0" />                  <TableColumn fx:id="colEspecialidad" prefWidth="120.0" text="ESPECIALIDAD" />
-
-                           </font>                  <TableColumn fx:id="colObservaciones" prefWidth="200.0" text="OBSERVACIONES" />
-
-                        </Label>               </columns>
-
-                     </children>               <columnResizePolicy>
-
-                  </VBox>                  <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-
-               </columnResizePolicy>
-
-                  <!-- Esperando Triage -->            </TableView>
-
-                  <VBox alignment="CENTER" spacing="10.0" style="-fx-background-color: #FFFFFF; -fx-background-radius: 15; -fx-padding: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 10, 0, 0, 3);" prefWidth="280.0">         </VBox>
-
-                     <children>
-
-                        <Label fx:id="lblPacientesEspera" text="1" textFill="#FF8C42">         <!-- Panel de información simplificado estilo Figma -->
-
-                           <font>         <HBox spacing="20.0" style="-fx-padding: 30 0 0 0;">
-
-                              <Font name="System Bold" size="48.0" />            <!-- Información del sistema -->
-
-                           </font>            <VBox spacing="12.0" style="-fx-background-color: white; -fx-padding: 20; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 6, 0, 0, 2); -fx-border-color: #F0F0F0; -fx-border-width: 1; -fx-border-radius: 12;" HBox.hgrow="ALWAYS">
-
-                        </Label>               <Label style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #2E5984;" text="📊 INFORMACIÓN DEL SISTEMA" />
-
-                        <Label text="⏳ ESPERANDO TRIAGE" textFill="#FF8C42">               <HBox spacing="8.0">
-
-                           <font>                  <Label style="-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #666666;" text="Última actualización:" />
-
-                              <Font name="System Bold" size="12.0" />                  <Label fx:id="lblUltimaActualizacion" style="-fx-text-fill: #4CAF50; -fx-font-weight: bold; -fx-font-size: 13px;" text="17:07:31" />
-
-                           </font>               </HBox>
-
-                        </Label>               <HBox spacing="8.0">
-
-                        <Label text="pendientes de evaluación" textFill="#7A7A7A">                  <Label style="-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #666666;" text="Usuario actual:" />
-
-                           <font>                  <Label fx:id="lblUsuarioActual" style="-fx-text-fill: #2196F3; -fx-font-weight: bold; -fx-font-size: 13px;" text="Administrador" />
-
-                              <Font size="10.0" />               </HBox>
-
-                           </font>               <HBox spacing="8.0">
-
-                        </Label>                  <Label style="-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #666666;" text="Conexión BD:" />
-
-                     </children>                  <Label fx:id="lblEstadoConexion" style="-fx-text-fill: #4CAF50; -fx-font-weight: bold; -fx-font-size: 13px;" text="✅ Conectado" />
-
-                  </VBox>               </HBox>
-
-            </VBox>
-
-                  <!-- Esperando Médico -->
-
-                  <VBox alignment="CENTER" spacing="10.0" style="-fx-background-color: #FFFFFF; -fx-background-radius: 15; -fx-padding: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 10, 0, 0, 3);" prefWidth="280.0">            <!-- Leyenda de colores simplificada -->
-
-                     <children>            <VBox spacing="12.0" style="-fx-background-color: white; -fx-padding: 20; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 6, 0, 0, 2); -fx-border-color: #F0F0F0; -fx-border-width: 1; -fx-border-radius: 12;">
-
-                        <Label fx:id="lblConsultasHoy" text="1" textFill="#4ECDC4">               <Label style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #2E5984;" text="🎨 CÓDIGOS DE PRIORIDAD" />
-
-                           <font>               <VBox spacing="6.0">
-
-                              <Font name="System Bold" size="48.0" />                  <HBox spacing="10.0" alignment="CENTER_LEFT">
-
-                           </font>                     <Label style="-fx-background-color: #F44336; -fx-text-fill: white; -fx-padding: 4 12; -fx-background-radius: 15; -fx-font-weight: bold; -fx-min-width: 60; -fx-font-size: 11px;" text="ROJO" />
-
-                        </Label>                     <Label style="-fx-font-size: 13px; -fx-text-fill: #666666;" text="CRÍTICO - Atención inmediata" />
-
-                        <Label text="👨‍⚕️ ESPERANDO MÉDICO" textFill="#4ECDC4">                  </HBox>
-
-                           <font>                  <HBox spacing="10.0" alignment="CENTER_LEFT">
-
-                              <Font name="System Bold" size="12.0" />                     <Label style="-fx-background-color: #FF9800; -fx-text-fill: white; -fx-padding: 4 12; -fx-background-radius: 15; -fx-font-weight: bold; -fx-min-width: 60; -fx-font-size: 11px;" text="NARANJA" />
-
-                           </font>                     <Label style="-fx-font-size: 13px; -fx-text-fill: #666666;" text="MUY URGENTE - 10 minutos" />
-
-                        </Label>                  </HBox>
-
-                        <Label text="listos para consulta" textFill="#7A7A7A">                  <HBox spacing="10.0" alignment="CENTER_LEFT">
-
-                           <font>                     <Label style="-fx-background-color: #FFC107; -fx-text-fill: white; -fx-padding: 4 12; -fx-background-radius: 15; -fx-font-weight: bold; -fx-min-width: 60; -fx-font-size: 11px;" text="AMARILLO" />
-
-                              <Font size="10.0" />                     <Label style="-fx-font-size: 13px; -fx-text-fill: #666666;" text="URGENTE - 60 minutos" />
-
-                           </font>                  </HBox>
-
-                        </Label>                  <HBox spacing="10.0" alignment="CENTER_LEFT">
-
-                     </children>                     <Label style="-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-padding: 4 12; -fx-background-radius: 15; -fx-font-weight: bold; -fx-min-width: 60; -fx-font-size: 11px;" text="VERDE" />
-
-                  </VBox>                     <Label style="-fx-font-size: 13px; -fx-text-fill: #666666;" text="MENOS URGENTE - 120 min" />
-
-                  </HBox>
-
-                  <!-- Completados Hoy -->                  <HBox spacing="10.0" alignment="CENTER_LEFT">
-
-                  <VBox alignment="CENTER" spacing="10.0" style="-fx-background-color: #FFFFFF; -fx-background-radius: 15; -fx-padding: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 10, 0, 0, 3);" prefWidth="280.0">                     <Label style="-fx-background-color: #2196F3; -fx-text-fill: white; -fx-padding: 4 12; -fx-background-radius: 15; -fx-font-weight: bold; -fx-min-width: 60; -fx-font-size: 11px;" text="AZUL" />
-
-                     <children>                     <Label style="-fx-font-size: 13px; -fx-text-fill: #666666;" text="NO URGENTE - Cita médica" />
-
-                        <Label fx:id="lblPacientesTriageHoy" text="8" textFill="#58D68D">                  </HBox>
-
-                           <font>               </VBox>
-
-                              <Font name="System Bold" size="48.0" />            </VBox>
-
-                           </font>         </HBox>
-
-                        </Label>      </VBox>
-
-                        <Label text="✅ COMPLETADOS HOY" textFill="#58D68D">   </center>
-
-                           <font>   <bottom>
-
-                              <Font name="System Bold" size="12.0" />      <!-- Footer minimalista estilo Figma -->
-
-                           </font>      <HBox alignment="CENTER" style="-fx-background-color: white; -fx-padding: 20; -fx-border-color: #E5E5E5; -fx-border-width: 1 0 0 0;">
-
-                        </Label>         <VBox alignment="CENTER_LEFT" spacing="4.0">
-
-                        <Label text="atenciones finalizadas" textFill="#7A7A7A">            <Label style="-fx-text-fill: #2E5984; -fx-font-size: 14px; -fx-font-weight: bold;" text="Hospital Santa Vida © 2025" />
-
-                           <font>            <Label style="-fx-text-fill: #999999; -fx-font-size: 12px;" text="Sistema de Gestión Hospitalaria - Sala de Espera Digital" />
-
-                              <Font size="10.0" />         </VBox>
-
-                           </font>         <Region HBox.hgrow="ALWAYS" />
-
-                        </Label>         <VBox alignment="CENTER_RIGHT" spacing="4.0">
-
-                     </children>            <HBox spacing="8.0" alignment="CENTER_RIGHT">
-
-                  </VBox>               <Label style="-fx-text-fill: #666666; -fx-font-size: 12px;" text="Hora actual:" />
-
-               </children>               <Label fx:id="lblHoraActual" style="-fx-text-fill: #2E5984; -fx-font-size: 14px; -fx-font-weight: bold; -fx-font-family: 'Segoe UI';" text="00:00:00" />
-
-            </HBox>            </HBox>
-
-            <Label style="-fx-text-fill: #999999; -fx-font-size: 11px;" text="Actualización automática cada 30 segundos" />
-
-            <!-- Main Content Area -->         </VBox>
-
-            <HBox spacing="20.0" VBox.vgrow="ALWAYS">      </HBox>
-
-               <children>   </bottom>
-
-                  <!-- Tabla de Pacientes --></BorderPane>
-                  <VBox spacing="15.0" style="-fx-background-color: #FFFFFF; -fx-background-radius: 15; -fx-padding: 25; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 10, 0, 0, 3);" HBox.hgrow="ALWAYS">
-                     <children>
-                        <HBox alignment="CENTER_LEFT" spacing="10.0">
-                           <children>
-                              <Label text="📋 ESTADO ACTUAL DE PACIENTES EN EL SISTEMA" textFill="#2E5984">
-                                 <font>
-                                    <Font name="System Bold" size="16.0" />
-                                 </font>
-                              </Label>
-                              <Region HBox.hgrow="ALWAYS" />
-                              <Button fx:id="btnActualizar" onAction="#actualizarDatos" text="🔄 ACTUALIZAR AHORA" style="-fx-background-color: #27AE60; -fx-text-fill: white; -fx-background-radius: 8; -fx-padding: 8 12;">
-                                 <font>
-                                    <Font name="System Bold" size="10.0" />
-                                 </font>
-                              </Button>
-                           </children>
-                        </HBox>
-
-                        <TableView fx:id="tblPacientesTriage" VBox.vgrow="ALWAYS" style="-fx-background-color: transparent;">
-                           <columns>
-                              <TableColumn fx:id="colNombrePaciente" prefWidth="120.0" text="PACIENTE" />
-                              <TableColumn text="EDAD" prefWidth="60.0" />
-                              <TableColumn text="LLEGADA" prefWidth="80.0" />
-                              <TableColumn fx:id="colUrgencia" prefWidth="80.0" text="NIVEL" />
-                              <TableColumn fx:id="colEstado" prefWidth="120.0" text="ESTADO ACTUAL" />
-                              <TableColumn fx:id="colTiempoEspera" prefWidth="80.0" text="TIEMPO" />
-                              <TableColumn text="ESPECIALIDAD" prefWidth="120.0" />
-                              <TableColumn text="OBSERVACIONES" prefWidth="150.0" />
-                           </columns>
-                        </TableView>
-                     </children>
-                  </VBox>
-
-                  <!-- Panel Lateral -->
-                  <VBox spacing="20.0" prefWidth="300.0">
-                     <children>
-                        <!-- Información del Sistema -->
-                        <VBox spacing="15.0" style="-fx-background-color: #FFFFFF; -fx-background-radius: 15; -fx-padding: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 10, 0, 0, 3);">
-                           <children>
-                              <Label text="ℹ️ INFORMACIÓN DEL SISTEMA" textFill="#2E5984">
-                                 <font>
-                                    <Font name="System Bold" size="14.0" />
-                                 </font>
-                              </Label>
-                              
-                              <VBox spacing="8.0">
-                                 <children>
-                                    <HBox alignment="CENTER_LEFT" spacing="10.0">
-                                       <children>
-                                          <Label text="📅 Última actualización:" textFill="#7A7A7A">
-                                             <font>
-                                                <Font size="11.0" />
-                                             </font>
-                                          </Label>
-                                          <Label text="17:01:41" textFill="#2E5984">
-                                             <font>
-                                                <Font name="System Bold" size="11.0" />
-                                             </font>
-                                          </Label>
-                                       </children>
-                                    </HBox>
-                                    <HBox alignment="CENTER_LEFT" spacing="10.0">
-                                       <children>
-                                          <Label text="👤 Usuario actual:" textFill="#7A7A7A">
-                                             <font>
-                                                <Font size="11.0" />
-                                             </font>
-                                          </Label>
-                                          <Label text="Administrador" textFill="#2E5984">
-                                             <font>
-                                                <Font name="System Bold" size="11.0" />
-                                             </font>
-                                          </Label>
-                                       </children>
-                                    </HBox>
-                                    <HBox alignment="CENTER_LEFT" spacing="10.0">
-                                       <children>
-                                          <Label text="🔗 Conexión BD:" textFill="#7A7A7A">
-                                             <font>
-                                                <Font size="11.0" />
-                                             </font>
-                                          </Label>
-                                          <Label text="✅ Conectado" textFill="#27AE60">
-                                             <font>
-                                                <Font name="System Bold" size="11.0" />
-                                             </font>
-                                          </Label>
-                                       </children>
-                                    </HBox>
-                                 </children>
-                              </VBox>
-                           </children>
-                        </VBox>
-
-                        <!-- Códigos de Prioridad -->
-                        <VBox spacing="15.0" style="-fx-background-color: #FFFFFF; -fx-background-radius: 15; -fx-padding: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 10, 0, 0, 3);">
-                           <children>
-                              <Label text="🚨 CÓDIGOS DE PRIORIDAD" textFill="#2E5984">
-                                 <font>
-                                    <Font name="System Bold" size="14.0" />
-                                 </font>
-                              </Label>
-                              
-                              <VBox spacing="12.0">
-                                 <children>
-                                    <HBox alignment="CENTER_LEFT" spacing="10.0">
-                                       <children>
-                                          <Label text="●" textFill="#E53E3E" style="-fx-font-size: 16px;" />
-                                          <VBox spacing="2.0">
-                                             <children>
-                                                <Label text="ROJO" textFill="#E53E3E">
-                                                   <font>
-                                                      <Font name="System Bold" size="11.0" />
-                                                   </font>
-                                                </Label>
-                                                <Label text="CRÍTICO - Atención inmediata" textFill="#7A7A7A">
-                                                   <font>
-                                                      <Font size="9.0" />
-                                                   </font>
-                                                </Label>
-                                             </children>
-                                          </VBox>
-                                       </children>
-                                    </HBox>
-                                    
-                                    <HBox alignment="CENTER_LEFT" spacing="10.0">
-                                       <children>
-                                          <Label text="●" textFill="#FF8C42" style="-fx-font-size: 16px;" />
-                                          <VBox spacing="2.0">
-                                             <children>
-                                                <Label text="NARANJA" textFill="#FF8C42">
-                                                   <font>
-                                                      <Font name="System Bold" size="11.0" />
-                                                   </font>
-                                                </Label>
-                                                <Label text="MUY URGENTE - 15 minutos" textFill="#7A7A7A">
-                                                   <font>
-                                                      <Font size="9.0" />
-                                                   </font>
-                                                </Label>
-                                             </children>
-                                          </VBox>
-                                       </children>
-                                    </HBox>
-                                    
-                                    <HBox alignment="CENTER_LEFT" spacing="10.0">
-                                       <children>
-                                          <Label text="●" textFill="#F7D794" style="-fx-font-size: 16px;" />
-                                          <VBox spacing="2.0">
-                                             <children>
-                                                <Label text="AMARILLO" textFill="#D68910">
-                                                   <font>
-                                                      <Font name="System Bold" size="11.0" />
-                                                   </font>
-                                                </Label>
-                                                <Label text="URGENTE - 30 minutos" textFill="#7A7A7A">
-                                                   <font>
-                                                      <Font size="9.0" />
-                                                   </font>
-                                                </Label>
-                                             </children>
-                                          </VBox>
-                                       </children>
-                                    </HBox>
-                                    
-                                    <HBox alignment="CENTER_LEFT" spacing="10.0">
-                                       <children>
-                                          <Label text="●" textFill="#58D68D" style="-fx-font-size: 16px;" />
-                                          <VBox spacing="2.0">
-                                             <children>
-                                                <Label text="VERDE" textFill="#58D68D">
-                                                   <font>
-                                                      <Font name="System Bold" size="11.0" />
-                                                   </font>
-                                                </Label>
-                                                <Label text="MENOS URGENTE - 120 min." textFill="#7A7A7A">
-                                                   <font>
-                                                      <Font size="9.0" />
-                                                   </font>
-                                                </Label>
-                                             </children>
-                                          </VBox>
-                                       </children>
-                                    </HBox>
-                                    
-                                    <HBox alignment="CENTER_LEFT" spacing="10.0">
-                                       <children>
-                                          <Label text="●" textFill="#5DADE2" style="-fx-font-size: 16px;" />
-                                          <VBox spacing="2.0">
-                                             <children>
-                                                <Label text="AZUL" textFill="#5DADE2">
-                                                   <font>
-                                                      <Font name="System Bold" size="11.0" />
-                                                   </font>
-                                                </Label>
-                                                <Label text="NO URGENTE - Cita médica" textFill="#7A7A7A">
-                                                   <font>
-                                                      <Font size="9.0" />
-                                                   </font>
-                                                </Label>
-                                             </children>
-                                          </VBox>
-                                       </children>
-                                    </HBox>
-                                 </children>
-                              </VBox>
-                           </children>
-                        </VBox>
-                     </children>
-                  </VBox>
-               </children>
+            <!-- Tablas -->
+            <HBox spacing="25" VBox.vgrow="ALWAYS">
+                <VBox spacing="10" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS">
+                    <Label text="Pacientes en Triage" style="-fx-font-size:16; -fx-font-weight:bold; -fx-text-fill:#1f2937;" />
+                    <TableView fx:id="tblPacientesTriage" VBox.vgrow="ALWAYS">
+                        <columns>
+                            <TableColumn fx:id="colNombrePaciente" text="Paciente" prefWidth="160" />
+                            <TableColumn fx:id="colUrgencia" text="Nivel" prefWidth="90" />
+                            <TableColumn fx:id="colTiempoEspera" text="Tiempo Espera" prefWidth="110" />
+                            <TableColumn fx:id="colEstado" text="Estado" prefWidth="110" />
+                        </columns>
+                    </TableView>
+                </VBox>
+
+                <VBox spacing="10" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS">
+                    <Label text="Citas Programadas Hoy" style="-fx-font-size:16; -fx-font-weight:bold; -fx-text-fill:#1f2937;" />
+                    <TableView fx:id="tblCitasHoy" VBox.vgrow="ALWAYS">
+                        <columns>
+                            <TableColumn fx:id="colPacienteCita" text="Paciente" prefWidth="150" />
+                            <TableColumn fx:id="colMedicoCita" text="Médico" prefWidth="140" />
+                            <TableColumn fx:id="colHoraCita" text="Hora" prefWidth="80" />
+                            <TableColumn fx:id="colEspecialidad" text="Especialidad" prefWidth="120" />
+                            <TableColumn fx:id="colEstadoCita" text="Estado" prefWidth="100" />
+                        </columns>
+                    </TableView>
+                </VBox>
             </HBox>
-         </children>
-      </VBox>
-   </children>
-</AnchorPane>
+        </VBox>
+    </center>
+
+    <!-- Right: (Opcional espacio extra) -->
+    <right>
+        <VBox prefWidth="0" />
+    </right>
+
+    <!-- Bottom: pie simple -->
+    <bottom>
+        <HBox alignment="CENTER_RIGHT" style="-fx-padding:6 15; -fx-background-color:#ffffff; -fx-border-color:#e5e7eb; -fx-border-width:1 0 0 0;">
+            <Label text="© 2025 Hospital Santa Vida" style="-fx-text-fill:#6b7280; -fx-font-size:11;" />
+        </HBox>
+    </bottom>
+</BorderPane>
