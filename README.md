@@ -461,8 +461,8 @@ mysql -u hospital_user -p hospital_santa_vida < hospital_santa_vida.sql
 </table>
 
 <p align="center"> <img src="assets/img/Evidencia.jpg" alt="Foto Evidencia" width="300" height="300" style="border-radius:50%;"> </p>
------
 
+-----
 
 ## 🎯 Objetivos de Aprendizaje Alcanzados
 
